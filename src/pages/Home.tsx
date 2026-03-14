@@ -1,55 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabase";
-import { ALLOWED_CATEGORIES } from "../../shared-categories";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { MapPin } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { ALLOWED_CATEGORIES } from "../lib/categories";
-
-type Business = {
-  id: number;
-  name: string;
-  category: string;
-  city: string | null;
-  government_rate: string | null;
-  phone: string | null;
-  website: string | null;
-  verification_status: string | null;
-  created_at: string;
-};
-
-const PAGE_SIZE = 20;
+import { MapPin, Star, Phone, Globe, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Home() {
-  const [rows, setRows] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>(ALLOWED_CATEGORIES[0]);
-  const [selectedRate, setSelectedRate] = useState<string>("A");
-
-  async function refreshGrid() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("category", selectedCategory)
-      .eq("government_rate", selectedRate)
-      .order("created_at", { ascending: false })
-      .range(0, PAGE_SIZE - 1);
-
-    if (error) {
-      console.error("Failed to load businesses", error);
-      setRows([]);
-    } else {
-      setRows((data ?? []) as Business[]);
-
-export default function Home() {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchRecentBusinesses();
-  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("All");
   const [governmentRate, setGovernmentRate] = useState("All");
@@ -83,19 +39,8 @@ export default function Home() {
     };
   }, [category, governmentRate, currentPage]);
 
-  async function fetchRecentBusinesses() {
+  async function fetchBusinesses() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("businesses")
-      .select("id,name,category,city,government_rate,phone,website,verification_status,created_at")
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error("Failed to fetch businesses", error);
-      setBusinesses([]);
-    } else {
-      setBusinesses((data as Business[]) ?? []);
     try {
       let query = supabase
         .from("businesses")
@@ -123,123 +68,12 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-    setLoading(false);
   }
 
-  useEffect(() => {
-    refreshGrid();
-  }, [selectedCategory, selectedRate]);
+  const filteredBusinesses = businesses.filter((b) =>
+    b.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("business_updates")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "businesses" },
-        () => {
-          refreshGrid();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedCategory, selectedRate]);
-
-  const rateOptions = useMemo(() => ["A", "B", "C"], []);
-
-  return (
-    <main className="min-h-screen bg-slate-50 p-8">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="mb-6 text-3xl font-bold text-slate-900">Business Directory Grid</h1>
-
-        <div className="mb-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700">
-            Category
-            <select
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
-              value={selectedCategory}
-              onChange={(event) => setSelectedCategory(event.target.value)}
-            >
-              {ALLOWED_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="text-sm font-medium text-slate-700">
-            Government Rate
-            <select
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2"
-              value={selectedRate}
-              onChange={(event) => setSelectedRate(event.target.value)}
-            >
-              {rateOptions.map((rate) => (
-                <option key={rate} value={rate}>
-                  {rate}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-100 text-left text-slate-600">
-              <tr>
-                <th className="px-4 py-3">Business Name</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">City</th>
-                <th className="px-4 py-3">Government Rate</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Website</th>
-                <th className="px-4 py-3">Verification Status</th>
-                <th className="px-4 py-3">Date Added</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {loading ? (
-                <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={8}>
-                    Loading businesses...
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={8}>
-                    No rows found for this category and government rate.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{row.name}</td>
-                    <td className="px-4 py-3">{row.category}</td>
-                    <td className="px-4 py-3">{row.city ?? "-"}</td>
-                    <td className="px-4 py-3">{row.government_rate ?? "-"}</td>
-                    <td className="px-4 py-3">{row.phone ?? "-"}</td>
-                    <td className="px-4 py-3">
-                      {row.website ? (
-                        <a href={row.website} className="text-blue-600 hover:underline" target="_blank" rel="noreferrer">
-                          {row.website}
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="px-4 py-3">{row.verification_status ?? "pending"}</td>
-                    <td className="px-4 py-3">{new Date(row.created_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
   const categories = [
     "All",
     "restaurants",
@@ -254,36 +88,31 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <header className="bg-white border-b border-neutral-200">
-        <div className="max-w-6xl mx-auto h-16 flex items-center justify-between px-4">
-          <div className="font-bold text-neutral-900">AI Business Directory</div>
-          <Link to="/admin" className="text-emerald-600 font-medium">
-            Dashboard
+      {/* Header */}
+      <header className="bg-white border-b border-neutral-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin className="text-emerald-600 h-6 w-6" />
+            <span className="font-bold text-xl text-neutral-900 tracking-tight">Iraq Compass</span>
+          </div>
+          <Link
+            to="/admin"
+            className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors"
+          >
+            Admin Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-2">Latest verified businesses</h1>
-        <p className="text-neutral-600 mb-6">Allowed categories: {ALLOWED_CATEGORIES.join(", ")}</p>
+      {/* Hero Section */}
+      <div className="bg-emerald-900 py-16 px-4 sm:px-6 lg:px-8 text-center">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 tracking-tight">
+          Discover Iraq's Best Businesses
+        </h1>
+        <p className="text-emerald-100 text-lg max-w-2xl mx-auto mb-8">
+          The most comprehensive directory powered by 18 AI Agents working around the clock.
+        </p>
 
-        {loading ? (
-          <p className="text-neutral-600">Loading…</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {businesses.map((business) => (
-              <article key={business.id} className="bg-white border border-neutral-200 rounded-xl p-4">
-                <h2 className="font-semibold text-neutral-900">{business.name}</h2>
-                <p className="text-sm text-neutral-600 mt-1">{business.category}</p>
-                <p className="text-sm text-neutral-600 mt-1 flex items-center gap-1">
-                  <MapPin className="h-4 w-4" /> {business.city ?? "Unknown city"}
-                </p>
-                <p className="text-sm text-neutral-600 mt-2">Status: {business.verification_status ?? "pending"}</p>
-              </article>
-            ))}
-          </div>
-        )}
-      </main>
         {/* Search Bar */}
         <div className="max-w-xl mx-auto relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
