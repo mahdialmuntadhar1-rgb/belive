@@ -1,27 +1,26 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
 import { Link } from "react-router-dom";
 import { AgentControlPanel } from "../components/admin/AgentControlPanel";
 
-const STATIC_GOVERNORS = [
-  { id: 1, name: "Gov-01 Restaurants", category: "Restaurants", emoji: "🍽️", color: "#FF6B35", records: 3247, target: 4000, status: "active", lastRun: "2m ago", errors: 2 },
-  { id: 2, name: "Gov-02 Cafes", category: "Cafes", emoji: "☕", color: "#F7B731", records: 1892, target: 2500, status: "active", lastRun: "5m ago", errors: 0 },
-  { id: 3, name: "Gov-03 Bakeries", category: "Bakeries", emoji: "🥐", color: "#FC5C65", records: 843, target: 1200, status: "idle", lastRun: "1h ago", errors: 1 },
-  { id: 4, name: "Gov-04 Hotels", category: "Hotels", emoji: "🏨", color: "#45AAF2", records: 612, target: 800, status: "active", lastRun: "8m ago", errors: 0 },
-  { id: 5, name: "Gov-05 Gyms", category: "Gyms", emoji: "💪", color: "#26de81", records: 438, target: 600, status: "active", lastRun: "12m ago", errors: 3 },
-  { id: 6, name: "Gov-06 Beauty Salons", category: "Beauty Salons", emoji: "💅", color: "#fd9644", records: 1124, target: 1500, status: "active", lastRun: "3m ago", errors: 0 },
-  { id: 7, name: "Gov-07 Barbershops", category: "Barbershops", emoji: "✂️", color: "#a55eea", records: 967, target: 1200, status: "idle", lastRun: "45m ago", errors: 0 },
-  { id: 8, name: "Gov-08 Pharmacies", category: "Pharmacies", emoji: "💊", color: "#2bcbba", records: 756, target: 1000, status: "active", lastRun: "6m ago", errors: 1 },
-  { id: 9, name: "Gov-09 Supermarkets", category: "Supermarkets", emoji: "🛒", color: "#4b7bec", records: 521, target: 700, status: "active", lastRun: "9m ago", errors: 0 },
-  { id: 10, name: "Gov-10 Electronics", category: "Electronics", emoji: "📱", color: "#0fb9b1", records: 389, target: 600, status: "error", lastRun: "2h ago", errors: 12 },
-  { id: 11, name: "Gov-11 Clothing", category: "Clothing Stores", emoji: "👗", color: "#e84393", records: 1043, target: 1400, status: "active", lastRun: "4m ago", errors: 0 },
-  { id: 12, name: "Gov-12 Car Services", category: "Car Services", emoji: "🚗", color: "#778ca3", records: 334, target: 500, status: "idle", lastRun: "3h ago", errors: 0 },
-  { id: 13, name: "Gov-13 Dentists", category: "Dentists", emoji: "🦷", color: "#20bf6b", records: 287, target: 400, status: "active", lastRun: "15m ago", errors: 0 },
-  { id: 14, name: "Gov-14 Clinics", category: "Clinics", emoji: "🏥", color: "#eb3b5a", records: 412, target: 600, status: "active", lastRun: "7m ago", errors: 2 },
-  { id: 15, name: "Gov-15 Schools", category: "Schools", emoji: "🏫", color: "#f7b731", records: 891, target: 1100, status: "active", lastRun: "11m ago", errors: 0 },
-  { id: 16, name: "Gov-16 Co-working", category: "Co-working Spaces", emoji: "💼", color: "#45aaf2", records: 156, target: 300, status: "idle", lastRun: "6h ago", errors: 1 },
-  { id: 17, name: "Gov-17 Entertainment", category: "Entertainment", emoji: "🎭", color: "#fa8231", records: 743, target: 1000, status: "active", lastRun: "18m ago", errors: 0 },
-  { id: 18, name: "Gov-18 Tourism", category: "Tourism", emoji: "🕌", color: "#2d98da", records: 512, target: 800, status: "active", lastRun: "22m ago", errors: 4 },
+type Governor = {
+  id: string;
+  name: string;
+  category: string;
+  emoji: string;
+  color: string;
+  records: number;
+  target: number;
+  status: string;
+  lastRun: string;
+  errors: number;
+};
+
+const GOVERNOR_STYLE_FALLBACKS = [
+  { emoji: "🍽️", color: "#FF6B35" },
+  { emoji: "☕", color: "#F7B731" },
+  { emoji: "🥐", color: "#FC5C65" },
+  { emoji: "🏨", color: "#45AAF2" },
+  { emoji: "💪", color: "#26de81" },
 ];
 
 const statusConfig: Record<string, any> = {
@@ -43,8 +42,8 @@ export default function Admin() {
   const [animatedRecords, setAnimatedRecords] = useState<Record<string, number>>({});
   const [selectedGov, setSelectedGov] = useState<string | number | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
-  const [governors, setGovernors] = useState(STATIC_GOVERNORS);
-  const [newToday, setNewToday] = useState(1247); // Mocked for visual
+  const [governors, setGovernors] = useState<Governor[]>([]);
+  const [newToday, setNewToday] = useState(0);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -59,40 +58,36 @@ export default function Admin() {
 
   async function fetchData() {
     try {
-      const { data, error } = await supabase.from("agents").select("*").order("agent_name");
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const merged = data.map((dbGov) => {
-          const staticGov = STATIC_GOVERNORS.find((g) => g.name === dbGov.agent_name) || ({} as any);
-          
-          // Format last run time
-          let lastRunStr = "Never";
-          if (dbGov.last_run) {
-            const diffMins = Math.round((new Date().getTime() - new Date(dbGov.last_run).getTime()) / 60000);
-            if (diffMins < 60) lastRunStr = `${diffMins}m ago`;
-            else if (diffMins < 1440) lastRunStr = `${Math.floor(diffMins / 60)}h ago`;
-            else lastRunStr = new Date(dbGov.last_run).toLocaleDateString();
-          }
-
-          return {
-            id: dbGov.id,
-            name: dbGov.agent_name,
-            category: dbGov.category,
-            emoji: staticGov.emoji || "🤖",
-            color: staticGov.color || "#45AAF2",
-            records: dbGov.records_collected || 0,
-            target: dbGov.target || 1000,
-            status: dbGov.status || "idle",
-            lastRun: lastRunStr,
-            errors: dbGov.errors || 0,
-          };
-        });
-        setGovernors(merged as any);
+      const response = await fetch("/api/agents");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch agents: ${response.status}`);
       }
+
+      const data = await response.json();
+      const liveGovernors = Array.isArray(data)
+        ? data.map((agent: any, index: number) => {
+            const fallback = GOVERNOR_STYLE_FALLBACKS[index % GOVERNOR_STYLE_FALLBACKS.length];
+            return {
+              id: String(agent.id ?? agent.name ?? `agent-${index + 1}`),
+              name: agent.name ?? agent.agent_name ?? `Agent ${index + 1}`,
+              category: agent.category ?? "Unassigned",
+              emoji: agent.emoji ?? fallback.emoji,
+              color: agent.color ?? fallback.color,
+              records: Number(agent.records_collected ?? agent.records ?? 0),
+              target: Number(agent.target ?? 1000),
+              status: agent.status ?? "idle",
+              lastRun: agent.lastRun ?? "Unknown",
+              errors: Number(agent.errors ?? 0),
+            };
+          })
+        : [];
+
+      setGovernors(liveGovernors);
+      setNewToday(liveGovernors.reduce((total: number, governor: Governor) => total + governor.records, 0));
     } catch (err) {
       console.error("Error fetching agents:", err);
-      // Fallback to static data if DB is not connected yet
+      setGovernors([]);
+      setNewToday(0);
     }
   }
 
@@ -191,7 +186,7 @@ export default function Admin() {
               </div>
             </div>
             <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, color: "#fff" }}>
-              18 GOVERNORS DASHBOARD
+              {governors.length} GOVERNORS DASHBOARD
             </div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, letterSpacing: 2, display: "flex", gap: "16px" }}>
               <span>BUSINESS INTELLIGENCE COLLECTION NETWORK</span>
