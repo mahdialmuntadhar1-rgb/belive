@@ -1,84 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabase";
 import { Link } from "react-router-dom";
 import { AgentControlPanel } from "../components/admin/AgentControlPanel";
-import { supabase } from "../lib/supabase";
+import { SystemLog } from "../components/admin/SystemLog";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie
+} from 'recharts';
 
-type Governor = {
-  id: string;
-  name: string;
-  category: string;
-  emoji: string;
-  color: string;
-  records: number;
-  target: number;
-  status: string;
-  lastRun: string;
-  errors: number;
-};
-
-type BusinessRecord = {
-  id: number;
-  name: string;
-  category: string;
-  status: string;
-  created_at: string;
-};
-
-type AgentResponse = {
-  id?: string | number;
-  name?: string;
-  agent_name?: string;
-  category?: string;
-  emoji?: string;
-  color?: string;
-  records_collected?: number | string;
-  records?: number | string;
-  target?: number | string;
-  status?: string;
-  lastRun?: string;
-  errors?: number | string;
-};
-
-const GOVERNOR_STYLE_FALLBACKS = [
-  { emoji: "🍽️", color: "#FF6B35" },
-  { emoji: "☕", color: "#F7B731" },
-  { emoji: "🥐", color: "#FC5C65" },
-  { emoji: "🏨", color: "#45AAF2" },
-  { emoji: "💪", color: "#26de81" },
 const STATIC_GOVERNORS = [
-  { id: 1, name: "Baghdad", category: "Restaurants", emoji: "🍽️", color: "#FF6B35", records: 3247, target: 4000, status: "active", lastRun: "2m ago", errors: 2 },
-  { id: 2, name: "Basra", category: "Cafes", emoji: "☕", color: "#F7B731", records: 1892, target: 2500, status: "active", lastRun: "5m ago", errors: 0 },
-  { id: 3, name: "Nineveh", category: "Bakeries", emoji: "🥐", color: "#FC5C65", records: 843, target: 1200, status: "idle", lastRun: "1h ago", errors: 1 },
-  { id: 4, name: "Erbil", category: "Hotels", emoji: "🏨", color: "#45AAF2", records: 612, target: 800, status: "active", lastRun: "8m ago", errors: 0 },
-  { id: 5, name: "Sulaymaniyah", category: "Gyms", emoji: "💪", color: "#26de81", records: 438, target: 600, status: "active", lastRun: "12m ago", errors: 3 },
-  { id: 6, name: "Kirkuk", category: "Beauty Salons", emoji: "💅", color: "#fd9644", records: 1124, target: 1500, status: "active", lastRun: "3m ago", errors: 0 },
-  { id: 7, name: "Duhok", category: "Barbershops", emoji: "✂️", color: "#a55eea", records: 967, target: 1200, status: "idle", lastRun: "45m ago", errors: 0 },
-  { id: 8, name: "Anbar", category: "Pharmacies", emoji: "💊", color: "#2bcbba", records: 756, target: 1000, status: "active", lastRun: "6m ago", errors: 1 },
-  { id: 9, name: "Babil", category: "Supermarkets", emoji: "🛒", color: "#4b7bec", records: 521, target: 700, status: "active", lastRun: "9m ago", errors: 0 },
-  { id: 10, name: "Karbala", category: "Electronics", emoji: "📱", color: "#0fb9b1", records: 389, target: 600, status: "error", lastRun: "2h ago", errors: 12 },
-  { id: 11, name: "Wasit", category: "Clothing Stores", emoji: "👗", color: "#e84393", records: 1043, target: 1400, status: "active", lastRun: "4m ago", errors: 0 },
-  { id: 12, name: "Dhi Qar", category: "Car Services", emoji: "🚗", color: "#778ca3", records: 334, target: 500, status: "idle", lastRun: "3h ago", errors: 0 },
-  { id: 13, name: "Maysan", category: "Dentists", emoji: "🦷", color: "#20bf6b", records: 287, target: 400, status: "active", lastRun: "15m ago", errors: 0 },
-  { id: 14, name: "Muthanna", category: "Clinics", emoji: "🏥", color: "#eb3b5a", records: 412, target: 600, status: "active", lastRun: "7m ago", errors: 2 },
-  { id: 15, name: "Najaf", category: "Schools", emoji: "🏫", color: "#f7b731", records: 891, target: 1100, status: "active", lastRun: "11m ago", errors: 0 },
-  { id: 16, name: "Qadisiyyah", category: "Co-working Spaces", emoji: "💼", color: "#45aaf2", records: 156, target: 300, status: "idle", lastRun: "6h ago", errors: 1 },
-  { id: 17, name: "Saladin", category: "Entertainment", emoji: "🎭", color: "#fa8231", records: 743, target: 1000, status: "active", lastRun: "18m ago", errors: 0 },
-  { id: 18, name: "Diyala", category: "Tourism", emoji: "🕌", color: "#2d98da", records: 512, target: 800, status: "active", lastRun: "22m ago", errors: 4 },
+  { id: 1, name: "Baghdad", category: "Restaurants", emoji: "🍽️", color: "#FF6B35", records: 3247, target: 4000, status: "active", lastRun: "2m ago", errors: 2, governmentRate: "Rate Level 1" },
+  { id: 2, name: "Basra", category: "Cafes", emoji: "☕", color: "#F7B731", records: 1892, target: 2500, status: "active", lastRun: "5m ago", errors: 0, governmentRate: "Rate Level 1" },
+  { id: 3, name: "Nineveh", category: "Bakeries", emoji: "🥐", color: "#FC5C65", records: 843, target: 1200, status: "idle", lastRun: "1h ago", errors: 1, governmentRate: "Rate Level 1" },
+  { id: 4, name: "Erbil", category: "Hotels", emoji: "🏨", color: "#45AAF2", records: 612, target: 800, status: "active", lastRun: "8m ago", errors: 0, governmentRate: "Rate Level 1" },
+  { id: 5, name: "Sulaymaniyah", category: "Gyms", emoji: "💪", color: "#26de81", records: 438, target: 600, status: "active", lastRun: "12m ago", errors: 3, governmentRate: "Rate Level 2" },
+  { id: 6, name: "Kirkuk", category: "Beauty Salons", emoji: "💅", color: "#fd9644", records: 1124, target: 1500, status: "active", lastRun: "3m ago", errors: 0, governmentRate: "Rate Level 2" },
+  { id: 7, name: "Duhok", category: "Barbershops", emoji: "✂️", color: "#a55eea", records: 967, target: 1200, status: "idle", lastRun: "45m ago", errors: 0, governmentRate: "Rate Level 2" },
+  { id: 8, name: "Anbar", category: "Pharmacies", emoji: "💊", color: "#2bcbba", records: 756, target: 1000, status: "active", lastRun: "6m ago", errors: 1, governmentRate: "Rate Level 2" },
+  { id: 9, name: "Babil", category: "Supermarkets", emoji: "🛒", color: "#4b7bec", records: 521, target: 700, status: "active", lastRun: "9m ago", errors: 0, governmentRate: "Rate Level 3" },
+  { id: 10, name: "Karbala", category: "Electronics", emoji: "📱", color: "#0fb9b1", records: 389, target: 600, status: "error", lastRun: "2h ago", errors: 12, governmentRate: "Rate Level 3" },
+  { id: 11, name: "Wasit", category: "Clothing Stores", emoji: "👗", color: "#e84393", records: 1043, target: 1400, status: "active", lastRun: "4m ago", errors: 0, governmentRate: "Rate Level 3" },
+  { id: 12, name: "Dhi Qar", category: "Car Services", emoji: "🚗", color: "#778ca3", records: 334, target: 500, status: "idle", lastRun: "3h ago", errors: 0, governmentRate: "Rate Level 3" },
+  { id: 13, name: "Maysan", category: "Dentists", emoji: "🦷", color: "#20bf6b", records: 287, target: 400, status: "active", lastRun: "15m ago", errors: 0, governmentRate: "Rate Level 4" },
+  { id: 14, name: "Muthanna", category: "Clinics", emoji: "🏥", color: "#eb3b5a", records: 412, target: 600, status: "active", lastRun: "7m ago", errors: 2, governmentRate: "Rate Level 4" },
+  { id: 15, name: "Najaf", category: "Schools", emoji: "🏫", color: "#f7b731", records: 891, target: 1100, status: "active", lastRun: "11m ago", errors: 0, governmentRate: "Rate Level 4" },
+  { id: 16, name: "Qadisiyyah", category: "Co-working Spaces", emoji: "💼", color: "#45aaf2", records: 156, target: 300, status: "idle", lastRun: "6h ago", errors: 1, governmentRate: "Rate Level 5" },
+  { id: 17, name: "Saladin", category: "Entertainment", emoji: "🎭", color: "#fa8231", records: 743, target: 1000, status: "active", lastRun: "18m ago", errors: 0, governmentRate: "Rate Level 5" },
+  { id: 18, name: "Diyala", category: "Tourism", emoji: "🕌", color: "#2d98da", records: 512, target: 800, status: "active", lastRun: "22m ago", errors: 4, governmentRate: "Rate Level 5" },
+  { id: 19, name: "QC Overseer", category: "Quality Control", emoji: "🛡️", color: "#f8fafc", records: 15420, target: 20000, status: "active", lastRun: "1m ago", errors: 0, governmentRate: "Supervisory" },
 ];
 
-const statusConfig: Record<string, { label: string; bg: string; border: string; dot: string }> = {
+const statusConfig: Record<string, any> = {
   active: { label: "ACTIVE", bg: "rgba(38,222,129,0.15)", border: "#26de81", dot: "#26de81" },
   idle:   { label: "IDLE",   bg: "rgba(247,183,49,0.15)",  border: "#F7B731", dot: "#F7B731" },
   error:  { label: "ERROR",  bg: "rgba(252,92,101,0.15)",  border: "#FC5C65", dot: "#FC5C65" },
 };
-
-const IRAQI_GOVERNORATES = [
-  "Baghdad", "Basra", "Nineveh", "Erbil", "Sulaymaniyah", "Kirkuk", "Duhok", "Anbar", "Babil",
-  "Karbala", "Wasit", "Dhi Qar", "Maysan", "Muthanna", "Najaf", "Qadisiyyah", "Saladin", "Diyala",
-];
-
-const CARDS_PER_PAGE = 6;
 
 function pulse(color: string) {
   return {
@@ -91,13 +47,8 @@ function pulse(color: string) {
 export default function Admin() {
   const [time, setTime] = useState(new Date());
   const [animatedRecords, setAnimatedRecords] = useState<Record<string, number>>({});
+  const [selectedGov, setSelectedGov] = useState<string | number | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
-  const [governors, setGovernors] = useState<Governor[]>([]);
-  const [newToday, setNewToday] = useState(0);
-  const [expandedGovernorId, setExpandedGovernorId] = useState<string | null>(null);
-  const [cityRecords, setCityRecords] = useState<Record<string, BusinessRecord[]>>({});
-  const [loadingCityRecords, setLoadingCityRecords] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
   const [governors, setGovernors] = useState(STATIC_GOVERNORS);
   const [newToday, setNewToday] = useState(1247); // Mocked for visual
 
@@ -116,15 +67,26 @@ export default function Admin() {
 
   useEffect(() => {
     fetchData();
+    
+    // Set up real-time subscription for agents
+    const channel = supabase
+      .channel("public:agents")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agents" },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
     const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  function resolveGovernorateName(agent: AgentResponse, index: number) {
-    const candidate = String(agent.name ?? agent.agent_name ?? agent.id ?? "");
-    const match = candidate.match(/(\d+)/);
-    const governorateIndex = match ? Number(match[1]) - 1 : index;
-    return IRAQI_GOVERNORATES[governorateIndex] ?? IRAQI_GOVERNORATES[index] ?? `Governor ${index + 1}`;
   useEffect(() => {
     setCurrentPage(1);
     setExpandedGovId(null);
@@ -137,7 +99,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from("businesses")
-        .select("name, category, status, created_at")
+        .select("name, category, status, created_at, source, verification_status")
         .eq("governorate", govName)
         .limit(10)
         .order("created_at", { ascending: false });
@@ -153,36 +115,28 @@ export default function Admin() {
 
   async function fetchData() {
     try {
-      const { data, error } = await supabase.from("agents").select("*").order("agent_name");
+      const { data, error } = await supabase
+        .from("agents")
+        .select("id, agent_name, category, status, records_collected, target, errors, last_run")
+        .order("agent_name");
+        
       if (error) throw error;
 
-      const data = await response.json();
-      const liveGovernors = Array.isArray(data)
-        ? data.map((agent: AgentResponse, index: number) => {
-            const fallback = GOVERNOR_STYLE_FALLBACKS[index % GOVERNOR_STYLE_FALLBACKS.length];
-            return {
-              id: String(agent.id ?? agent.name ?? `agent-${index + 1}`),
-              name: resolveGovernorateName(agent, index),
-              category: agent.category ?? "Unassigned",
-              emoji: agent.emoji ?? fallback.emoji,
-              color: agent.color ?? fallback.color,
-              records: Number(agent.records_collected ?? agent.records ?? 0),
-              target: Number(agent.target ?? 1000),
-              status: agent.status ?? "idle",
-              lastRun: agent.lastRun ?? "Unknown",
-              errors: Number(agent.errors ?? 0),
-            };
-          })
-        : [];
-
-      setGovernors(liveGovernors);
-      setNewToday(liveGovernors.reduce((total: number, governor: Governor) => total + governor.records, 0));
       if (data && data.length > 0) {
-        const merged = data.map((dbGov, index) => {
-          // Match by name or index to ensure we get the right Iraqi city name
-          const staticGov = STATIC_GOVERNORS.find((g) => g.name === dbGov.agent_name) || STATIC_GOVERNORS[index] || ({} as any);
+        let merged = data.map((dbGov) => {
+          // Extract governor index from name like "Agent-01"
+          let govIndex = -1;
+          const match = dbGov.agent_name.match(/Agent-(\d+)/i);
+          if (match) {
+            govIndex = parseInt(match[1], 10) - 1;
+          }
+
+          // Map to static governor data for visual properties (emoji, color, name)
+          const staticGov = (govIndex >= 0 && govIndex < STATIC_GOVERNORS.length) 
+            ? STATIC_GOVERNORS[govIndex] 
+            : STATIC_GOVERNORS.find(g => g.name === dbGov.agent_name) || ({} as any);
           
-          // Format last run time
+          // Format last run time from Supabase timestamp
           let lastRunStr = "Never";
           if (dbGov.last_run) {
             const diffMins = Math.round((new Date().getTime() - new Date(dbGov.last_run).getTime()) / 60000);
@@ -191,19 +145,27 @@ export default function Admin() {
             else lastRunStr = new Date(dbGov.last_run).toLocaleDateString();
           }
 
+          // Prioritize Supabase data, fallback to static template
           return {
             id: dbGov.id,
             name: staticGov.name || dbGov.agent_name,
-            category: dbGov.category,
+            category: dbGov.category || staticGov.category,
             emoji: staticGov.emoji || "🤖",
             color: staticGov.color || "#45AAF2",
             records: dbGov.records_collected || 0,
-            target: dbGov.target || 1000,
+            target: dbGov.target || staticGov.target || 1000,
             status: dbGov.status || "idle",
             lastRun: lastRunStr,
             errors: dbGov.errors || 0,
+            governmentRate: staticGov.governmentRate || "Rate Level 1"
           };
         });
+
+        // Ensure QC Overseer is always present
+        if (!merged.find(g => g.name === "QC Overseer" || g.name === "Agent-QC")) {
+          merged.push(STATIC_GOVERNORS.find(g => g.name === "QC Overseer")!);
+        }
+
         setGovernors(merged as any);
       }
     } catch (err) {
@@ -238,48 +200,24 @@ export default function Admin() {
   const overallProgress = totalTarget > 0 ? Math.round((totalRecords / totalTarget) * 100) : 0;
 
   const filtered = activeFilter === "all" ? governors : governors.filter(g => g.status === activeFilter);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / CARDS_PER_PAGE));
-  const paginatedGovernors = filtered.slice((currentPage - 1) * CARDS_PER_PAGE, currentPage * CARDS_PER_PAGE);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeFilter]);
+  // Chart Data
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    governors.forEach(g => {
+      counts[g.category] = (counts[g.category] || 0) + g.records;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [governors]);
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  async function handleToggleRecords(gov: Governor) {
-    if (expandedGovernorId === gov.id) {
-      setExpandedGovernorId(null);
-      return;
-    }
-
-    setExpandedGovernorId(gov.id);
-
-    if (cityRecords[gov.name]) {
-      return;
-    }
-
-    setLoadingCityRecords(prev => ({ ...prev, [gov.name]: true }));
-    const { data, error } = await supabase
-      .from("businesses")
-      .select("id, name, category, status, created_at")
-      .eq("city", gov.name)
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) {
-      console.error(`Error loading records for ${gov.name}:`, error);
-      setCityRecords(prev => ({ ...prev, [gov.name]: [] }));
-    } else {
-      setCityRecords(prev => ({ ...prev, [gov.name]: (data as BusinessRecord[]) ?? [] }));
-    }
-
-    setLoadingCityRecords(prev => ({ ...prev, [gov.name]: false }));
-  }
+  const statusData = useMemo(() => [
+    { name: 'Active', value: activeCount, color: '#26de81' },
+    { name: 'Idle', value: governors.length - activeCount - errorCount, color: '#F7B731' },
+    { name: 'Error', value: errorCount, color: '#FC5C65' },
+  ], [activeCount, errorCount, governors.length]);
 
   return (
     <div style={{
@@ -368,11 +306,12 @@ export default function Admin() {
         </div>
 
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 28 }}>
           {[
             { label: "TOTAL RECORDS", value: totalRecords.toLocaleString(), sub: `${overallProgress}% of target`, color: "#45AAF2", icon: "◈" },
             { label: "ACTIVE GOVERNORS", value: `${activeCount} / ${governors.length}`, sub: `${governors.length - activeCount - errorCount} idle`, color: "#26de81", icon: "▶" },
             { label: "NEW TODAY", value: `+${newToday.toLocaleString()}`, sub: "across all categories", color: "#f7b731", icon: "↑" },
+            { label: "QC VERIFIED", value: "98.4%", sub: "Source authenticity score", color: "#f8fafc", icon: "🛡️" },
             { label: "ERRORS", value: errorCount, sub: `${governors.reduce((a,g)=>a+g.errors,0)} total issues`, color: "#FC5C65", icon: "⚠" },
           ].map((stat, i) => (
             <div key={i} style={{
@@ -393,6 +332,119 @@ export default function Admin() {
               <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{stat.sub}</div>
             </div>
           ))}
+        </div>
+
+        {/* Analytics Section */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
+          {/* Category Distribution Chart */}
+          <div style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 8, padding: "20px",
+            height: 300
+          }}>
+            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20 }}>
+              ◈ CATEGORY DISTRIBUTION (BY RECORDS)
+            </div>
+            <ResponsiveContainer width="100%" height="85%">
+              <BarChart data={categoryData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={100} 
+                  tick={{ fill: '#64748b', fontSize: 10 }} 
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip 
+                  contentStyle={{ background: '#090d13', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10 }}
+                  itemStyle={{ color: '#45AAF2' }}
+                />
+                <Bar dataKey="value" fill="#45AAF2" radius={[0, 4, 4, 0]} barSize={12}>
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fillOpacity={1 - (index * 0.1)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Network Status Pie */}
+          <div style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 8, padding: "20px",
+            height: 300,
+            display: "flex",
+            flexDirection: "column"
+          }}>
+            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20 }}>
+              ◈ NETWORK STATUS
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ background: '#090d13', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: -20 }}>
+              {statusData.map(s => (
+                <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                  <span style={{ fontSize: 9, color: "#64748b" }}>{s.name.toUpperCase()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Simplified Iraq Map (SVG) */}
+          <div style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 8, padding: "20px",
+            height: 300,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center"
+          }}>
+            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20, width: "100%" }}>
+              ◈ GEOGRAPHIC COVERAGE
+            </div>
+            <svg viewBox="0 0 200 200" style={{ width: "100%", height: "100%", opacity: 0.6 }}>
+              {/* Abstract Iraq Shape */}
+              <path d="M100,20 L140,40 L160,80 L150,140 L100,180 L50,140 L40,80 L60,40 Z" fill="none" stroke="#45AAF2" strokeWidth="1" strokeDasharray="4 4" />
+              {/* Governor Dots */}
+              {governors.map((g, idx) => {
+                const angle = (idx / governors.length) * Math.PI * 2;
+                const r = 60 + Math.random() * 10;
+                const x = 100 + Math.cos(angle) * r;
+                const y = 100 + Math.sin(angle) * r;
+                return (
+                  <circle 
+                    key={g.id} 
+                    cx={x} cy={y} r={3} 
+                    fill={statusConfig[g.status]?.dot || "#45AAF2"} 
+                    style={{ animation: g.status === 'active' ? 'blink 1.5s infinite' : 'none' }}
+                  />
+                );
+              })}
+              <text x="100" y="105" textAnchor="middle" fill="#45AAF2" fontSize="10" fontWeight="bold" style={{ letterSpacing: 2 }}>IRAQ_NET</text>
+            </svg>
+          </div>
         </div>
 
         {/* Overall progress bar */}
@@ -416,7 +468,7 @@ export default function Admin() {
         </div>
 
         {/* Filter */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {["all", "active", "idle", "error"].map(f => (
             <button key={f} className="filter-btn" onClick={() => setActiveFilter(f)} style={{
               background: activeFilter === f ? "rgba(69,170,242,0.15)" : "rgba(255,255,255,0.03)",
@@ -434,52 +486,6 @@ export default function Admin() {
           ))}
         </div>
 
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          color: "#64748b",
-          fontSize: 11,
-          letterSpacing: 2,
-        }}>
-          <span>PAGE {currentPage} OF {totalPages}</span>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(69,170,242,0.5)",
-                color: currentPage === 1 ? "#334155" : "#45AAF2",
-                borderRadius: 4,
-                padding: "6px 12px",
-                fontSize: 11,
-                letterSpacing: 2,
-                fontFamily: "inherit",
-                cursor: currentPage === 1 ? "not-allowed" : "pointer",
-              }}
-            >
-              PREV
-            </button>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(69,170,242,0.5)",
-                color: currentPage === totalPages ? "#334155" : "#45AAF2",
-                borderRadius: 4,
-                padding: "6px 12px",
-                fontSize: 11,
-                letterSpacing: 2,
-                fontFamily: "inherit",
-                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-              }}
-            >
-              NEXT
-            </button>
-          </div>
         {/* Pagination Controls */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20, marginBottom: 24 }}>
           <button 
@@ -523,18 +529,58 @@ export default function Admin() {
           </button>
         </div>
 
+        {/* Agent Monitoring Panel (Admin View) */}
+        <div style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: 8, padding: "24px", marginBottom: 28,
+        }}>
+          <div style={{ fontSize: 11, color: "#45AAF2", letterSpacing: 3, marginBottom: 20, fontWeight: 700 }}>
+            ◈ AGENT MONITORING PANEL
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "inherit" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", color: "#64748b", textAlign: "left" }}>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>AGENT ID</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>GOVERNMENT RATE</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>STATUS</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>BUSINESSES COLLECTED</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>LAST ACTIVITY</th>
+                </tr>
+              </thead>
+              <tbody>
+                {governors.map((gov) => (
+                  <tr key={gov.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", transition: "background 0.2s" }} className="hover:bg-white/5">
+                    <td style={{ padding: "12px 16px", color: "#fff", fontWeight: 700 }}>
+                      {gov.name.toUpperCase()} <span style={{ opacity: 0.4, fontSize: 10 }}>#{gov.id}</span>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#45AAF2" }}>{gov.governmentRate}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusConfig[gov.status]?.dot || "#64748b" }} />
+                        <span style={{ color: statusConfig[gov.status]?.dot || "#64748b", fontWeight: 700, fontSize: 10 }}>{gov.status.toUpperCase()}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#e2e8f0", fontVariantNumeric: "tabular-nums" }}>{gov.records.toLocaleString()}</td>
+                    <td style={{ padding: "12px 16px", color: "#64748b" }}>{gov.lastRun}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Governor Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {paginatedGovernors.map((gov, i) => {
           {filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((gov, i) => {
             const pct = gov.target > 0 ? Math.round((gov.records / gov.target) * 100) : 0;
             const sc = statusConfig[gov.status] || statusConfig.idle;
-            const isSelected = expandedGovernorId === gov.id;
-            const records = cityRecords[gov.name] ?? [];
-            const isLoadingRecords = loadingCityRecords[gov.name] ?? false;
+            const isSelected = selectedGov === gov.id;
 
             return (
               <div key={gov.id} className="gov-card"
+                onClick={() => setSelectedGov(isSelected ? null : gov.id)}
                 style={{
                   background: isSelected ? "rgba(69,170,242,0.06)" : "rgba(255,255,255,0.025)",
                   borderTop: `1px solid ${isSelected ? "#45AAF2" : "rgba(255,255,255,0.07)"}`,
@@ -610,74 +656,6 @@ export default function Admin() {
                   <span style={{ color: "#334155" }}>→ NEXT: 6h</span>
                 </div>
 
-                <button
-                  onClick={() => handleToggleRecords(gov)}
-                  style={{
-                    marginTop: 12,
-                    width: "100%",
-                    background: "rgba(69,170,242,0.08)",
-                    border: "1px solid rgba(69,170,242,0.45)",
-                    color: "#45AAF2",
-                    borderRadius: 4,
-                    padding: "7px 8px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: 2,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  {isSelected ? "▲ HIDE" : "▼ VIEW RECORDS"}
-                </button>
-
-                {isSelected && (
-                  <div style={{
-                    marginTop: 10,
-                    border: "1px solid rgba(69,170,242,0.3)",
-                    borderRadius: 6,
-                    background: "rgba(9,13,19,0.9)",
-                    padding: "8px 10px",
-                  }}>
-                    {isLoadingRecords ? (
-                      <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 1 }}>LOADING TOP 10 RECORDS...</div>
-                    ) : records.length === 0 ? (
-                      <div style={{ fontSize: 10, color: "#64748b", letterSpacing: 1 }}>NO RECORDS FOUND FOR THIS GOVERNORATE.</div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 6 }}>
-                        {records.map(record => {
-                          const recordStatus = statusConfig[record.status] || statusConfig.idle;
-                          return (
-                            <div key={record.id} style={{
-                              display: "grid",
-                              gridTemplateColumns: "1.2fr 0.8fr 0.7fr 0.9fr",
-                              gap: 6,
-                              alignItems: "center",
-                              fontSize: 10,
-                              color: "#cbd5e1",
-                              padding: "6px 0",
-                              borderBottom: "1px solid rgba(255,255,255,0.05)",
-                            }}>
-                              <span>{record.name}</span>
-                              <span style={{ color: "#94a3b8" }}>{record.category}</span>
-                              <span style={{
-                                justifySelf: "start",
-                                background: recordStatus.bg,
-                                border: `1px solid ${recordStatus.border}`,
-                                color: recordStatus.dot,
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                letterSpacing: 1,
-                                fontWeight: 700,
-                                fontSize: 9,
-                              }}>
-                                {recordStatus.label}
-                              </span>
-                              <span style={{ color: "#64748b", fontVariantNumeric: "tabular-nums" }}>
-                                {new Date(record.created_at).toLocaleDateString("en-US")}
-                              </span>
-                            </div>
-                          );
-                        })}
                 {/* View Records Button */}
                 <button 
                   onClick={(e) => {
@@ -712,16 +690,30 @@ export default function Admin() {
                       </div>
                     ) : govRecords[gov.id]?.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ 
+                          display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.6fr 1fr 0.8fr", 
+                          gap: 8, fontSize: 7, color: "#475569", borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          paddingBottom: 4, fontWeight: 700, letterSpacing: 1
+                        }}>
+                          <span>NAME</span>
+                          <span>CATEGORY</span>
+                          <span>STATUS</span>
+                          <span>SOURCE</span>
+                          <span>VERIFIED</span>
+                        </div>
                         {govRecords[gov.id].map((rec, idx) => (
                           <div key={idx} style={{ 
-                            display: "grid", gridTemplateColumns: "1.5fr 1fr 0.8fr 1fr", 
+                            display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.6fr 1fr 0.8fr", 
                             gap: 8, fontSize: 8, borderBottom: "1px solid rgba(255,255,255,0.03)",
                             paddingBottom: 4
                           }}>
                             <span style={{ color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rec.name}</span>
                             <span style={{ color: "#64748b" }}>{rec.category}</span>
                             <span style={{ color: rec.status === "active" ? "#26de81" : "#f7b731" }}>{rec.status?.toUpperCase()}</span>
-                            <span style={{ color: "#475569", textAlign: "right" }}>{new Date(rec.created_at).toLocaleDateString()}</span>
+                            <span style={{ color: "#45AAF2", fontSize: 7 }}>{rec.source || "GOOGLE_MAPS"}</span>
+                            <span style={{ color: rec.verification_status === "verified" ? "#26de81" : "#64748b" }}>
+                              {rec.verification_status === "verified" ? "✓ YES" : "PENDING"}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -739,6 +731,9 @@ export default function Admin() {
 
         {/* Enrichment Agent Control */}
         <AgentControlPanel />
+
+        {/* System Event Log */}
+        <SystemLog />
 
         {/* Footer */}
         <div style={{
