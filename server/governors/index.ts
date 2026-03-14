@@ -38,6 +38,10 @@ const governors: Record<string, any> = {
   "Gov-18 Saladin": new SaladinGovernor(),
 };
 
+export function getGovernorNames() {
+  return Object.keys(governors);
+}
+
 export async function runGovernor(agentName: string) {
   const governor = governors[agentName];
   if (!governor) {
@@ -50,7 +54,7 @@ export async function runGovernor(agentName: string) {
 }
 
 export async function runAllGovernors() {
-  for (const agentName of Object.keys(governors)) {
+  for (const agentName of getGovernorNames()) {
     await runGovernor(agentName);
   }
 }
