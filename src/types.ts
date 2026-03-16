@@ -1,29 +1,56 @@
 export type Language = 'en' | 'ar' | 'ku';
 
-export interface City {
+export interface RawBusiness {
   id: string;
-  name: {
-    en: string;
-    ar: string;
-    ku: string;
-  };
-  governorate: {
-    en: string;
-    ar: string;
-    ku: string;
-  };
-  icon: string;
+  name_raw: string;
+  category_raw?: string;
+  governorate?: string;
+  city?: string;
+  address?: string;
+  phone?: string;
+  source?: string;
+  coordinates?: { lat: number; lng: number };
+  created_at: string;
 }
 
-export interface User {
+export interface VerifiedBusiness {
   id: string;
-  email?: string;
+  raw_id?: string;
+  name_ar?: string;
+  name_ku?: string;
+  name_en?: string;
+  category?: string;
+  governorate?: string;
+  city?: string;
+  address?: string;
   phone?: string;
-  display_name?: string;
-  display_name_ar?: string;
-  display_name_ku?: string;
-  avatar_url?: string;
-  governorate: string;
-  role: 'user' | 'business_owner' | 'admin';
+  website?: string;
+  coordinates?: { lat: number; lng: number };
+  photos: string[];
+  verification_score: number;
+  confidence_score: number;
+  status: 'pending' | 'approved' | 'rejected' | 'flagged';
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+}
+
+export interface AgentTask {
+  id: string;
+  task_name: string;
+  task_type: string;
+  assigned_to?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result_summary?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentLog {
+  id: string;
+  agent_name: string;
+  action: string;
+  record_id?: string;
+  details?: string;
   created_at: string;
 }
