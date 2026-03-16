@@ -75,53 +75,37 @@ export default function Home() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
-    fetchAgentStatuses();
-    const subscription = supabase
-      .channel("agent_status_changes")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "agents" }, (payload) => {
-        setAgentStatuses(prev => ({
-          ...prev,
-          [payload.new.agent_name]: payload.new.status
-        }));
-      })
+    fetchBusinesses();
+    const channel = supabase
+      .channel('businesses-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'businesses' },
+        () => { fetchBusinesses(); }
+      )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (selectedGov) {
-      fetchBusinesses();
-    }
+    return () => { supabase.removeChannel(channel); };
   }, [selectedGov, selectedCat]);
-
-  const fetchAgentStatuses = async () => {
-    const { data } = await supabase.from("agents").select("agent_name, status");
-    if (data) {
-      const statusMap: Record<string, string> = {};
-      data.forEach(a => {
-        statusMap[a.agent_name] = a.status;
-      });
-      setAgentStatuses(statusMap);
-    }
-  };
 
   const fetchBusinesses = async () => {
     setLoading(true);
     let query = supabase
-      .from("businesses")
-      .select("*")
-      .eq("city", selectedGov);
+      .from('businesses')
+      .select('*')
+      .eq('status', 'verified');
 
-    if (selectedCat !== "all") {
-      query = query.eq("category", selectedCat);
+    if (selectedGov) {
+      query = query.eq('city', selectedGov);
     }
 
-    const { data, error } = await query.order("created_at", { ascending: false });
-    if (error) console.error("Error fetching businesses:", error);
-    else setBusinesses(data || []);
+    if (selectedCat !== 'all') {
+      query = query.eq('category', selectedCat);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) console.error('Supabase error:', error);
+    else setBusinesses(data ?? []);
     setLoading(false);
   };
 

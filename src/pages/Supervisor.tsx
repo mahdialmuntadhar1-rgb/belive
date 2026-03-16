@@ -26,6 +26,8 @@ interface UploadedFile {
   rowCount?: number;
 }
 
+import { supabase } from '../lib/supabase';
+
 export default function Supervisor() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -39,8 +41,31 @@ export default function Supervisor() {
   const [isTyping, setIsTyping] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function importToSupabase(records: any[]) {
+    setImportStatus('Importing...');
+    const cleaned = records.map(r => ({
+      name:        r.name || r.business_name || r.raw_name,
+      category:    r.category || 'restaurants',
+      city:        r.city || 'Sulaymaniyah',
+      phone:       r.phone || r.raw_phone || null,
+      address:     r.address || r.raw_address || null,
+      score:       r.data_quality_score || r.score || 0,
+      status:      'pending',
+    })).filter(r => r.name);
+
+    const { error } = await supabase
+      .from('businesses')
+      .upsert(cleaned, { onConflict: 'name,city' });
+
+    setImportStatus(error
+      ? `Error: ${error.message}`
+      : `✅ Imported ${cleaned.length} records`
+    );
+  }
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,14 +129,37 @@ export default function Supervisor() {
 
     setFiles(prev => [...prev, ...fileObjects]);
 
-    // Simulate cleaning process
-    fileObjects.forEach(file => {
-      setTimeout(() => {
-        updateFileStatus(file.id, 'cleaning');
-        setTimeout(() => {
-          updateFileStatus(file.id, 'completed', Math.floor(Math.random() * 500) + 50);
-        }, 3000);
-      }, 1000);
+    fileObjects.forEach((fileObj, index) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target?.result as string;
+        updateFileStatus(fileObj.id, 'cleaning');
+        
+        try {
+          let records = [];
+          if (fileObj.name.endsWith('.json')) {
+            records = JSON.parse(content);
+          } else {
+            // Simple CSV parser for demo
+            const lines = content.split('\n');
+            const headers = lines[0].split(',');
+            records = lines.slice(1).map(line => {
+              const values = line.split(',');
+              return headers.reduce((obj: any, header, i) => {
+                obj[header.trim()] = values[i]?.trim();
+                return obj;
+              }, {});
+            });
+          }
+          
+          await importToSupabase(Array.isArray(records) ? records : [records]);
+          updateFileStatus(fileObj.id, 'completed', Array.isArray(records) ? records.length : 1);
+        } catch (err) {
+          console.error('Error processing file:', err);
+          updateFileStatus(fileObj.id, 'error');
+        }
+      };
+      reader.readAsText(newFiles[index]);
     });
   };
 
