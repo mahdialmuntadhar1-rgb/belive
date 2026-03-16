@@ -12,7 +12,12 @@ import {
   ArrowLeft,
   ExternalLink,
   Info,
-  Clock
+  Clock,
+  X,
+  Phone,
+  Instagram,
+  Facebook,
+  MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -20,23 +25,44 @@ import { motion, AnimatePresence } from "motion/react";
 import { GovernorateGrid } from "../components/GovernorateGrid";
 
 interface Business {
-  id: number;
-  name: string;
+  id: string;
+  business_id: string;
+  name: { en: string; ar: string; ku: string };
   category: string;
+  subcategory: string;
   city: string;
-  government_rate: string;
-  phone: string;
-  website: string;
-  verification_status: string;
-  created_at: string;
+  district: string;
+  verified: boolean;
+  verification_score: number;
+  sources: string[];
+  contact: {
+    phone: string[];
+    whatsapp: string;
+    website: string;
+    instagram: string;
+    facebook: string;
+  };
+  location: {
+    google_maps_url: string;
+    address: { en: string; ar: string; ku: string };
+  };
+  postcard: {
+    logo_url: string;
+    cover_image_url: string;
+    highlights: string[];
+    description: { en: string; ar: string; ku: string };
+  };
+  agent_notes: string;
+  last_verified: string;
 }
 
 const CATEGORIES = [
   { id: 'all', icon: <Info size={16} />, label: 'All' },
-  { id: 'health', icon: <Stethoscope size={16} />, label: 'Health' },
-  { id: 'cafes', icon: <Coffee size={16} />, label: 'Cafes' },
-  { id: 'retail', icon: <ShoppingBag size={16} />, label: 'Retail' },
-  { id: 'auto', icon: <Car size={16} />, label: 'Automotive' }
+  { id: 'Restaurant', icon: <Coffee size={16} />, label: 'Restaurants' },
+  { id: 'Hospital', icon: <Stethoscope size={16} />, label: 'Hospitals' },
+  { id: 'Retail', icon: <ShoppingBag size={16} />, label: 'Retail' },
+  { id: 'Car Dealer', icon: <Car size={16} />, label: 'Automotive' },
+  { id: 'Pharmacy', icon: <Activity size={16} />, label: 'Pharmacy' }
 ];
 
 export default function Home() {
@@ -46,6 +72,7 @@ export default function Home() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [agentStatuses, setAgentStatuses] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
     fetchAgentStatuses();
@@ -99,13 +126,18 @@ export default function Home() {
   };
 
   const filteredBusinesses = useMemo(() => {
-    return businesses.filter(b => 
-      b.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return businesses.filter(b => {
+      const nameEn = b.name?.en || '';
+      const nameAr = b.name?.ar || '';
+      const nameKu = b.name?.ku || '';
+      return nameEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             nameAr.includes(searchTerm) ||
+             nameKu.includes(searchTerm);
+    });
   }, [businesses, searchTerm]);
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 text-white">
       {/* Header */}
       <header className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -221,9 +253,10 @@ export default function Home() {
                         ))
                       ) : filteredBusinesses.length > 0 ? (
                         filteredBusinesses.map((b) => (
-                          <tr key={b.id} className="hover:bg-white/5 transition-colors group">
+                          <tr key={b.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => setSelectedBusiness(b)}>
                             <td className="px-8 py-6">
-                              <div className="font-bold text-lg">{b.name}</div>
+                              <div className="font-bold text-lg">{b.name?.en || 'Unnamed'}</div>
+                              <div className="text-xs text-white/40">{b.district}</div>
                             </td>
                             <td className="px-8 py-6">
                               <div className="flex items-center gap-2">
@@ -233,7 +266,7 @@ export default function Home() {
                               </div>
                             </td>
                             <td className="px-8 py-6">
-                              {b.verification_status === "verified" || b.phone === "Verified" ? (
+                              {b.verified ? (
                                 <div className="flex items-center gap-2 text-vibrant-purple">
                                   <CheckCircle2 size={16} className="drop-shadow-[0_0_5px_rgba(188,19,254,0.8)]" />
                                   <span className="text-[10px] font-black uppercase tracking-tighter">Verified ✅</span>
@@ -247,7 +280,7 @@ export default function Home() {
                             </td>
                             <td className="px-8 py-6 text-right">
                               <button className="text-vibrant-purple text-xs font-bold uppercase tracking-widest hover:underline flex items-center gap-1 ml-auto">
-                                [View Map] <ExternalLink size={12} />
+                                [View Postcard] <ExternalLink size={12} />
                               </button>
                             </td>
                           </tr>
@@ -270,6 +303,142 @@ export default function Home() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Postcard Modal */}
+      <AnimatePresence>
+        {selectedBusiness && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedBusiness(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-2xl glass rounded-[2rem] overflow-hidden shadow-2xl"
+            >
+              <BusinessPostcard business={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function BusinessPostcard({ business, onClose }: { business: Business; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'en' | 'ar' | 'ku'>('en');
+
+  return (
+    <div className="flex flex-col max-h-[90vh] overflow-y-auto">
+      {/* Hero */}
+      <div className="relative h-64">
+        {business.postcard?.cover_image_url ? (
+          <img src={business.postcard.cover_image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-purple-900 to-black" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+        
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 glass rounded-full hover:bg-white/20 transition-all"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="absolute bottom-6 left-8 flex items-end gap-6">
+          <div className="w-24 h-24 rounded-2xl glass p-1 shadow-2xl">
+            {business.postcard?.logo_url ? (
+              <img src={business.postcard.logo_url} alt="" className="w-full h-full object-cover rounded-xl" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-xl">
+                <Globe size={40} className="text-white/20" />
+              </div>
+            )}
+          </div>
+          <div className="mb-2">
+            <h3 className="text-3xl font-black uppercase tracking-tighter">{business.name[activeTab]}</h3>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-vibrant-purple font-bold text-xs uppercase tracking-widest">{business.category}</span>
+              <span className="text-white/40 text-xs">•</span>
+              <span className="text-white/40 text-xs uppercase tracking-widest">{business.city}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-8 space-y-8">
+        {/* Language Tabs */}
+        <div className="flex justify-center bg-white/5 p-1 rounded-full w-fit mx-auto">
+          {(['en', 'ar', 'ku'] as const).map(lang => (
+            <button
+              key={lang}
+              onClick={() => setActiveTab(lang)}
+              className={`px-6 py-2 text-xs font-black rounded-full transition-all ${activeTab === lang ? 'bg-vibrant-purple text-white' : 'text-white/40 hover:text-white'}`}
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Description */}
+        <div className="text-center">
+          <p className="text-lg text-white/80 leading-relaxed italic" dir={activeTab === 'en' ? 'ltr' : 'rtl'}>
+            "{business.postcard?.description[activeTab] || 'Verification in progress...'}"
+          </p>
+        </div>
+
+        {/* Highlights */}
+        <div className="flex flex-wrap justify-center gap-3">
+          {business.postcard?.highlights?.map((h, i) => (
+            <span key={i} className="px-4 py-1.5 glass rounded-full text-[10px] font-black uppercase tracking-widest text-vibrant-purple">
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* Contact Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <ContactIcon icon={<Phone size={20} />} label="Call" value={business.contact.phone[0]} />
+          <ContactIcon icon={<MessageCircle size={20} />} label="WhatsApp" value={business.contact.whatsapp} />
+          <ContactIcon icon={<Instagram size={20} />} label="Instagram" value={business.contact.instagram} />
+          <ContactIcon icon={<Facebook size={20} />} label="Facebook" value={business.contact.facebook} />
+        </div>
+
+        {/* Footer Info */}
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-widest text-white/20">
+          <div className="flex items-center gap-2">
+            <Activity size={14} />
+            <span>Verified by AI Agent on {business.last_verified ? new Date(business.last_verified).toLocaleDateString() : 'Pending'}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href={business.location.google_maps_url} target="_blank" rel="noreferrer" className="hover:text-vibrant-purple transition-colors flex items-center gap-1">
+              [Google Maps] <ExternalLink size={10} />
+            </a>
+            {business.contact.website && (
+              <a href={business.contact.website} target="_blank" rel="noreferrer" className="hover:text-vibrant-purple transition-colors flex items-center gap-1">
+                [Official Site] <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactIcon({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col items-center gap-2 p-4 glass rounded-2xl hover:bg-white/10 transition-all cursor-pointer">
+      <div className="text-vibrant-purple">{icon}</div>
+      <span className="text-[10px] font-black uppercase tracking-tighter text-white/40">{label}</span>
     </div>
   );
 }

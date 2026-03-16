@@ -1,752 +1,513 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabase";
-import { Link } from "react-router-dom";
-import { AgentControlPanel } from "../components/admin/AgentControlPanel";
-import { SystemLog } from "../components/admin/SystemLog";
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie
-} from 'recharts';
+  Search, Plus, Play, Filter, CheckCircle, Clock, XCircle, 
+  MoreVertical, Eye, Edit2, Trash2, Globe, Phone, MapPin, 
+  ExternalLink, ChevronRight, X, LayoutDashboard, Database,
+  Activity, Settings, LogOut, Menu, Bot
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
-const STATIC_GOVERNORS = [
-  { id: 1, name: "Baghdad", category: "Restaurants", emoji: "🍽️", color: "#FF6B35", records: 3247, target: 4000, status: "active", lastRun: "2m ago", errors: 2, governmentRate: "Rate Level 1" },
-  { id: 2, name: "Basra", category: "Cafes", emoji: "☕", color: "#F7B731", records: 1892, target: 2500, status: "active", lastRun: "5m ago", errors: 0, governmentRate: "Rate Level 1" },
-  { id: 3, name: "Nineveh", category: "Bakeries", emoji: "🥐", color: "#FC5C65", records: 843, target: 1200, status: "idle", lastRun: "1h ago", errors: 1, governmentRate: "Rate Level 1" },
-  { id: 4, name: "Erbil", category: "Hotels", emoji: "🏨", color: "#45AAF2", records: 612, target: 800, status: "active", lastRun: "8m ago", errors: 0, governmentRate: "Rate Level 1" },
-  { id: 5, name: "Sulaymaniyah", category: "Gyms", emoji: "💪", color: "#26de81", records: 438, target: 600, status: "active", lastRun: "12m ago", errors: 3, governmentRate: "Rate Level 2" },
-  { id: 6, name: "Kirkuk", category: "Beauty Salons", emoji: "💅", color: "#fd9644", records: 1124, target: 1500, status: "active", lastRun: "3m ago", errors: 0, governmentRate: "Rate Level 2" },
-  { id: 7, name: "Duhok", category: "Barbershops", emoji: "✂️", color: "#a55eea", records: 967, target: 1200, status: "idle", lastRun: "45m ago", errors: 0, governmentRate: "Rate Level 2" },
-  { id: 8, name: "Anbar", category: "Pharmacies", emoji: "💊", color: "#2bcbba", records: 756, target: 1000, status: "active", lastRun: "6m ago", errors: 1, governmentRate: "Rate Level 2" },
-  { id: 9, name: "Babil", category: "Supermarkets", emoji: "🛒", color: "#4b7bec", records: 521, target: 700, status: "active", lastRun: "9m ago", errors: 0, governmentRate: "Rate Level 3" },
-  { id: 10, name: "Karbala", category: "Electronics", emoji: "📱", color: "#0fb9b1", records: 389, target: 600, status: "error", lastRun: "2h ago", errors: 12, governmentRate: "Rate Level 3" },
-  { id: 11, name: "Wasit", category: "Clothing Stores", emoji: "👗", color: "#e84393", records: 1043, target: 1400, status: "active", lastRun: "4m ago", errors: 0, governmentRate: "Rate Level 3" },
-  { id: 12, name: "Dhi Qar", category: "Car Services", emoji: "🚗", color: "#778ca3", records: 334, target: 500, status: "idle", lastRun: "3h ago", errors: 0, governmentRate: "Rate Level 3" },
-  { id: 13, name: "Maysan", category: "Dentists", emoji: "🦷", color: "#20bf6b", records: 287, target: 400, status: "active", lastRun: "15m ago", errors: 0, governmentRate: "Rate Level 4" },
-  { id: 14, name: "Muthanna", category: "Clinics", emoji: "🏥", color: "#eb3b5a", records: 412, target: 600, status: "active", lastRun: "7m ago", errors: 2, governmentRate: "Rate Level 4" },
-  { id: 15, name: "Najaf", category: "Schools", emoji: "🏫", color: "#f7b731", records: 891, target: 1100, status: "active", lastRun: "11m ago", errors: 0, governmentRate: "Rate Level 4" },
-  { id: 16, name: "Qadisiyyah", category: "Co-working Spaces", emoji: "💼", color: "#45aaf2", records: 156, target: 300, status: "idle", lastRun: "6h ago", errors: 1, governmentRate: "Rate Level 5" },
-  { id: 17, name: "Saladin", category: "Entertainment", emoji: "🎭", color: "#fa8231", records: 743, target: 1000, status: "active", lastRun: "18m ago", errors: 0, governmentRate: "Rate Level 5" },
-  { id: 18, name: "Diyala", category: "Tourism", emoji: "🕌", color: "#2d98da", records: 512, target: 800, status: "active", lastRun: "22m ago", errors: 4, governmentRate: "Rate Level 5" },
-  { id: 19, name: "QC Overseer", category: "Quality Control", emoji: "🛡️", color: "#f8fafc", records: 15420, target: 20000, status: "active", lastRun: "1m ago", errors: 0, governmentRate: "Supervisory" },
-];
-
-const statusConfig: Record<string, any> = {
-  active: { label: "ACTIVE", bg: "rgba(38,222,129,0.15)", border: "#26de81", dot: "#26de81" },
-  idle:   { label: "IDLE",   bg: "rgba(247,183,49,0.15)",  border: "#F7B731", dot: "#F7B731" },
-  error:  { label: "ERROR",  bg: "rgba(252,92,101,0.15)",  border: "#FC5C65", dot: "#FC5C65" },
-};
-
-function pulse(color: string) {
-  return {
-    width: 8, height: 8, borderRadius: "50%", background: color,
-    boxShadow: `0 0 0 0 ${color}`,
-    animation: "pulse 1.8s infinite",
+// --- Types ---
+interface Business {
+  id: string;
+  business_id: string;
+  name: { en: string; ar: string; ku: string };
+  category: string;
+  subcategory: string;
+  city: string;
+  district: string;
+  verified: boolean;
+  verification_score: number;
+  sources: string[];
+  contact: {
+    phone: string[];
+    whatsapp: string;
+    website: string;
+    instagram: string;
+    facebook: string;
   };
+  location: {
+    google_maps_url: string;
+    address: { en: string; ar: string; ku: string };
+  };
+  postcard: {
+    logo_url: string;
+    cover_image_url: string;
+    highlights: string[];
+    description: { en: string; ar: string; ku: string };
+  };
+  agent_notes: string;
+  last_verified: string;
 }
 
+const COLORS = {
+  navy: '#1B2B5E',
+  gold: '#C9A84C',
+  cream: '#F5F0E8',
+  white: '#FFFFFF',
+  text: '#1F2937',
+  muted: '#6B7280',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+};
+
 export default function Admin() {
-  const [time, setTime] = useState(new Date());
-  const [animatedRecords, setAnimatedRecords] = useState<Record<string, number>>({});
-  const [selectedGov, setSelectedGov] = useState<string | number | null>(null);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [governors, setGovernors] = useState(STATIC_GOVERNORS);
-  const [newToday, setNewToday] = useState(1247); // Mocked for visual
-
-  // Pagination & Dropdown states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [expandedGovId, setExpandedGovId] = useState<string | number | null>(null);
-  const [govRecords, setGovRecords] = useState<Record<string | number, any[]>>({});
-  const [loadingRecords, setLoadingRecords] = useState<Record<string | number, boolean>>({});
-
-  const itemsPerPage = 6;
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    city: 'All',
+    category: 'All',
+    status: 'All'
+  });
 
   useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    
-    // Set up real-time subscription for agents
-    const channel = supabase
-      .channel("public:agents")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "agents" },
-        () => {
-          fetchData();
-        }
-      )
+    fetchBusinesses();
+    const subscription = supabase
+      .channel('businesses_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, fetchBusinesses)
       .subscribe();
 
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
     return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subscription);
     };
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setExpandedGovId(null);
-  }, [activeFilter]);
-
-  async function fetchGovRecords(govId: string | number, govName: string) {
-    if (govRecords[govId]) return;
-    
-    setLoadingRecords(prev => ({ ...prev, [govId]: true }));
+  const fetchBusinesses = async () => {
     try {
       const { data, error } = await supabase
-        .from("businesses")
-        .select("name, category, status, created_at, source, verification_status")
-        .eq("governorate", govName)
-        .limit(10)
-        .order("created_at", { ascending: false });
-        
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      setGovRecords(prev => ({ ...prev, [govId]: data || [] }));
+      setBusinesses(data || []);
     } catch (err) {
-      console.error("Error fetching records:", err);
+      console.error('Error fetching businesses:', err);
     } finally {
-      setLoadingRecords(prev => ({ ...prev, [govId]: false }));
+      setLoading(false);
     }
-  }
+  };
 
-  async function fetchData() {
-    try {
-      const { data, error } = await supabase
-        .from("agents")
-        .select("id, agent_name, category, status, records_collected, target, errors, last_run")
-        .order("agent_name");
-        
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        let merged = data.map((dbGov) => {
-          // Extract governor index from name like "Agent-01"
-          let govIndex = -1;
-          const match = dbGov.agent_name.match(/Agent-(\d+)/i);
-          if (match) {
-            govIndex = parseInt(match[1], 10) - 1;
-          }
-
-          // Map to static governor data for visual properties (emoji, color, name)
-          const staticGov = (govIndex >= 0 && govIndex < STATIC_GOVERNORS.length) 
-            ? STATIC_GOVERNORS[govIndex] 
-            : STATIC_GOVERNORS.find(g => g.name === dbGov.agent_name) || ({} as any);
-          
-          // Format last run time from Supabase timestamp
-          let lastRunStr = "Never";
-          if (dbGov.last_run) {
-            const diffMins = Math.round((new Date().getTime() - new Date(dbGov.last_run).getTime()) / 60000);
-            if (diffMins < 60) lastRunStr = `${diffMins}m ago`;
-            else if (diffMins < 1440) lastRunStr = `${Math.floor(diffMins / 60)}h ago`;
-            else lastRunStr = new Date(dbGov.last_run).toLocaleDateString();
-          }
-
-          // Prioritize Supabase data, fallback to static template
-          return {
-            id: dbGov.id,
-            name: staticGov.name || dbGov.agent_name,
-            category: dbGov.category || staticGov.category,
-            emoji: staticGov.emoji || "🤖",
-            color: staticGov.color || "#45AAF2",
-            records: dbGov.records_collected || 0,
-            target: dbGov.target || staticGov.target || 1000,
-            status: dbGov.status || "idle",
-            lastRun: lastRunStr,
-            errors: dbGov.errors || 0,
-            governmentRate: staticGov.governmentRate || "Rate Level 1"
-          };
-        });
-
-        // Ensure QC Overseer is always present
-        if (!merged.find(g => g.name === "QC Overseer" || g.name === "Agent-QC")) {
-          merged.push(STATIC_GOVERNORS.find(g => g.name === "QC Overseer")!);
-        }
-
-        setGovernors(merged as any);
-      }
-    } catch (err) {
-      console.error("Error fetching agents:", err);
-    }
-  }
-
-  useEffect(() => {
-    // Animate numbers counting up
-    const initial: Record<string, number> = {};
-    governors.forEach(g => { initial[g.id] = 0; });
-    setAnimatedRecords(initial);
+  const filteredBusinesses = businesses.filter(b => {
+    // Handle trilingual name search
+    const nameEn = b.name?.en || '';
+    const nameAr = b.name?.ar || '';
+    const nameKu = b.name?.ku || '';
     
-    const timers = governors.map((g, i) =>
-      setTimeout(() => {
-        let count = 0;
-        const step = Math.ceil(g.records / 60) || 1;
-        const iv = setInterval(() => {
-          count = Math.min(count + step, g.records);
-          setAnimatedRecords(prev => ({ ...prev, [g.id]: count }));
-          if (count >= g.records) clearInterval(iv);
-        }, 20);
-      }, i * 80)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [governors]);
+    const matchesSearch = nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         nameAr.includes(searchQuery) ||
+                         nameKu.includes(searchQuery);
+    const matchesCity = filters.city === 'All' || b.city === filters.city;
+    const matchesCategory = filters.category === 'All' || b.category === filters.category;
+    const matchesStatus = filters.status === 'All' || 
+                         (filters.status === 'Verified' && b.verified) ||
+                         (filters.status === 'Pending' && !b.verified);
+    
+    return matchesSearch && matchesCity && matchesCategory && matchesStatus;
+  });
 
-  const totalRecords = governors.reduce((a, g) => a + g.records, 0);
-  const activeCount = governors.filter(g => g.status === "active").length;
-  const errorCount = governors.filter(g => g.status === "error").length;
-  const totalTarget = governors.reduce((a, g) => a + g.target, 0);
-  const overallProgress = totalTarget > 0 ? Math.round((totalRecords / totalTarget) * 100) : 0;
-
-  const filtered = activeFilter === "all" ? governors : governors.filter(g => g.status === activeFilter);
-
-  // Chart Data
-  const categoryData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    governors.forEach(g => {
-      counts[g.category] = (counts[g.category] || 0) + g.records;
-    });
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
-  }, [governors]);
-
-  const statusData = useMemo(() => [
-    { name: 'Active', value: activeCount, color: '#26de81' },
-    { name: 'Idle', value: governors.length - activeCount - errorCount, color: '#F7B731' },
-    { name: 'Error', value: errorCount, color: '#FC5C65' },
-  ], [activeCount, errorCount, governors.length]);
+  const stats = {
+    total: businesses.length,
+    verified: businesses.filter(b => b.verified).length,
+    pending: businesses.filter(b => !b.verified).length,
+    rejected: 0, // Mock for now
+  };
 
   return (
-    <div style={{
-      fontFamily: "'Courier New', 'Lucida Console', monospace",
-      background: "#090d13",
-      minHeight: "100vh",
-      color: "#e2e8f0",
-      padding: "24px",
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      <style>{`
-        @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 currentColor; }
-          70% { box-shadow: 0 0 0 6px transparent; }
-          100% { box-shadow: 0 0 0 0 transparent; }
-        }
-        @keyframes scan {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100vh); }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .gov-card:hover {
-          transform: translateY(-2px);
-          border-color: rgba(255,255,255,0.2) !important;
-          cursor: pointer;
-        }
-        .gov-card { transition: all 0.2s ease; }
-        .filter-btn:hover { opacity: 1 !important; }
-      `}</style>
+    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-gray-900">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#1B2B5E] text-white hidden lg:flex flex-col sticky top-0 h-screen">
+        <div className="p-6 border-b border-white/10">
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <Globe className="text-[#C9A84C]" size={24} />
+            Iraq Compass
+          </h1>
+          <p className="text-xs text-white/50 mt-1 uppercase tracking-widest">Admin Control</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active />
+          <NavItem icon={<Database size={20} />} label="Directory" />
+          <Link to="/supervisor">
+            <NavItem icon={<Bot size={20} />} label="Supervisor Hub" />
+          </Link>
+          <Link to="/commander">
+            <NavItem icon={<Bot size={20} />} label="Agent Commander" />
+          </Link>
+          <NavItem icon={<Activity size={20} />} label="Agent Network" />
+          <NavItem icon={<Settings size={20} />} label="Settings" />
+        </nav>
 
-      {/* Grid background */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0,
-        backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
-        backgroundSize: "40px 40px",
-        pointerEvents: "none",
-      }} />
+        <div className="p-4 border-t border-white/10">
+          <button className="flex items-center gap-3 w-full p-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
 
-      {/* Scan line effect */}
-      <div style={{
-        position: "fixed", left: 0, right: 0, height: "2px",
-        background: "linear-gradient(90deg, transparent, rgba(69,170,242,0.4), transparent)",
-        zIndex: 1, animation: "scan 4s linear infinite", pointerEvents: "none",
-      }} />
-
-      <div style={{ position: "relative", zIndex: 2, maxWidth: 1400, margin: "0 auto" }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-              <div style={{ fontSize: 11, color: "#45AAF2", letterSpacing: 6, fontWeight: 700 }}>
-                IRAQ COMPASS // GOVERNOR CONTROL CENTER
-              </div>
-              <div style={{ fontSize: 9, color: "#26de81", animation: "blink 1.2s infinite", letterSpacing: 2 }}>
-                ● LIVE
-              </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-x-hidden">
+        {/* Top Bar */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button className="lg:hidden p-2 text-gray-500">
+                <Menu size={24} />
+              </button>
+              <h2 className="text-lg font-semibold text-gray-800">Directory Management</h2>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, color: "#fff" }}>
-              18 GOVERNORS DASHBOARD
-            </div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, letterSpacing: 2, display: "flex", gap: "16px" }}>
-              <span>BUSINESS INTELLIGENCE COLLECTION NETWORK</span>
-              <Link to="/" style={{ color: "#45AAF2", textDecoration: "none", borderBottom: "1px solid #45AAF2" }}>
-                [ RETURN TO PUBLIC DIRECTORY ]
-              </Link>
+            
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#1B2B5E] text-white rounded-lg hover:bg-[#1B2B5E]/90 transition-all shadow-sm">
+                <Plus size={18} />
+                <span className="hidden sm:inline">Add Business</span>
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-[#C9A84C] text-[#C9A84C] rounded-lg hover:bg-[#C9A84C]/5 transition-all">
+                <Play size={18} />
+                <span className="hidden sm:inline">Run All Agents</span>
+              </button>
             </div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: "#45AAF2", letterSpacing: 2, fontVariantNumeric: "tabular-nums" }}>
-              {time.toLocaleTimeString("en-US", { hour12: false })}
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard label="Total Records" value={stats.total} icon={<Database className="text-blue-500" />} />
+            <StatCard label="Verified" value={stats.verified} icon={<CheckCircle className="text-emerald-500" />} />
+            <StatCard label="Pending Review" value={stats.pending} icon={<Clock className="text-amber-500" />} />
+            <StatCard label="Rejected" value={stats.rejected} icon={<XCircle className="text-rose-500" />} />
+          </div>
+
+          {/* Filter Row */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-8 flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[240px] relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search by name..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1B2B5E] focus:border-transparent outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 2 }}>
-              {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toUpperCase()}
+            
+            <FilterSelect 
+              label="City" 
+              options={['All', 'Baghdad', 'Erbil', 'Sulaymaniyah', 'Basra', 'Najaf', 'Karbala']} 
+              value={filters.city}
+              onChange={(val) => setFilters({...filters, city: val})}
+            />
+            <FilterSelect 
+              label="Category" 
+              options={['All', 'Restaurant', 'Hotel', 'Hospital', 'Retail', 'Tech']} 
+              value={filters.category}
+              onChange={(val) => setFilters({...filters, category: val})}
+            />
+            <FilterSelect 
+              label="Status" 
+              options={['All', 'Verified', 'Pending', 'Rejected']} 
+              value={filters.status}
+              onChange={(val) => setFilters({...filters, status: val})}
+            />
+          </div>
+
+          {/* Business Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Business</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-[#1B2B5E] border-t-transparent rounded-full animate-spin" />
+                          <span>Loading directory...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredBusinesses.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Activity size={48} className="text-gray-300 mb-2" />
+                          <p className="font-medium">No records found</p>
+                          <p className="text-sm">Run Agents to populate the directory</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBusinesses.map((b) => (
+                      <tr key={b.id} className="hover:bg-gray-50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                              {b.postcard?.logo_url ? (
+                                <img src={b.postcard.logo_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <Globe size={20} className="text-gray-400" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{b.name?.en || 'Unnamed'}</div>
+                              <div className="text-xs text-gray-500">{b.business_id}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{b.city}</div>
+                          <div className="text-xs text-gray-500">{b.district}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md">
+                            {b.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="w-24">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-600">{b.verification_score}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div 
+                                className="bg-[#C9A84C] h-1.5 rounded-full" 
+                                style={{ width: `${b.verification_score}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge verified={b.verified} />
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => { setSelectedBusiness(b); setIsDrawerOpen(true); }}
+                              className="p-2 text-gray-400 hover:text-[#1B2B5E] hover:bg-blue-50 rounded-lg transition-all"
+                              title="View Postcard"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit">
+                              <Edit2 size={18} />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 28 }}>
-          {[
-            { label: "TOTAL RECORDS", value: totalRecords.toLocaleString(), sub: `${overallProgress}% of target`, color: "#45AAF2", icon: "◈" },
-            { label: "ACTIVE GOVERNORS", value: `${activeCount} / ${governors.length}`, sub: `${governors.length - activeCount - errorCount} idle`, color: "#26de81", icon: "▶" },
-            { label: "NEW TODAY", value: `+${newToday.toLocaleString()}`, sub: "across all categories", color: "#f7b731", icon: "↑" },
-            { label: "QC VERIFIED", value: "98.4%", sub: "Source authenticity score", color: "#f8fafc", icon: "🛡️" },
-            { label: "ERRORS", value: errorCount, sub: `${governors.reduce((a,g)=>a+g.errors,0)} total issues`, color: "#FC5C65", icon: "⚠" },
-          ].map((stat, i) => (
-            <div key={i} style={{
-              background: "rgba(255,255,255,0.03)",
-              borderTop: `2px solid ${stat.color}`,
-              borderRight: `1px solid rgba(255,255,255,0.07)`,
-              borderBottom: `1px solid rgba(255,255,255,0.07)`,
-              borderLeft: `1px solid rgba(255,255,255,0.07)`,
-              borderRadius: 8, padding: "20px 20px",
-              animation: `slideIn 0.4s ease ${i * 0.1}s both`,
-            }}>
-              <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 8 }}>
-                {stat.icon} {stat.label}
-              </div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: stat.color, fontVariantNumeric: "tabular-nums" }}>
-                {stat.value}
-              </div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{stat.sub}</div>
-            </div>
-          ))}
-        </div>
+      {/* Postcard Preview Drawer */}
+      <AnimatePresence>
+        {isDrawerOpen && selectedBusiness && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 overflow-y-auto"
+            >
+              <PostcardDrawer 
+                business={selectedBusiness} 
+                onClose={() => setIsDrawerOpen(false)} 
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-        {/* Analytics Section */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
-          {/* Category Distribution Chart */}
-          <div style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 8, padding: "20px",
-            height: 300
-          }}>
-            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20 }}>
-              ◈ CATEGORY DISTRIBUTION (BY RECORDS)
-            </div>
-            <ResponsiveContainer width="100%" height="85%">
-              <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  width={100} 
-                  tick={{ fill: '#64748b', fontSize: 10 }} 
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ background: '#090d13', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10 }}
-                  itemStyle={{ color: '#45AAF2' }}
-                />
-                <Bar dataKey="value" fill="#45AAF2" radius={[0, 4, 4, 0]} barSize={12}>
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fillOpacity={1 - (index * 0.1)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+// --- Sub-components ---
+
+function NavItem({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) {
+  return (
+    <button className={`
+      flex items-center gap-3 w-full p-3 rounded-lg transition-all
+      ${active ? 'bg-[#C9A84C] text-[#1B2B5E] font-semibold' : 'text-white/70 hover:text-white hover:bg-white/5'}
+    `}>
+      {icon}
+      <span>{label}</span>
+      {active && <ChevronRight size={16} className="ml-auto" />}
+    </button>
+  );
+}
+
+function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-500 font-medium mb-1">{label}</p>
+        <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+      </div>
+      <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-2xl">
+        {icon}
+      </div>
+    </div>
+  );
+}
+
+function FilterSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (val: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}:</span>
+      <select 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-[#1B2B5E] focus:border-[#1B2B5E] p-2 outline-none"
+      >
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function StatusBadge({ verified }: { verified: boolean }) {
+  return verified ? (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+      <CheckCircle size={12} />
+      Verified
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
+      <Clock size={12} />
+      Pending
+    </span>
+  );
+}
+
+function PostcardDrawer({ business, onClose }: { business: Business; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'en' | 'ar' | 'ku'>('en');
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="relative h-48 bg-gray-900">
+        {business.postcard?.cover_image_url ? (
+          <img src={business.postcard.cover_image_url} alt="" className="w-full h-full object-cover opacity-60" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#1B2B5E] to-[#C9A84C] opacity-40" />
+        )}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-all"
+        >
+          <X size={20} />
+        </button>
+        
+        <div className="absolute -bottom-8 left-6 flex items-end gap-4">
+          <div className="w-24 h-24 rounded-2xl bg-white shadow-xl border-4 border-white overflow-hidden flex items-center justify-center">
+            {business.postcard?.logo_url ? (
+              <img src={business.postcard.logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Globe size={40} className="text-gray-300" />
+            )}
           </div>
+          <div className="mb-2">
+            <StatusBadge verified={business.verified} />
+          </div>
+        </div>
+      </div>
 
-          {/* Network Status Pie */}
-          <div style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 8, padding: "20px",
-            height: 300,
-            display: "flex",
-            flexDirection: "column"
-          }}>
-            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20 }}>
-              ◈ NETWORK STATUS
-            </div>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
+      {/* Content */}
+      <div className="mt-12 px-6 pb-8 space-y-8">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">{business.name?.[activeTab] || 'Unnamed'}</h2>
+            <div className="flex bg-gray-100 p-1 rounded-lg">
+              {(['en', 'ar', 'ku'] as const).map(lang => (
+                <button
+                  key={lang}
+                  onClick={() => setActiveTab(lang)}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeTab === lang ? 'bg-white text-[#1B2B5E] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ background: '#090d13', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: -20 }}>
-              {statusData.map(s => (
-                <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
-                  <span style={{ fontSize: 9, color: "#64748b" }}>{s.name.toUpperCase()}</span>
-                </div>
+                  {lang.toUpperCase()}
+                </button>
               ))}
             </div>
           </div>
-
-          {/* Simplified Iraq Map (SVG) */}
-          <div style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 8, padding: "20px",
-            height: 300,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center"
-          }}>
-            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 3, marginBottom: 20, width: "100%" }}>
-              ◈ GEOGRAPHIC COVERAGE
-            </div>
-            <svg viewBox="0 0 200 200" style={{ width: "100%", height: "100%", opacity: 0.6 }}>
-              {/* Abstract Iraq Shape */}
-              <path d="M100,20 L140,40 L160,80 L150,140 L100,180 L50,140 L40,80 L60,40 Z" fill="none" stroke="#45AAF2" strokeWidth="1" strokeDasharray="4 4" />
-              {/* Governor Dots */}
-              {governors.map((g, idx) => {
-                const angle = (idx / governors.length) * Math.PI * 2;
-                const r = 60 + Math.random() * 10;
-                const x = 100 + Math.cos(angle) * r;
-                const y = 100 + Math.sin(angle) * r;
-                return (
-                  <circle 
-                    key={g.id} 
-                    cx={x} cy={y} r={3} 
-                    fill={statusConfig[g.status]?.dot || "#45AAF2"} 
-                    style={{ animation: g.status === 'active' ? 'blink 1.5s infinite' : 'none' }}
-                  />
-                );
-              })}
-              <text x="100" y="105" textAnchor="middle" fill="#45AAF2" fontSize="10" fontWeight="bold" style={{ letterSpacing: 2 }}>IRAQ_NET</text>
-            </svg>
-          </div>
+          <p className="text-gray-600 leading-relaxed" dir={activeTab === 'en' ? 'ltr' : 'rtl'}>
+            {business.postcard?.description?.[activeTab] || 'No description available in this language.'}
+          </p>
         </div>
 
-        {/* Overall progress bar */}
-        <div style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 8, padding: "16px 20px", marginBottom: 28,
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontSize: 11, letterSpacing: 3, color: "#64748b" }}>◈ OVERALL NETWORK PROGRESS</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#45AAF2" }}>{overallProgress}% — {totalRecords.toLocaleString()} / {totalTarget.toLocaleString()} records</span>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 4, height: 8, overflow: "hidden" }}>
-            <div style={{
-              height: "100%", borderRadius: 4, width: `${overallProgress}%`,
-              background: "linear-gradient(90deg, #45AAF2, #26de81)",
-              transition: "width 1s ease",
-              boxShadow: "0 0 10px rgba(69,170,242,0.5)",
-            }} />
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {["all", "active", "idle", "error"].map(f => (
-            <button key={f} className="filter-btn" onClick={() => setActiveFilter(f)} style={{
-              background: activeFilter === f ? "rgba(69,170,242,0.15)" : "rgba(255,255,255,0.03)",
-              border: `1px solid ${activeFilter === f ? "#45AAF2" : "rgba(255,255,255,0.07)"}`,
-              color: activeFilter === f ? "#45AAF2" : "#64748b",
-              borderRadius: 4, padding: "6px 16px",
-              fontSize: 11, letterSpacing: 2, fontFamily: "inherit", cursor: "pointer",
-              opacity: 0.9, transition: "all 0.15s",
-            }}>
-              {f.toUpperCase()}
-              {f !== "all" && <span style={{ marginLeft: 8, opacity: 0.7 }}>
-                ({governors.filter(g => g.status === f).length})
-              </span>}
-            </button>
+        {/* Highlights */}
+        <div className="flex flex-wrap gap-2">
+          {business.postcard?.highlights?.map((h, i) => (
+            <span key={i} className="px-3 py-1 bg-[#F5F0E8] text-[#1B2B5E] text-xs font-semibold rounded-full border border-[#C9A84C]/20">
+              {h}
+            </span>
           ))}
         </div>
 
-        {/* Pagination Controls */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20, marginBottom: 24 }}>
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: currentPage === 1 ? "#334155" : "#45AAF2",
-              padding: "8px 16px",
-              borderRadius: 4,
-              cursor: currentPage === 1 ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              fontSize: 11,
-              letterSpacing: 1,
-              transition: "all 0.2s"
-            }}
-          >
-            [ PREVIOUS ]
-          </button>
-          <span style={{ fontSize: 11, color: "#64748b", letterSpacing: 2 }}>
-            PAGE <span style={{ color: "#fff", fontWeight: 700 }}>{currentPage}</span> OF <span style={{ color: "#fff", fontWeight: 700 }}>{Math.ceil(filtered.length / itemsPerPage) || 1}</span>
-          </span>
-          <button 
-            disabled={currentPage >= Math.ceil(filtered.length / itemsPerPage)}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: currentPage >= Math.ceil(filtered.length / itemsPerPage) ? "#334155" : "#45AAF2",
-              padding: "8px 16px",
-              borderRadius: 4,
-              cursor: currentPage >= Math.ceil(filtered.length / itemsPerPage) ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              fontSize: 11,
-              letterSpacing: 1,
-              transition: "all 0.2s"
-            }}
-          >
-            [ NEXT ]
-          </button>
+        {/* Contact Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <ContactButton icon={<Phone size={18} />} label="Call" value={business.contact?.phone?.[0]} />
+          <ContactButton icon={<Globe size={18} />} label="Website" value={business.contact?.website} />
+          <ContactButton icon={<MapPin size={18} />} label="Location" value={business.city} />
+          <ContactButton icon={<ExternalLink size={18} />} label="Maps" value="Open in Maps" />
         </div>
 
-        {/* Agent Monitoring Panel (Admin View) */}
-        <div style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 8, padding: "24px", marginBottom: 28,
-        }}>
-          <div style={{ fontSize: 11, color: "#45AAF2", letterSpacing: 3, marginBottom: 20, fontWeight: 700 }}>
-            ◈ AGENT MONITORING PANEL
+        {/* Agent Notes */}
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <Activity size={14} />
+            Agent Verification Notes
+          </h4>
+          <p className="text-sm text-gray-700 italic">
+            "{business.agent_notes || 'No notes from verification agent.'}"
+          </p>
+          <div className="mt-3 text-[10px] text-gray-400 flex items-center justify-between">
+            <span>Last Verified: {business.last_verified ? new Date(business.last_verified).toLocaleDateString() : 'Never'}</span>
+            <span>Score: {business.verification_score}/100</span>
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "inherit" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", color: "#64748b", textAlign: "left" }}>
-                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>AGENT ID</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>GOVERNMENT RATE</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>STATUS</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>BUSINESSES COLLECTED</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 700 }}>LAST ACTIVITY</th>
-                </tr>
-              </thead>
-              <tbody>
-                {governors.map((gov) => (
-                  <tr key={gov.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", transition: "background 0.2s" }} className="hover:bg-white/5">
-                    <td style={{ padding: "12px 16px", color: "#fff", fontWeight: 700 }}>
-                      {gov.name.toUpperCase()} <span style={{ opacity: 0.4, fontSize: 10 }}>#{gov.id}</span>
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "#45AAF2" }}>{gov.governmentRate}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusConfig[gov.status]?.dot || "#64748b" }} />
-                        <span style={{ color: statusConfig[gov.status]?.dot || "#64748b", fontWeight: 700, fontSize: 10 }}>{gov.status.toUpperCase()}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "#e2e8f0", fontVariantNumeric: "tabular-nums" }}>{gov.records.toLocaleString()}</td>
-                    <td style={{ padding: "12px 16px", color: "#64748b" }}>{gov.lastRun}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Governor Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((gov, i) => {
-            const pct = gov.target > 0 ? Math.round((gov.records / gov.target) * 100) : 0;
-            const sc = statusConfig[gov.status] || statusConfig.idle;
-            const isSelected = selectedGov === gov.id;
-
-            return (
-              <div key={gov.id} className="gov-card"
-                onClick={() => setSelectedGov(isSelected ? null : gov.id)}
-                style={{
-                  background: isSelected ? "rgba(69,170,242,0.06)" : "rgba(255,255,255,0.025)",
-                  borderTop: `1px solid ${isSelected ? "#45AAF2" : "rgba(255,255,255,0.07)"}`,
-                  borderRight: `1px solid ${isSelected ? "#45AAF2" : "rgba(255,255,255,0.07)"}`,
-                  borderBottom: `1px solid ${isSelected ? "#45AAF2" : "rgba(255,255,255,0.07)"}`,
-                  borderLeft: `3px solid ${gov.color}`,
-                  borderRadius: 8, padding: "16px 18px",
-                  animation: `slideIn 0.4s ease ${i * 0.04}s both`,
-                }}>
-
-                {/* Header row */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>{gov.emoji}</span>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", letterSpacing: 1 }}>
-                        {gov.name}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>{gov.category}</div>
-                    </div>
-                  </div>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: sc.bg, border: `1px solid ${sc.border}`,
-                    borderRadius: 4, padding: "3px 8px",
-                  }}>
-                    <div style={{ ...pulse(sc.dot), color: sc.dot }} />
-                    <span style={{ fontSize: 9, letterSpacing: 2, color: sc.dot, fontWeight: 700 }}>{sc.label}</span>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 10, color: "#64748b" }}>PROGRESS</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: gov.color }}>{pct}%</span>
-                  </div>
-                  <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 3, height: 5, overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 3, width: `${pct}%`,
-                      background: `linear-gradient(90deg, ${gov.color}88, ${gov.color})`,
-                      boxShadow: `0 0 8px ${gov.color}66`,
-                      transition: "width 1.2s ease",
-                    }} />
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 4, padding: "7px 8px" }}>
-                    <div style={{ fontSize: 9, color: "#64748b", letterSpacing: 1, marginBottom: 2 }}>RECORDS</div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: "#e2e8f0", fontVariantNumeric: "tabular-nums" }}>
-                      {(animatedRecords[gov.id] || 0).toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 4, padding: "7px 8px" }}>
-                    <div style={{ fontSize: 9, color: "#64748b", letterSpacing: 1, marginBottom: 2 }}>TARGET</div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: "#64748b", fontVariantNumeric: "tabular-nums" }}>
-                      {gov.target.toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ background: gov.errors > 0 ? "rgba(252,92,101,0.08)" : "rgba(255,255,255,0.04)", borderRadius: 4, padding: "7px 8px" }}>
-                    <div style={{ fontSize: 9, color: "#64748b", letterSpacing: 1, marginBottom: 2 }}>ERRORS</div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: gov.errors > 0 ? "#FC5C65" : "#26de81" }}>
-                      {gov.errors}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Last run */}
-                <div style={{ marginTop: 10, fontSize: 10, color: "#475569", display: "flex", justifyContent: "space-between" }}>
-                  <span>◷ LAST RUN: {gov.lastRun}</span>
-                  <span style={{ color: "#334155" }}>→ NEXT: 6h</span>
-                </div>
-
-                {/* View Records Button */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const isExpanded = expandedGovId === gov.id;
-                    setExpandedGovId(isExpanded ? null : gov.id);
-                    if (!isExpanded) fetchGovRecords(gov.id, gov.name);
-                  }}
-                  style={{
-                    width: "100%", marginTop: 12, padding: "8px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: 4, color: "#45AAF2", fontSize: 10,
-                    fontWeight: 700, letterSpacing: 1, cursor: "pointer",
-                    transition: "all 0.2s", fontFamily: "inherit"
-                  }}
-                >
-                  {expandedGovId === gov.id ? "▲ HIDE RECORDS" : "▼ VIEW RECORDS"}
-                </button>
-
-                {/* Expanded Records */}
-                {expandedGovId === gov.id && (
-                  <div style={{ 
-                    marginTop: 12, padding: "12px", 
-                    background: "rgba(0,0,0,0.2)", 
-                    border: "1px solid rgba(255,255,255,0.05)",
-                    borderRadius: 4, animation: "slideIn 0.3s ease"
-                  }}>
-                    {loadingRecords[gov.id] ? (
-                      <div style={{ fontSize: 9, color: "#64748b", textAlign: "center", padding: "10px", letterSpacing: 1 }}>
-                        FETCHING DATA...
-                      </div>
-                    ) : govRecords[gov.id]?.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ 
-                          display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.6fr 1fr 0.8fr", 
-                          gap: 8, fontSize: 7, color: "#475569", borderBottom: "1px solid rgba(255,255,255,0.05)",
-                          paddingBottom: 4, fontWeight: 700, letterSpacing: 1
-                        }}>
-                          <span>NAME</span>
-                          <span>CATEGORY</span>
-                          <span>STATUS</span>
-                          <span>SOURCE</span>
-                          <span>VERIFIED</span>
-                        </div>
-                        {govRecords[gov.id].map((rec, idx) => (
-                          <div key={idx} style={{ 
-                            display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.6fr 1fr 0.8fr", 
-                            gap: 8, fontSize: 8, borderBottom: "1px solid rgba(255,255,255,0.03)",
-                            paddingBottom: 4
-                          }}>
-                            <span style={{ color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rec.name}</span>
-                            <span style={{ color: "#64748b" }}>{rec.category}</span>
-                            <span style={{ color: rec.status === "active" ? "#26de81" : "#f7b731" }}>{rec.status?.toUpperCase()}</span>
-                            <span style={{ color: "#45AAF2", fontSize: 7 }}>{rec.source || "GOOGLE_MAPS"}</span>
-                            <span style={{ color: rec.verification_status === "verified" ? "#26de81" : "#64748b" }}>
-                              {rec.verification_status === "verified" ? "✓ YES" : "PENDING"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 9, color: "#64748b", textAlign: "center", padding: "10px", letterSpacing: 1 }}>
-                        NO RECORDS FOUND
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Enrichment Agent Control */}
-        <AgentControlPanel />
-
-        {/* System Event Log */}
-        <SystemLog />
-
-        {/* Footer */}
-        <div style={{
-          marginTop: 28, padding: "14px 0 0",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          display: "flex", justifyContent: "space-between",
-          fontSize: 10, color: "#334155", letterSpacing: 2,
-        }}>
-          <span>IRAQ COMPASS // AI GOVERNOR NETWORK v1.0</span>
-          <span>SUPABASE → VERCEL → GITHUB</span>
-          <span>AUTO-REFRESH: 30s</span>
         </div>
       </div>
     </div>
+  );
+}
+
+function ContactButton({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) {
+  return (
+    <button className="flex flex-col items-start p-3 bg-white border border-gray-200 rounded-xl hover:border-[#C9A84C] hover:shadow-md transition-all text-left">
+      <div className="text-[#C9A84C] mb-1">{icon}</div>
+      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+      <span className="text-xs font-medium text-gray-900 truncate w-full">{value || 'N/A'}</span>
+    </button>
   );
 }
