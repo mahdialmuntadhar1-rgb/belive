@@ -1,13 +1,6 @@
-# 18-AGENTS Internal Dashboard
+# Iraq Compass Data Verification Dashboard
 
-Internal AI agent management dashboard for orchestration, review, QA, and reporting workflows.
-
-## Project Scope
-
-- This repository is **only** for the 18-AGENTS dashboard.
-- Supabase project for this app: `https://mxxaxhrtccomkazpvthn.supabase.co`.
-- Do **not** reference Iraq Compass frontend design in this codebase.
-- Do **not** use or modify the Iraq Compass Supabase project from this repository.
+Internal tool to clean, verify, and approve 70,000+ Iraqi business records.
 
 ## Setup Instructions for Replit
 
@@ -24,24 +17,6 @@ Internal AI agent management dashboard for orchestration, review, QA, and report
    - Click the **Run** button at the top.
    - The dashboard will be available in the Webview.
 
-## Cloudflare Worker Secrets (Required)
-
-Set these secrets in your Cloudflare Worker dashboard (or via `wrangler secret put`) before running pipelines:
-
-- `GEMINI_API_KEY`
-- `VITE_SUPABASE_URL` (for this project: `https://mxxaxhrtccomkazpvthn.supabase.co`)
-- `VITE_SUPABASE_ANON_KEY`
-
-## Deployment Synchronization (Cloudflare)
-
-To avoid URL collision with other projects (for example Iraq Compass), keep this Worker identity and asset configuration:
-
-- Worker name: `tawaw18agent`
-- Assets directory: `./dist`
-- Compatibility date: `2026-03-25`
-
-If a deployment is created under a new Worker slot/environment, re-add all required secrets for that slot before running pipelines.
-
 ## Supabase Schema
 
 Before running the app, ensure you have executed the SQL schema provided in the `Step 1` response in your Supabase SQL Editor.
@@ -49,13 +24,13 @@ Before running the app, ensure you have executed the SQL schema provided in the 
 ## Features
 
 - **Overview**: Real-time metrics of raw vs verified data.
-- **Review Table**: Batch approve or reject records based on verification scores.
-- **Data Cleaner**: Repair encoding issues (mojibake) in multilingual text.
-- **Task Manager**: Launch automated agent tasks for enrichment.
-- **Export**: Generate clean JSON outputs for downstream systems.
+- **Review Table**: Batch approve or reject businesses based on verification scores.
+- **Data Cleaner**: Repair encoding issues (mojibake) in Arabic/Kurdish text.
+- **Task Manager**: Launch automated agent tasks for data enrichment.
+- **Export**: Generate clean JSON files ready for the public directory.
 
 ## Language Support
 
 - Full RTL support for Arabic and Kurdish.
 - Trilingual data fields (AR, KU, EN).
-- `dir="rtl"` implemented on relevant UI components.
+- Dir="rtl" implemented on relevant UI components.

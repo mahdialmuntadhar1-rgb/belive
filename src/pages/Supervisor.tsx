@@ -29,7 +29,6 @@ interface UploadedFile {
 import { supabase } from '../lib/supabase';
 
 export default function Supervisor() {
-  const sessionIdRef = useRef(crypto.randomUUID().slice(0, 6).toUpperCase());
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -122,7 +121,7 @@ export default function Supervisor() {
 
   const processFiles = (newFiles: File[]) => {
     const fileObjects: UploadedFile[] = newFiles.map(f => ({
-      id: crypto.randomUUID(),
+      id: Math.random().toString(36).substr(2, 9),
       name: f.name,
       size: (f.size / 1024).toFixed(1) + ' KB',
       status: 'pending'
@@ -211,7 +210,7 @@ export default function Supervisor() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col items-end">
               <span className="text-[10px] text-white/40 uppercase tracking-widest">Current Session</span>
-              <span className="text-xs font-mono">ID: {sessionIdRef.current}</span>
+              <span className="text-xs font-mono">ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
             </div>
           </div>
         </div>
