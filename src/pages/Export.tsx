@@ -16,7 +16,7 @@ const Export: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [filters, setFilters] = useState({
-    governorate: 'All',
+    city: 'All',
     minScore: 80
   });
 
@@ -80,10 +80,10 @@ const Export: React.FC = () => {
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filter by Governorate</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Filter by City</label>
             <select 
-              value={filters.governorate}
-              onChange={e => setFilters({...filters, governorate: e.target.value})}
+              value={filters.city}
+              onChange={e => setFilters({...filters, city: e.target.value})}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C9A84C]"
             >
               <option>All</option>
@@ -147,8 +147,8 @@ const Export: React.FC = () => {
     "en": "River Restaurant"
   },
   "category": "Restaurants",
-  "governorate": "Baghdad",
-  "city": "Karrada",
+  "city": "Baghdad",
+  "district": "Karrada",
   "coordinates": { "lat": 33.312, "lng": 44.421 },
   "phone": "+964 770 123 4567",
   "website": "https://river-rest.iq",

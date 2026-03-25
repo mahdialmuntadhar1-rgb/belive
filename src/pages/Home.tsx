@@ -20,7 +20,6 @@ import {
   MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "motion/react";
 import { CityGrid } from "../components/CityGrid";
 import { db, auth } from "../firebase";
@@ -56,6 +55,8 @@ const CATEGORIES = [
   { id: 'Pharmacy', icon: <Activity size={16} />, label: 'Pharmacy' }
 ];
 
+import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
+
 export default function Home() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedCat, setSelectedCat] = useState<string>("all");
@@ -82,7 +83,7 @@ export default function Home() {
       setBusinesses(data);
       setLoading(false);
     }, (error) => {
-      console.error("Firestore error:", error);
+      handleFirestoreError(error, OperationType.GET, 'businesses');
       setLoading(false);
     });
 

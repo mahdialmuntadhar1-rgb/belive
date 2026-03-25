@@ -106,7 +106,12 @@ const TASK_TEMPLATES = [
   { label: 'Final QA check', prompt: 'QA before publish. Check: all fields complete, no placeholders, score>=60, trilingual content present. Output: [{name, pass:bool, issues:[]}]' },
 ];
 
+import { useAuth } from '../AuthContext';
+
+import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
+
 export default function AgentCommander() {
+  const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [chatHistories, setChatHistories] = useState<Record<number, Message[]>>({});
   const [inputText, setInputText] = useState('');
@@ -130,24 +135,18 @@ export default function AgentCommander() {
   }, [chatHistories, selectedAgent.id, isLoading]);
 
   useEffect(() => {
-    fetchTaskHistory();
-  }, []);
-
-  const fetchTaskHistory = async () => {
+    if (!user) return;
+    
     const q = query(collection(db, 'agent_tasks'), orderBy('created_at', 'desc'), limit(20));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
       setTaskHistory(tasks);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'agent_tasks');
     });
-    return unsubscribe;
-  };
 
-  useEffect(() => {
-    const unsubscribePromise = fetchTaskHistory();
-    return () => {
-      unsubscribePromise.then(unsubscribe => unsubscribe());
-    };
-  }, []);
+    return () => unsubscribe();
+  }, [user]);
 
   const currentHistory = chatHistories[selectedAgent.id] || [];
 
@@ -383,8 +382,8 @@ export default function AgentCommander() {
                   handleSendMessage(inputText);
                 }
               }}
-              placeholder="Type a message or assign a task..."
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-[#C9A84C] resize-none"
+              placeholder="Instructions should be specific and actionable for the selected agent."
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-[#C9A84C]"
               rows={2}
             />
             <button 
@@ -445,8 +444,8 @@ export default function AgentCommander() {
                 <textarea 
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#C9A84C] h-32 resize-none"
-                  placeholder="Describe the task..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#C9A84C] h-32"
+                  placeholder="Instructions should be specific and actionable for the selected agent."
                 />
               </div>
 

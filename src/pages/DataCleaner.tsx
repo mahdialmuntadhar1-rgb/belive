@@ -59,7 +59,6 @@ const DataCleaner: React.FC = () => {
         const records = (Array.isArray(json) ? json : [json]).map(item => ({
           name_raw: item.name || item.name_raw,
           category_raw: item.category || item.category_raw,
-          governorate: item.governorate,
           city: item.city,
           address: item.address,
           phone: item.phone,
@@ -154,7 +153,7 @@ const DataCleaner: React.FC = () => {
                 <thead>
                   <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
                     <th className="px-6 py-3">Raw Name</th>
-                    <th className="px-6 py-3">Governorate</th>
+                    <th className="px-6 py-3">City</th>
                     <th className="px-6 py-3">Status</th>
                   </tr>
                 </thead>
@@ -162,7 +161,7 @@ const DataCleaner: React.FC = () => {
                   {previewData.map((item, i) => (
                     <tr key={i}>
                       <td className="px-6 py-4 font-medium text-[#1B2B5E]">{item.name_raw || item.name}</td>
-                      <td className="px-6 py-4 text-gray-500">{item.governorate}</td>
+                      <td className="px-6 py-4 text-gray-500">{item.city}</td>
                       <td className="px-6 py-4">
                         <span className="text-[10px] font-black text-emerald-600 uppercase">Ready</span>
                       </td>

@@ -1,335 +1,252 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
-  createColumnHelper,
-} from '@tanstack/react-table';
+import React, { useState, useEffect } from 'react';
 import { 
-  Search, Filter, Eye, CheckCircle2, XCircle, 
-  AlertTriangle, ChevronLeft, ChevronRight,
-  MoreVertical, Download, ExternalLink,
-  MapPin, Phone, Globe, Wand2, ShieldCheck,
-  X, Save, RefreshCw
+  Search, 
+  Filter, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  ChevronRight,
+  MoreVertical,
+  CheckSquare
 } from 'lucide-react';
+import { businessService } from '../services/dashboardService';
+import { VerifiedBusiness } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabase } from '../lib/supabase';
-import { AgentCommander, BusinessRecord } from '../services/agentCommander';
-import { toast } from 'sonner';
 
-const columnHelper = createColumnHelper<any>();
-
-export default function ReviewTable() {
-  const [data, setData] = useState<any[]>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    const { data: businesses, error } = await supabase
-      .from('businesses')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      toast.error('Failed to fetch businesses');
-    } else {
-      setData(businesses || []);
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleApprove = async (record: any) => {
-    try {
-      await AgentCommander.manualOverride(record.id, { is_verified: true });
-      toast.success(`Approved ${record.name.en}`);
-      fetchData();
-      setIsDrawerOpen(false);
-    } catch (err) {
-      toast.error('Failed to approve record');
-    }
-  };
-
-  const handleReject = async (record: any) => {
-    try {
-      await AgentCommander.manualOverride(record.id, { needs_review: true, is_verified: false });
-      toast.warning(`Flagged ${record.name.en} for re-processing`);
-      fetchData();
-      setIsDrawerOpen(false);
-    } catch (err) {
-      toast.error('Failed to reject record');
-    }
-  };
-
-  const columns = useMemo(() => [
-    columnHelper.accessor('name.en', {
-      header: 'Business Name',
-      cell: info => (
-        <div className="flex flex-col">
-          <span className="font-bold text-slate-100">{info.getValue()}</span>
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{info.row.original.category}</span>
-        </div>
-      ),
-    }),
-    columnHelper.accessor('governorate', {
-      header: 'Governorate',
-      cell: info => (
-        <div className="flex items-center gap-2">
-          <MapPin size={14} className="text-emerald-400" />
-          <span className="text-xs font-medium text-slate-300">{info.getValue()}</span>
-        </div>
-      ),
-    }),
-    columnHelper.accessor('confidence_score', {
-      header: 'Confidence',
-      cell: info => {
-        const score = info.getValue() * 100;
-        const color = score >= 85 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400';
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className={`h-full ${color.replace('text', 'bg')}`} style={{ width: `${score}%` }} />
-            </div>
-            <span className={`text-xs font-black ${color}`}>{score.toFixed(1)}%</span>
-          </div>
-        );
-      },
-    }),
-    columnHelper.accessor('is_verified', {
-      header: 'Status',
-      cell: info => (
-        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-          info.getValue() 
-            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-        }`}>
-          {info.getValue() ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
-          {info.getValue() ? 'Verified' : 'Review'}
-        </div>
-      ),
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: '',
-      cell: info => (
-        <button 
-          onClick={() => {
-            setSelectedRecord(info.row.original);
-            setIsDrawerOpen(true);
-          }}
-          className="p-2 bg-slate-800 hover:bg-emerald-500 text-slate-400 hover:text-slate-950 rounded-lg transition-all"
-        >
-          <Eye size={16} />
-        </button>
-      ),
-    }),
-  ], []);
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+const ReviewTable: React.FC = () => {
+  const [businesses, setBusinesses] = useState<VerifiedBusiness[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [filters, setFilters] = useState({
+    status: 'All',
+    city: 'All',
+    category: 'All',
+    minScore: 0
   });
 
+  useEffect(() => {
+    fetchBusinesses();
+  }, [filters]);
+
+  const fetchBusinesses = async () => {
+    setLoading(true);
+    try {
+      const data = await businessService.getVerifiedBusinesses(filters);
+      setBusinesses(data);
+    } catch (error) {
+      console.error('Error fetching businesses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (id: string, status: string) => {
+    try {
+      await businessService.updateStatus(id, status);
+      fetchBusinesses();
+    } catch (error) {
+      alert('Failed to update status');
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await businessService.batchApprove(selectedIds);
+      setSelectedIds([]);
+      fetchBusinesses();
+    } catch (error) {
+      alert('Batch approval failed');
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-black text-white tracking-tighter uppercase">Visual Review Hub</h1>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Unified Agent Data Verification</p>
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-black text-[#1B2B5E] tracking-tight">BUSINESS REVIEW</h2>
+          <p className="text-gray-500 font-medium">Verify and approve records for the public directory</p>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-            <input
-              type="text"
-              value={globalFilter ?? ''}
-              onChange={e => setGlobalFilter(e.target.value)}
-              placeholder="Search records..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all"
-            />
-          </div>
-          <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 transition-colors">
-            <Filter size={20} />
-          </button>
-          <button onClick={fetchData} className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 transition-colors">
-            <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
-          </button>
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={handleBatchApprove}
+              className="bg-[#C9A84C] text-[#1B2B5E] px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all"
+            >
+              Batch Approve ({selectedIds.length})
+            </motion.button>
+          )}
+        </div>
+      </header>
+
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Filter size={16} className="text-gray-400" />
+          <select 
+            value={filters.status}
+            onChange={(e) => setFilters({...filters, status: e.target.value})}
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#C9A84C]"
+          >
+            <option>All Status</option>
+            <option>Pending</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+            <option>Flagged</option>
+          </select>
+        </div>
+        <select 
+          value={filters.city}
+          onChange={(e) => setFilters({...filters, city: e.target.value})}
+          className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#C9A84C]"
+        >
+          <option>All Cities</option>
+          <option>Baghdad</option>
+          <option>Erbil</option>
+          <option>Sulaymaniyah</option>
+          <option>Basra</option>
+        </select>
+        <div className="flex-1" />
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input 
+            type="text" 
+            placeholder="Search businesses..."
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#C9A84C]"
+          />
         </div>
       </div>
 
-      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar">
+      {/* Table */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              {table.getHeaderGroups().map(headerGroup => (
-                <tr key={headerGroup.id} className="border-b border-slate-800 bg-slate-900/50">
-                  {headerGroup.headers.map(header => (
-                    <th key={header.id} className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-6 py-4 w-12">
+                  <input 
+                    type="checkbox" 
+                    onChange={(e) => setSelectedIds(e.target.checked ? businesses.map(b => b.id) : [])}
+                    className="rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
+                  />
+                </th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Business Name</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Location</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Category</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Scores</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
+              </tr>
             </thead>
-            <tbody>
-              {table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="border-b border-slate-800/50 hover:bg-emerald-500/5 transition-colors group">
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-6 py-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={7} className="px-6 py-8">
+                      <div className="h-4 bg-gray-100 rounded w-full"></div>
                     </td>
-                  ))}
+                  </tr>
+                ))
+              ) : businesses.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-20 text-center text-gray-300 italic">No records found matching filters</td>
                 </tr>
-              ))}
+              ) : (
+                businesses.map((b) => (
+                  <tr key={b.id} className="hover:bg-gray-50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(b.id)}
+                        onChange={() => toggleSelect(b.id)}
+                        className="rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-[#1B2B5E]">{b.name_ar || b.name_en || b.name_ku}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">{b.phone || 'No Phone'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-medium text-gray-600">{b.city}</div>
+                      <div className="text-[10px] text-gray-400 uppercase font-bold">{b.city}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded-full uppercase">
+                        {b.category || 'Uncategorized'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3].map(s => (
+                            <div key={s} className={`w-2 h-2 rounded-full ${s <= b.verification_score ? 'bg-[#C9A84C]' : 'bg-gray-200'}`} />
+                          ))}
+                        </div>
+                        <span className={`text-[10px] font-black ${b.confidence_score >= 80 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {b.confidence_score}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={b.status} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleStatusUpdate(b.id, 'approved')}
+                          disabled={b.confidence_score < 80}
+                          className={`p-2 rounded-lg transition-all ${b.confidence_score >= 80 ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-200 cursor-not-allowed'}`}
+                          title="Approve"
+                        >
+                          <CheckCircle size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleStatusUpdate(b.id, 'flagged')}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                          title="Flag"
+                        >
+                          <AlertTriangle size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleStatusUpdate(b.id, 'rejected')}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Reject"
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        
-        <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-800 flex items-center justify-between">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-            Showing {table.getRowModel().rows.length} of {data.length} records
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-1.5 bg-slate-800 rounded-lg text-slate-400 disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button 
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-1.5 bg-slate-800 rounded-lg text-slate-400 disabled:opacity-30 transition-all"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
       </div>
-
-      {/* Side Drawer */}
-      <AnimatePresence>
-        {isDrawerOpen && selectedRecord && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40"
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-slate-900 border-l border-slate-800 shadow-2xl z-50 overflow-y-auto custom-scrollbar"
-            >
-              <div className="p-8 space-y-8">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-black text-white uppercase tracking-tight">{selectedRecord.name.en}</h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {selectedRecord.category}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">ID: {selectedRecord.id.slice(0, 8)}</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 transition-colors"
-                  >
-                    <X size={24} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                      <Globe size={14} /> Scraped Photo
-                    </h3>
-                    <div className="aspect-video bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden relative group">
-                      {selectedRecord.scraped_photo_url ? (
-                        <img 
-                          src={selectedRecord.scraped_photo_url} 
-                          alt="Scraped" 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-700">
-                          <Download size={32} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                      <Wand2 size={14} /> AI Processed
-                    </h3>
-                    <div className="aspect-video bg-slate-950 rounded-2xl border border-slate-800 p-4 overflow-y-auto custom-scrollbar">
-                      <pre className="text-[10px] text-emerald-400/80 font-mono leading-relaxed">
-                        {JSON.stringify(selectedRecord.ai_processed_data || { status: 'No data' }, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <h3 className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Data Fields</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { label: 'Arabic Name', value: selectedRecord.name.ar, icon: <Globe size={16} /> },
-                      { label: 'Kurdish Name', value: selectedRecord.name.ku, icon: <Globe size={16} /> },
-                      { label: 'WhatsApp', value: selectedRecord.whatsapp, icon: <Phone size={16} /> },
-                      { label: 'Location', value: `${selectedRecord.latitude}, ${selectedRecord.longitude}`, icon: <MapPin size={16} /> },
-                    ].map(field => (
-                      <div key={field.label} className="p-4 bg-slate-950/50 border border-slate-800 rounded-xl space-y-1">
-                        <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest flex items-center gap-2">
-                          {field.icon} {field.label}
-                        </div>
-                        <div className="text-sm font-bold text-slate-200">{field.value || 'N/A'}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-8 border-t border-slate-800 flex gap-4">
-                  <button 
-                    onClick={() => handleApprove(selectedRecord)}
-                    className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
-                  >
-                    <CheckCircle2 size={18} /> Approve Record
-                  </button>
-                  <button 
-                    onClick={() => handleReject(selectedRecord)}
-                    className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs uppercase tracking-widest rounded-2xl transition-all border border-slate-700 flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw size={18} /> Flag for Review
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
-}
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const styles: any = {
+    pending: 'bg-amber-100 text-amber-700',
+    approved: 'bg-emerald-100 text-emerald-700',
+    rejected: 'bg-rose-100 text-rose-700',
+    flagged: 'bg-purple-100 text-purple-700',
+  };
+  return (
+    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${styles[status]}`}>
+      {status}
+    </span>
+  );
+};
+
+export default ReviewTable;

@@ -26,7 +26,8 @@ interface UploadedFile {
   rowCount?: number;
 }
 
-import { supabase } from '../lib/supabase';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 
 export default function Supervisor() {
   const [messages, setMessages] = useState<Message[]>([
@@ -45,26 +46,30 @@ export default function Supervisor() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function importToSupabase(records: any[]) {
+  async function importToFirestore(records: any[]) {
     setImportStatus('Importing...');
     const cleaned = records.map(r => ({
-      name:        r.name || r.business_name || r.raw_name,
+      name_en:     r.name_en || r.name || r.business_name || r.raw_name,
       category:    r.category || 'restaurants',
       city:        r.city || 'Sulaymaniyah',
       phone:       r.phone || r.raw_phone || null,
       address:     r.address || r.raw_address || null,
       score:       r.data_quality_score || r.score || 0,
       status:      'pending',
-    })).filter(r => r.name);
+      created_at:  new Date().toISOString()
+    })).filter(r => r.name_en);
 
-    const { error } = await supabase
-      .from('businesses')
-      .upsert(cleaned, { onConflict: 'name,city' });
-
-    setImportStatus(error
-      ? `Error: ${error.message}`
-      : `✅ Imported ${cleaned.length} records`
-    );
+    try {
+      const batch = writeBatch(db);
+      cleaned.forEach(record => {
+        const newDocRef = doc(collection(db, 'businesses'));
+        batch.set(newDocRef, record);
+      });
+      await batch.commit();
+      setImportStatus(`✅ Imported ${cleaned.length} records`);
+    } catch (error: any) {
+      setImportStatus(`Error: ${error.message}`);
+    }
   }
 
   useEffect(() => {
@@ -152,7 +157,7 @@ export default function Supervisor() {
             });
           }
           
-          await importToSupabase(Array.isArray(records) ? records : [records]);
+          await importToFirestore(Array.isArray(records) ? records : [records]);
           updateFileStatus(fileObj.id, 'completed', Array.isArray(records) ? records.length : 1);
         } catch (err) {
           console.error('Error processing file:', err);

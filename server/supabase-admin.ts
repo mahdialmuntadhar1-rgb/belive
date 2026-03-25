@@ -1,11 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
-import { loadConfig } from "./config.js";
 
 dotenv.config();
 
-const config = loadConfig();
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder";
 
-export const supabaseAdmin = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);

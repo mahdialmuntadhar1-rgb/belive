@@ -7,39 +7,59 @@ import {
   Activity, Settings, LogOut, Menu, Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { db } from '../firebase';
+import { 
+  collection, 
+  query, 
+  onSnapshot, 
+  orderBy, 
+  getDocs, 
+  where,
+  doc,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
 
 // --- Types ---
 interface Business {
   id: string;
   business_id: string;
-  name: { en: string; ar: string; ku: string };
+  name?: { en: string; ar: string; ku: string };
+  name_en?: string;
+  name_ar?: string;
+  name_ku?: string;
   category: string;
-  subcategory: string;
+  subcategory?: string;
   city: string;
-  district: string;
-  verified: boolean;
-  verification_score: number;
-  sources: string[];
-  contact: {
+  district?: string;
+  verified?: boolean;
+  status?: string;
+  verification_score?: number;
+  confidence_score?: number;
+  sources?: string[];
+  contact?: {
     phone: string[];
     whatsapp: string;
     website: string;
     instagram: string;
     facebook: string;
   };
-  location: {
+  phone?: string;
+  website?: string;
+  location?: {
     google_maps_url: string;
     address: { en: string; ar: string; ku: string };
   };
-  postcard: {
+  address?: string;
+  postcard?: {
     logo_url: string;
     cover_image_url: string;
     highlights: string[];
     description: { en: string; ar: string; ku: string };
   };
-  agent_notes: string;
-  last_verified: string;
+  agent_notes?: string;
+  last_verified?: string;
+  created_at: string;
 }
 
 const COLORS = {
@@ -54,7 +74,12 @@ const COLORS = {
   error: '#EF4444',
 };
 
+import { useAuth } from '../AuthContext';
+
+import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
+
 export default function Admin() {
+  const { user } = useAuth();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
@@ -67,56 +92,49 @@ export default function Admin() {
   });
 
   useEffect(() => {
-    fetchBusinesses();
-    const subscription = supabase
-      .channel('businesses_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, fetchBusinesses)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, []);
-
-  const fetchBusinesses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBusinesses(data || []);
-    } catch (err) {
-      console.error('Error fetching businesses:', err);
-    } finally {
+    if (!user) {
       setLoading(false);
+      return;
     }
-  };
+    
+    const q = query(collection(db, 'businesses'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Business[];
+      setBusinesses(data);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'businesses');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const filteredBusinesses = businesses.filter(b => {
     // Handle trilingual name search
-    const nameEn = b.name?.en || '';
-    const nameAr = b.name?.ar || '';
-    const nameKu = b.name?.ku || '';
+    const nameEn = b.name_en || b.name?.en || '';
+    const nameAr = b.name_ar || b.name?.ar || '';
+    const nameKu = b.name_ku || b.name?.ku || '';
     
     const matchesSearch = nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          nameAr.includes(searchQuery) ||
                          nameKu.includes(searchQuery);
     const matchesCity = filters.city === 'All' || b.city === filters.city;
     const matchesCategory = filters.category === 'All' || b.category === filters.category;
+    
+    const isVerified = b.status === 'approved' || b.verified;
     const matchesStatus = filters.status === 'All' || 
-                         (filters.status === 'Verified' && b.verified) ||
-                         (filters.status === 'Pending' && !b.verified);
+                         (filters.status === 'Verified' && isVerified) ||
+                         (filters.status === 'Pending' && !isVerified);
     
     return matchesSearch && matchesCity && matchesCategory && matchesStatus;
   });
 
   const stats = {
     total: businesses.length,
-    verified: businesses.filter(b => b.verified).length,
-    pending: businesses.filter(b => !b.verified).length,
-    rejected: 0, // Mock for now
+    verified: businesses.filter(b => b.status === 'approved' || b.verified).length,
+    pending: businesses.filter(b => b.status !== 'approved' && !b.verified).length,
+    rejected: businesses.filter(b => b.status === 'rejected').length,
   };
 
   return (

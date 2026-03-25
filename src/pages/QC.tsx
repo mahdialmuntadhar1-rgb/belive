@@ -13,11 +13,11 @@ import {
 import { motion } from 'motion/react';
 
 const QC_RECORDS = [
-  { id: 1, name: 'Cafe Baghdad', issue: 'Missing Phone', confidence: 65, governorate: 'Baghdad', category: 'Cafe' },
-  { id: 2, name: 'Erbil Tech Store', issue: 'Invalid Coordinates', confidence: 42, governorate: 'Erbil', category: 'Retail' },
-  { id: 3, name: 'Basra Logistics', issue: 'Duplicate Detected', confidence: 78, governorate: 'Basra', category: 'Services' },
-  { id: 4, name: 'Sulaymaniyah Hotel', issue: 'Language Corruption', confidence: 55, governorate: 'Sulaymaniyah', category: 'Travel' },
-  { id: 5, name: 'Najaf Pharmacy', issue: 'Category Mismatch', confidence: 61, governorate: 'Najaf', category: 'Healthcare' },
+  { id: 1, name: 'Cafe Baghdad', issue: 'Missing Phone', confidence: 65, city: 'Baghdad', category: 'Cafe' },
+  { id: 2, name: 'Erbil Tech Store', issue: 'Invalid Coordinates', confidence: 42, city: 'Erbil', category: 'Retail' },
+  { id: 3, name: 'Basra Logistics', issue: 'Duplicate Detected', confidence: 78, city: 'Basra', category: 'Services' },
+  { id: 4, name: 'Sulaymaniyah Hotel', issue: 'Language Corruption', confidence: 55, city: 'Sulaymaniyah', category: 'Travel' },
+  { id: 5, name: 'Najaf Pharmacy', issue: 'Category Mismatch', confidence: 61, city: 'Najaf', category: 'Healthcare' },
 ];
 
 const QC: React.FC = () => {
@@ -106,7 +106,7 @@ const QC: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-[10px] font-black text-gray-400 uppercase">{record.governorate}</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase">{record.city}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

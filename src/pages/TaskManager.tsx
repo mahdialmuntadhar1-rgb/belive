@@ -22,7 +22,7 @@ const TaskManager: React.FC = () => {
     task_name: '',
     task_type: 'Verification',
     assigned_to: 'Agent-Alpha',
-    governorate: 'All'
+    city: 'All'
   });
 
   useEffect(() => {
@@ -115,10 +115,10 @@ const TaskManager: React.FC = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target Governorate</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target City</label>
               <select 
-                value={newTask.governorate}
-                onChange={e => setNewTask({...newTask, governorate: e.target.value})}
+                value={newTask.city}
+                onChange={e => setNewTask({...newTask, city: e.target.value})}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#C9A84C]"
               >
                 <option>All</option>

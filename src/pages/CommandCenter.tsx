@@ -49,7 +49,11 @@ interface LogEntry {
   type: 'info' | 'ok' | 'warn' | 'agent';
 }
 
+import { useAuth } from '../AuthContext';
+import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
+
 export default function CommandCenter() {
+  const { user } = useAuth();
   const [selectedCities, setSelectedCities] = useState<Set<string>>(new Set(['sulaymaniyah']));
   const [selectedTask, setSelectedTask] = useState('social');
   const [isRunning, setIsRunning] = useState(false);
@@ -71,7 +75,8 @@ export default function CommandCenter() {
 
   // Listen for logs from Firestore
   useEffect(() => {
-    const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(50));
+    if (!user) return;
+    const q = query(collection(db, 'agent_logs'), orderBy('timestamp', 'desc'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const firestoreLogs = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -79,13 +84,15 @@ export default function CommandCenter() {
         time: (doc.data().timestamp?.toDate?.() || new Date()).toLocaleTimeString([], { hour12: false })
       })) as LogEntry[];
       setLogs(firestoreLogs.reverse());
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'agent_logs');
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // Listen for task progress
   useEffect(() => {
-    if (!currentTaskId) return;
+    if (!currentTaskId || !user) return;
     const unsubscribe = onSnapshot(doc(db, 'agent_tasks', currentTaskId), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
@@ -94,24 +101,27 @@ export default function CommandCenter() {
         }
         // Update local progress if needed (though we simulate it for UI smoothness)
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `agent_tasks/${currentTaskId}`);
     });
     return () => unsubscribe();
-  }, [currentTaskId]);
+  }, [currentTaskId, user]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
   const addLog = async (type: LogEntry['type'], message: string) => {
+    if (!user) return;
     try {
-      await addDoc(collection(db, 'logs'), {
+      await addDoc(collection(db, 'agent_logs'), {
         timestamp: serverTimestamp(),
         message,
         type,
         taskId: currentTaskId
       });
     } catch (error) {
-      console.error("Error adding log:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'agent_logs');
     }
   };
 
@@ -404,8 +414,8 @@ export default function CommandCenter() {
               <textarea
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
-                className="flex-1 bg-white/5 border border-gold/20 rounded-xl p-4 text-xs text-slate-200 outline-none focus:border-gold transition-all min-h-[60px] resize-none"
-                placeholder="Enter specific instructions for the agents..."
+                className="flex-1 bg-white/5 border border-gold/20 rounded-xl p-4 text-xs text-slate-200 outline-none focus:border-gold transition-all min-h-[120px]"
+                placeholder="Instructions should be specific and actionable for the selected agent."
               />
               <div className="flex flex-col gap-2">
                 <button

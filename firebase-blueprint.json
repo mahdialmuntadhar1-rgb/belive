@@ -49,8 +49,9 @@
     }
   },
   "firestore": {
-    "/businesses": { "schema": "Business", "description": "Collection of business listings." },
+    "/businesses": { "schema": "Business", "description": "Collection of verified business listings." },
+    "/raw_businesses": { "schema": "Business", "description": "Collection of raw, uncleaned business data." },
     "/agent_tasks": { "schema": "AgentTask", "description": "Collection of agent tasks." },
-    "/logs": { "schema": "Log", "description": "Collection of activity logs." }
+    "/agent_logs": { "schema": "Log", "description": "Collection of activity logs for agents." }
   }
 }
