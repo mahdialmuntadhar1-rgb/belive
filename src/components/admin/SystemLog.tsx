@@ -16,6 +16,15 @@ export function SystemLog({ logs }: SystemLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+export function SystemLog() {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLogs([]);
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -62,6 +71,10 @@ export function SystemLog({ logs }: SystemLogProps) {
         {logs.length === 0 ? (
           <div style={{ color: "#64748b" }}>No streamed logs yet. Run an agent to receive live events.</div>
         ) : logs.map(log => (
+        {logs.length === 0 && (
+          <div style={{ color: "#64748b" }}>Awaiting live worker events...</div>
+        )}
+        {logs.map(log => (
           <div key={log.id} style={{ display: "flex", gap: 12, opacity: 0.9 }}>
             <span style={{ color: "#475569", minWidth: 70 }}>[{log.timestamp}]</span>
             <span style={{ 
