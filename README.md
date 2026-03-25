@@ -17,6 +17,14 @@ Internal tool to clean, verify, and approve 70,000+ Iraqi business records.
    - Click the **Run** button at the top.
    - The dashboard will be available in the Webview.
 
+## Cloudflare Worker Secrets (Required)
+
+Set these secrets in your Cloudflare Worker dashboard (or via `wrangler secret put`) before running pipelines:
+
+- `GEMINI_API_KEY`
+- `VITE_SUPABASE_URL` (for this project: `https://mxxaxhrtccomkazpvthn.supabase.co`)
+- `VITE_SUPABASE_ANON_KEY`
+
 ## Supabase Schema
 
 Before running the app, ensure you have executed the SQL schema provided in the `Step 1` response in your Supabase SQL Editor.

@@ -11,8 +11,6 @@ export interface LogEvent {
 
 type BusinessRecord = Record<string, any>;
 
-const EXPORT_SUPABASE_URL = 'https://hsadukhmcclwixuntqwu.supabase.co';
-
 function nowIso() {
   return new Date().toISOString();
 }
@@ -23,13 +21,6 @@ function logEvent(type: LogEvent['type'], message: string, city?: string, count?
 
 function createSupabase(env: Env) {
   return createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-function createExportSupabase(env: Env) {
-  const exportKey = env.EXPORT_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
-  return createClient(EXPORT_SUPABASE_URL, exportKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -280,7 +271,7 @@ export async function *runQualityCheck(env: Env, cities: string[]): AsyncGenerat
 
 export async function *runExport(env: Env, cities: string[]): AsyncGenerator<LogEvent> {
   const source = createSupabase(env);
-  const target = createExportSupabase(env);
+  const target = createSupabase(env);
 
   yield* runPerCity(
     env,

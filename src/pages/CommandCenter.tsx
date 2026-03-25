@@ -120,7 +120,6 @@ export default function CommandCenter() {
 
   const launchTasks = async () => {
     if (selectedCities.size === 0) {
-      addLog('error', 'No cities selected. Tick at least one city.');
       return;
     }
 
@@ -134,7 +133,6 @@ export default function CommandCenter() {
       initialProgress[city] = 0;
     });
     setCityProgress(initialProgress);
-    addLog('info', `Task launched: ${selectedTask}`);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -148,7 +146,6 @@ export default function CommandCenter() {
       });
 
       if (!response.ok || !response.body) {
-        addLog('error', `Unable to start task: HTTP ${response.status}`);
         setIsRunning(false);
         return;
       }
@@ -197,7 +194,7 @@ export default function CommandCenter() {
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
-        addLog('error', `Run failed: ${error?.message ?? 'Unknown error'}`);
+        console.error('Run failed:', error);
       }
     } finally {
       setIsRunning(false);
@@ -207,7 +204,6 @@ export default function CommandCenter() {
   const stopAll = () => {
     abortRef.current?.abort();
     setIsRunning(false);
-    addLog('error', 'All agents stopped by user.');
   };
 
   const activeAgentId = TASKS.find((task) => task.id === selectedTask)?.agentId;

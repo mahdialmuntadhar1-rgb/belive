@@ -41,6 +41,14 @@ function findAgent(name: string) {
   return AGENT_CONFIGS.find((agent) => agent.name.toLowerCase() === name.toLowerCase());
 }
 
+function getMissingEnv(env: Env): string[] {
+  const missing: string[] = [];
+  if (!env.GEMINI_API_KEY) missing.push('GEMINI_API_KEY');
+  if (!env.VITE_SUPABASE_URL) missing.push('VITE_SUPABASE_URL');
+  if (!env.VITE_SUPABASE_ANON_KEY) missing.push('VITE_SUPABASE_ANON_KEY');
+  return missing;
+}
+
 async function routeApi(request: Request, env: Env, pathname: string): Promise<Response | null> {
   if (pathname === '/api/task/run' && request.method === 'POST') {
     const { taskType, cities, instruction } = (await request.json()) as {
@@ -55,6 +63,21 @@ async function routeApi(request: Request, env: Env, pathname: string): Promise<R
 
     void (async () => {
       try {
+        const missing = getMissingEnv(env);
+        if (missing.length > 0) {
+          await writer.write(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: 'error',
+                message: `Missing required Worker secrets: ${missing.join(', ')}`,
+                timestamp: new Date().toISOString(),
+              })}\n\n`,
+            ),
+          );
+          await writer.write(encoder.encode('data: {"type":"done"}\n\n'));
+          return;
+        }
+
         for await (const event of runAgent(env, taskType, Array.isArray(cities) ? cities : [], instruction ?? '')) {
           await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         }
