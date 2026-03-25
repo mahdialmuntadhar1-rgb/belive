@@ -54,6 +54,7 @@ import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
 
 export default function CommandCenter() {
   const { user } = useAuth();
+  const [taskStatusWarning, setTaskStatusWarning] = useState<string | null>(null);
   const [selectedCities, setSelectedCities] = useState<Set<string>>(new Set(['sulaymaniyah']));
   const [selectedTask, setSelectedTask] = useState('social');
   const [isRunning, setIsRunning] = useState(false);
@@ -93,8 +94,13 @@ export default function CommandCenter() {
   // Listen for task progress
   useEffect(() => {
     if (!currentTaskId || !user) return;
+    setTaskStatusWarning(null);
     const unsubscribe = onSnapshot(doc(db, 'agent_tasks', currentTaskId), (snapshot) => {
       if (typeof snapshot.exists !== 'function') {
+        setTaskStatusWarning('Task status updates are temporarily unavailable. Reload the page and check Firebase configuration.');
+        console.error('Unexpected Firestore snapshot shape for agent_tasks listener', snapshot);
+        return;
+      }
         setLogs((prev) => {
           if (prev.some((entry) => entry.message.includes('Firestore SDK mismatch detected'))) {
             return prev;
@@ -458,6 +464,11 @@ export default function CommandCenter() {
                 ? <span className="text-gold">{selectedCities.size} cities selected</span> 
                 : 'No cities selected'} · Task: <span className="text-gold">{selectedTask.toUpperCase()}</span>
             </div>
+            {taskStatusWarning && (
+              <div className="rounded-lg border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-[10px] text-orange-300">
+                {taskStatusWarning}
+              </div>
+            )}
           </div>
         </div>
 
