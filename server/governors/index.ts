@@ -1,80 +1,64 @@
-import { RestaurantsGovernor } from "./restaurants.js";
+import { BaseGovernor, GovernorRuntimeConfig } from "./base-governor.js";
 import { QualityControlGovernor } from "./qc-manager.js";
-import { BaseGovernor } from "./base-governor.js";
+import { RestaurantsGovernor } from "./restaurants.js";
 
-class GenericWorkerGovernor extends BaseGovernor {
-  constructor(public agentName: string, public category: string, public governmentRate: string) {
-    super();
+class UnsupportedGovernor extends BaseGovernor {
+  constructor(config: GovernorRuntimeConfig, private reason: string) {
+    super(config);
   }
 
-  async gather(city?: string): Promise<any[]> {
-    const targetCity = city || "Baghdad";
-    console.log(`Generic Agent ${this.agentName} gathering for ${this.category} in ${targetCity}...`);
-    // Simulate finding 1-3 businesses
-    return [
-      {
-        name: `${this.category} Hub ${Math.floor(Math.random() * 100)}`,
-        category: this.category,
-        city: targetCity,
-        address: "Main Street, Sector 7",
-        phone: "+964 770 000 0000",
-        website: "https://example.com",
-        source_url: "https://example.com/source",
-        description: `A high-quality ${this.category.toLowerCase()} in ${targetCity}.`,
-        operating_hours: "08:00 AM - 10:00 PM",
-        source: "AI Crawler",
-        verification_status: "Pending",
-        date_collected: new Date()
-      }
-    ];
+  async gather(): Promise<import("../pipeline/types.js").GatheredBusiness[]> {
+    throw new Error(`${this.config.agentName}: ${this.reason}`);
   }
 }
 
-const governors: Record<string, any> = {
-  "Agent-01": new RestaurantsGovernor(),
-  "QC Overseer": new QualityControlGovernor(),
-};
-
-// Register the rest of the 18 agents
-const agentConfigs = [
-  { id: "Agent-02", name: "Basra", category: "cafes", rate: "Rate Level 1" },
-  { id: "Agent-03", name: "Nineveh", category: "bakeries", rate: "Rate Level 1" },
-  { id: "Agent-04", name: "Erbil", category: "hotels", rate: "Rate Level 1" },
-  { id: "Agent-05", name: "Sulaymaniyah", category: "gyms", rate: "Rate Level 2" },
-  { id: "Agent-06", name: "Kirkuk", category: "beauty_salons", rate: "Rate Level 2" },
-  { id: "Agent-07", name: "Duhok", category: "pharmacies", rate: "Rate Level 2" },
-  { id: "Agent-08", name: "Anbar", category: "supermarkets", rate: "Rate Level 2" },
-  { id: "Agent-09", name: "Babil", category: "restaurants", rate: "Rate Level 3" },
-  { id: "Agent-10", name: "Karbala", category: "cafes", rate: "Rate Level 3" },
-  { id: "Agent-11", name: "Wasit", category: "bakeries", rate: "Rate Level 3" },
-  { id: "Agent-12", name: "Dhi Qar", category: "hotels", rate: "Rate Level 3" },
-  { id: "Agent-13", name: "Maysan", category: "gyms", rate: "Rate Level 4" },
-  { id: "Agent-14", name: "Muthanna", category: "beauty_salons", rate: "Rate Level 4" },
-  { id: "Agent-15", name: "Najaf", category: "pharmacies", rate: "Rate Level 4" },
-  { id: "Agent-16", name: "Qadisiyyah", category: "supermarkets", rate: "Rate Level 5" },
-  { id: "Agent-17", name: "Saladin", category: "restaurants", rate: "Rate Level 5" },
-  { id: "Agent-18", name: "Diyala", category: "cafes", rate: "Rate Level 5" },
+export const agentConfigs: GovernorRuntimeConfig[] = [
+  { agentName: "Agent-01", governorate: "Baghdad", categories: ["restaurants"], sourceAdapters: ["google_places"], collectionLimit: 30, retryPolicy: { maxAttempts: 3, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 60 } },
+  { agentName: "Agent-02", governorate: "Basra", categories: ["cafes"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-03", governorate: "Nineveh", categories: ["bakeries"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-04", governorate: "Erbil", categories: ["hotels"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-05", governorate: "Sulaymaniyah", categories: ["gyms"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-06", governorate: "Kirkuk", categories: ["beauty_salons"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-07", governorate: "Duhok", categories: ["pharmacies"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-08", governorate: "Anbar", categories: ["supermarkets"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-09", governorate: "Babil", categories: ["restaurants"], sourceAdapters: ["google_places"], collectionLimit: 30, retryPolicy: { maxAttempts: 3, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 60 } },
+  { agentName: "Agent-10", governorate: "Karbala", categories: ["cafes"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-11", governorate: "Wasit", categories: ["bakeries"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-12", governorate: "Dhi Qar", categories: ["hotels"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-13", governorate: "Maysan", categories: ["gyms"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-14", governorate: "Muthanna", categories: ["beauty_salons"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-15", governorate: "Najaf", categories: ["pharmacies"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-16", governorate: "Qadisiyyah", categories: ["supermarkets"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "Agent-17", governorate: "Saladin", categories: ["restaurants"], sourceAdapters: ["google_places"], collectionLimit: 30, retryPolicy: { maxAttempts: 3, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 60 } },
+  { agentName: "Agent-18", governorate: "Diyala", categories: ["cafes"], sourceAdapters: ["not_implemented"], collectionLimit: 30, retryPolicy: { maxAttempts: 2, backoffMs: 500 }, rateLimitPolicy: { requestsPerMinute: 30 } },
+  { agentName: "QC Overseer", governorate: "Iraq", categories: ["quality_control"], sourceAdapters: ["supabase"], collectionLimit: 0, retryPolicy: { maxAttempts: 1, backoffMs: 0 }, rateLimitPolicy: { requestsPerMinute: 10 } },
 ];
 
-agentConfigs.forEach(config => {
-  if (!governors[config.id]) {
-    governors[config.id] = new GenericWorkerGovernor(config.id, config.category, config.rate);
+function createGovernor(config: GovernorRuntimeConfig): BaseGovernor {
+  if (config.agentName === "QC Overseer") return new QualityControlGovernor(config);
+  if (config.categories.includes("restaurants") && config.sourceAdapters.includes("google_places")) {
+    return new RestaurantsGovernor(config);
   }
-});
+  return new UnsupportedGovernor(config, "No implemented source adapter for configured category.");
+}
+
+const governors = new Map(agentConfigs.map((config) => [config.agentName, createGovernor(config)]));
 
 export async function runGovernor(agentName: string) {
-  const governor = governors[agentName];
-  if (!governor) {
-    throw new Error(`Governor ${agentName} not found`);
-  }
-  
-  console.log(`Starting run for ${agentName}...`);
-  await governor.run();
-  console.log(`Finished run for ${agentName}`);
+  const governor = governors.get(agentName);
+  if (!governor) throw new Error(`Governor ${agentName} not found`);
+  return governor.run();
 }
 
 export async function runAllGovernors() {
-  for (const agentName of Object.keys(governors)) {
-    await runGovernor(agentName);
+  const results = [];
+  for (const agentName of governors.keys()) {
+    try {
+      const result = await runGovernor(agentName);
+      results.push({ agentName, status: "success", result });
+    } catch (error: any) {
+      results.push({ agentName, status: "error", error: error.message });
+    }
   }
+  return results;
 }

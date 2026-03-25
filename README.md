@@ -1,36 +1,101 @@
-# Iraq Compass Data Verification Dashboard
+# Iraq Business Verification & Enrichment System
 
-Internal tool to clean, verify, and approve 70,000+ Iraqi business records.
+Production-oriented full-stack dashboard + ingestion backend for collecting, normalizing, reviewing, and publishing Iraqi business records.
 
-## Setup Instructions for Replit
+## Architecture Overview
 
-1. **Create a new Replit** using the "React" template.
-2. **Upload all files** from this repository to your Replit.
-3. **Configure Environment Variables**:
-   - Go to the **Secrets** tab in Replit.
-   - Add `VITE_SUPABASE_URL` with your Supabase project URL.
-   - Add `VITE_SUPABASE_ANON_KEY` with your Supabase anon key.
-4. **Install Dependencies**:
-   - Replit should automatically detect `package.json` and install dependencies.
-   - If not, run `npm install` in the Shell.
-5. **Run the App**:
-   - Click the **Run** button at the top.
-   - The dashboard will be available in the Webview.
+- **Frontend**: React + Vite dashboard (`src/`) for overview, review table, task manager, export.
+- **Backend**: Express server (`server.ts`, `server/`) with governor agents, source adapters, and Supabase persistence.
+- **Database**: Canonical Supabase schema in `supabase_schema.sql` (mirrored in `schema.sql`).
 
-## Supabase Schema
+Pipeline states are explicit:
+1. `raw_business_records` (raw fetched payloads)
+2. `businesses` in `review_state='candidate'`
+3. `businesses` in `review_state='published'`
 
-Before running the app, ensure you have executed the SQL schema provided in the `Step 1` response in your Supabase SQL Editor.
+## Environment Variables
 
-## Features
+Copy `.env.example` to `.env` and fill values.
 
-- **Overview**: Real-time metrics of raw vs verified data.
-- **Review Table**: Batch approve or reject businesses based on verification scores.
-- **Data Cleaner**: Repair encoding issues (mojibake) in Arabic/Kurdish text.
-- **Task Manager**: Launch automated agent tasks for data enrichment.
-- **Export**: Generate clean JSON files ready for the public directory.
+### Frontend (required)
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-## Language Support
+### Backend (required)
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PORT` (default `3000`)
+- `NODE_ENV` (`development` or `production`)
+- `DEMO_MODE` (`false` by default)
 
-- Full RTL support for Arabic and Kurdish.
-- Trilingual data fields (AR, KU, EN).
-- Dir="rtl" implemented on relevant UI components.
+### External providers
+- `GOOGLE_PLACES_API_KEY` (required for implemented restaurant governors)
+- `GEMINI_API_KEY` (optional; AI post-processing integrations)
+
+The backend validates required env vars at startup and exits on missing required values.
+
+## Local Development
+
+```bash
+npm install
+npm run dev
+```
+
+- Runs one Node process (`tsx server.ts`) with Vite middleware in dev mode.
+- Open `http://localhost:3000`.
+
+## Build & Run (Production)
+
+```bash
+npm run build
+npm start
+```
+
+- `npm run build` builds frontend (`dist/`) and backend (`dist-server/`).
+- `npm start` runs compiled Node server (`dist-server/server.js`) and serves static frontend assets.
+
+## Database Setup (Supabase)
+
+1. Open Supabase SQL editor.
+2. Run `supabase_schema.sql`.
+3. Confirm tables/policies exist:
+   - `raw_business_records`
+   - `businesses`
+   - `agents`
+   - `agent_tasks`
+   - `agent_logs`
+
+## Agent Design
+
+Governors are configuration-driven (`server/governors/index.ts`) with explicit fields:
+- governorate
+- categories
+- source adapters
+- collection limit
+- retry policy
+- rate limit policy
+
+If a source adapter is not implemented, the governor returns a clear error and does not fabricate records.
+
+## Demo Mode
+
+`DEMO_MODE` exists but defaults to `false`.
+
+Current production flow does **not** silently emit mock businesses. If keys or adapters are missing, endpoints fail explicitly.
+
+## Testing / Validation
+
+```bash
+npm run test
+```
+
+Runs lightweight sanity checks for:
+- env config validation
+- normalization
+- deduplication
+- confidence scoring
+
+## Known Limitations
+
+- Only restaurant collection via Google Places is implemented end-to-end.
+- Other governor/source pairs are intentionally marked as not implemented (explicit errors) to avoid fake data.
+- Frontend UI pages still contain legacy simulation components unrelated to backend ingestion paths; these should be incrementally migrated to backend API-backed status views.

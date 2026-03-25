@@ -13,6 +13,12 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        'sonner': path.resolve(__dirname, 'src/shims/sonner.tsx'),
+        '@tanstack/react-table': path.resolve(__dirname, 'src/shims/react-table.ts'),
+        'firebase/app': path.resolve(__dirname, 'src/shims/firebase-app.ts'),
+        'firebase/auth': path.resolve(__dirname, 'src/shims/firebase-auth.ts'),
+        'firebase/firestore': path.resolve(__dirname, 'src/shims/firebase-firestore.ts'),
+
       },
     },
     server: {

@@ -1,47 +1,134 @@
--- SQL Schema for Iraq Compass (Supabase)
--- Run this in your Supabase SQL Editor
+-- Canonical Supabase schema for Iraq Business Verification & Enrichment
+-- This is the single production schema definition.
 
--- 1. Businesses Table (High-Fidelity)
-CREATE TABLE IF NOT EXISTS businesses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  business_id TEXT UNIQUE NOT NULL, -- unique-slug
-  name JSONB NOT NULL, -- { "en": "", "ar": "", "ku": "" }
-  category TEXT NOT NULL,
-  subcategory TEXT,
-  city TEXT NOT NULL,
-  district TEXT,
-  verified BOOLEAN DEFAULT false,
-  verification_score INTEGER DEFAULT 0,
-  sources TEXT[] DEFAULT '{}',
-  contact JSONB DEFAULT '{ "phone": [], "whatsapp": "", "website": "", "instagram": "", "facebook": "" }',
-  location JSONB DEFAULT '{ "google_maps_url": "", "coordinates": { "lat": null, "lng": null }, "address": { "en": "", "ar": "", "ku": "" } }',
-  postcard JSONB DEFAULT '{ "logo_url": "", "cover_image_url": "", "tagline": { "en": "", "ar": "", "ku": "" }, "description": { "en": "", "ar": "", "ku": "" }, "highlights": [] }',
-  agent_notes TEXT,
-  last_verified TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now()
+create extension if not exists pgcrypto;
+
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create table if not exists public.raw_business_records (
+  id uuid primary key default gen_random_uuid(),
+  agent_name text not null,
+  source text not null,
+  external_id text,
+  payload jsonb not null,
+  is_demo boolean not null default false,
+  collected_at timestamptz not null default now()
 );
 
--- 2. Agents Table (Status Tracking)
-CREATE TABLE IF NOT EXISTS agents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  agent_name TEXT UNIQUE NOT NULL,
-  category TEXT,
-  status TEXT DEFAULT 'idle', -- idle, active, error
-  records_collected INTEGER DEFAULT 0,
-  target INTEGER DEFAULT 1000,
-  errors INTEGER DEFAULT 0,
-  last_run TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ DEFAULT now()
+create table if not exists public.businesses (
+  id uuid primary key default gen_random_uuid(),
+  business_id text not null unique,
+  name jsonb not null,
+  category text not null,
+  subcategory text,
+  governorate text not null,
+  city text not null,
+  district text,
+  contact jsonb not null default '{}'::jsonb,
+  location jsonb not null default '{}'::jsonb,
+  social jsonb not null default '{}'::jsonb,
+  confidence_score numeric(4,3) not null default 0,
+  verification_status text not null default 'pending_review' check (verification_status in ('pending_review','approved','rejected')),
+  review_state text not null default 'raw' check (review_state in ('raw','candidate','published')),
+  source_records jsonb not null default '[]'::jsonb,
+  agent_notes text,
+  approved_by uuid,
+  approved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
--- 3. Enable RLS
-ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+create unique index if not exists businesses_name_city_phone_idx
+on public.businesses ((lower(coalesce(name->>'en', ''))), lower(city), (coalesce(contact->>'phone', '')));
 
--- 4. Public Read Policies
-CREATE POLICY "Public Read Businesses" ON businesses FOR SELECT USING (true);
-CREATE POLICY "Public Read Agents" ON agents FOR SELECT USING (true);
+create index if not exists businesses_status_idx on public.businesses (verification_status, review_state);
+create index if not exists businesses_geo_idx on public.businesses (governorate, city, district);
+create index if not exists businesses_category_idx on public.businesses (category, subcategory);
 
--- 5. Admin Write Policies (Replace with your auth logic)
-CREATE POLICY "Admin All Businesses" ON businesses FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin All Agents" ON agents FOR ALL USING (auth.role() = 'authenticated');
+create table if not exists public.agents (
+  id uuid primary key default gen_random_uuid(),
+  agent_name text not null unique,
+  governorate text not null,
+  categories text[] not null default '{}',
+  source_adapters text[] not null default '{}',
+  status text not null default 'idle' check (status in ('idle','running','completed','error')),
+  last_run timestamptz,
+  last_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.agent_tasks (
+  id bigint generated always as identity primary key,
+  task_type text not null,
+  category text,
+  governorate text,
+  city text,
+  status text not null default 'pending' check (status in ('pending','processing','completed','failed')),
+  assigned_agent text,
+  retry_count int not null default 0,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.agent_logs (
+  id bigint generated always as identity primary key,
+  agent_name text not null,
+  action text not null,
+  result text,
+  details text,
+  created_at timestamptz not null default now()
+);
+
+create trigger set_updated_at_businesses
+before update on public.businesses
+for each row execute function public.set_updated_at();
+
+create trigger set_updated_at_agents
+before update on public.agents
+for each row execute function public.set_updated_at();
+
+create trigger set_updated_at_agent_tasks
+before update on public.agent_tasks
+for each row execute function public.set_updated_at();
+
+alter table public.raw_business_records enable row level security;
+alter table public.businesses enable row level security;
+alter table public.agents enable row level security;
+alter table public.agent_tasks enable row level security;
+alter table public.agent_logs enable row level security;
+
+-- Read access for authenticated dashboard users.
+drop policy if exists "read_businesses" on public.businesses;
+create policy "read_businesses" on public.businesses for select to authenticated using (true);
+
+drop policy if exists "read_agents" on public.agents;
+create policy "read_agents" on public.agents for select to authenticated using (true);
+
+-- Service role writes (backend).
+drop policy if exists "service_role_all_businesses" on public.businesses;
+create policy "service_role_all_businesses" on public.businesses
+for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role_all_agents" on public.agents;
+create policy "service_role_all_agents" on public.agents
+for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role_all_tasks" on public.agent_tasks;
+create policy "service_role_all_tasks" on public.agent_tasks
+for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role_all_logs" on public.agent_logs;
+create policy "service_role_all_logs" on public.agent_logs
+for all to service_role using (true) with check (true);
+
+drop policy if exists "service_role_all_raw_records" on public.raw_business_records;
+create policy "service_role_all_raw_records" on public.raw_business_records
+for all to service_role using (true) with check (true);

@@ -17,66 +17,45 @@ export interface BusinessRecord {
 }
 
 export class AgentCommander {
-  /**
-   * Triggers a regional agent to start processing.
-   * In a real scenario, this would call a Supabase Edge Function.
-   */
   static async triggerRegionalAgent(governorate: string) {
-    console.log(`Triggering agent for ${governorate}...`);
-    
-    // Mocking the trigger
-    const { data, error } = await supabase
-      .from('agent_logs')
-      .insert({
-        agent_id: `${governorate.toLowerCase()}_agent`,
-        message: `Agent started processing for ${governorate}`,
-        type: 'info',
-        governorate
-      });
+    const response = await fetch(`/api/agents/${encodeURIComponent(governorate)}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-    if (error) throw error;
-    return data;
+    if (!response.ok) {
+      const details = await response.json().catch(() => ({}));
+      throw new Error(details.error || `Failed to trigger ${governorate}`);
+    }
+
+    return response.json();
   }
 
-  /**
-   * QC Overseer Logic: Flags records for visual review if confidence < 85%
-   */
   static async runQCOverseer(recordId: string, confidenceScore: number) {
     const needsReview = confidenceScore < 0.85;
-    
+
     const { error } = await supabase
       .from('businesses')
-      .update({ 
-        needs_review: needsReview,
+      .update({
+        review_state: needsReview ? 'candidate' : 'published',
+        verification_status: needsReview ? 'pending_review' : 'approved',
         confidence_score: confidenceScore,
-        is_verified: !needsReview
       })
       .eq('id', recordId);
 
     if (error) throw error;
 
-    if (needsReview) {
-      await supabase.from('agent_logs').insert({
-        agent_id: 'qc_overseer',
-        message: `Record ${recordId} flagged for visual review (Confidence: ${(confidenceScore * 100).toFixed(1)}%)`,
-        type: 'warning'
-      });
-    }
-
     return { needsReview };
   }
 
-  /**
-   * Manual Override for Super Admins
-   */
   static async manualOverride(recordId: string, updates: Partial<BusinessRecord>) {
     const { data, error } = await supabase
       .from('businesses')
       .update({
         ...updates,
-        is_verified: true,
-        needs_review: false,
-        updated_at: new Date().toISOString()
+        verification_status: 'approved',
+        review_state: 'published',
+        approved_at: new Date().toISOString(),
       })
       .eq('id', recordId)
       .select();
