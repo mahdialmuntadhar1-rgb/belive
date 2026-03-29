@@ -1,34 +1,24 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
 
 export async function enrichBusinessWithGemini(
   businessName: string,
-  city: string
+  city: string,
 ): Promise<{ phone_numbers: string[]; social_media_urls: string[]; google_maps_url: string | null }> {
   if (!businessName) {
     return { phone_numbers: [], social_media_urls: [], google_maps_url: null };
   }
 
-  const prompt = `
-    Search the web for the real Iraqi business "${businessName}" in ${city}, Iraq.
-    Return ONLY valid JSON:
-    {
-      "phone_numbers": ["phone numbers"],
-      "social_media_urls": ["Facebook URL", "Instagram URL"],
-      "google_maps_url": "full URL or null"
-    }
-  `;
+  const prompt = `Search the web for the real Iraqi business "${businessName}" in ${city}, Iraq. Return ONLY valid JSON with phone_numbers, social_media_urls, google_maps_url.`;
 
   try {
-    const result = await model.generateContent({
+    const response = await genAI.models.generateContent({
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2 },
-      tools: [{ googleSearch: {} }],
     });
 
-    const text = result.response.text();
+    const text = response.text ?? '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { phone_numbers: [], social_media_urls: [], google_maps_url: null };
 

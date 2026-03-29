@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize Gemini for the Supervisor Chat
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const genAI = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
 
 interface Message {
   id: string;
@@ -26,8 +26,7 @@ interface UploadedFile {
   rowCount?: number;
 }
 
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 
 export default function Supervisor() {
   const [messages, setMessages] = useState<Message[]>([
@@ -46,7 +45,7 @@ export default function Supervisor() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function importToFirestore(records: any[]) {
+  async function importToSupabase(records: any[]) {
     setImportStatus('Importing...');
     const cleaned = records.map(r => ({
       name_en:     r.name_en || r.name || r.business_name || r.raw_name,
@@ -60,12 +59,8 @@ export default function Supervisor() {
     })).filter(r => r.name_en);
 
     try {
-      const batch = writeBatch(db);
-      cleaned.forEach(record => {
-        const newDocRef = doc(collection(db, 'businesses'));
-        batch.set(newDocRef, record);
-      });
-      await batch.commit();
+      const { error } = await supabase.from('businesses').insert(cleaned);
+      if (error) throw error;
       setImportStatus(`✅ Imported ${cleaned.length} records`);
     } catch (error: any) {
       setImportStatus(`Error: ${error.message}`);
@@ -157,7 +152,7 @@ export default function Supervisor() {
             });
           }
           
-          await importToFirestore(Array.isArray(records) ? records : [records]);
+          await importToSupabase(Array.isArray(records) ? records : [records]);
           updateFileStatus(fileObj.id, 'completed', Array.isArray(records) ? records.length : 1);
         } catch (err) {
           console.error('Error processing file:', err);
