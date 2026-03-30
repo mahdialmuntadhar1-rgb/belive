@@ -1,45 +1,36 @@
-# Iraq Compass Dashboard
+# Iraq Compass Data Verification Dashboard
 
-Supabase-first React + Express dashboard for business data operations.
+Internal tool to clean, verify, and approve 70,000+ Iraqi business records.
 
-## Environment
+## Setup Instructions for Replit
 
-Copy `.env.example` to `.env` and set:
+1. **Create a new Replit** using the "React" template.
+2. **Upload all files** from this repository to your Replit.
+3. **Configure Environment Variables**:
+   - Go to the **Secrets** tab in Replit.
+   - Add `VITE_SUPABASE_URL` with your Supabase project URL.
+   - Add `VITE_SUPABASE_ANON_KEY` with your Supabase anon key.
+4. **Install Dependencies**:
+   - Replit should automatically detect `package.json` and install dependencies.
+   - If not, run `npm install` in the Shell.
+5. **Run the App**:
+   - Click the **Run** button at the top.
+   - The dashboard will be available in the Webview.
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_GEMINI_API_KEY` (optional for AI enrichment features)
-- `SUPABASE_URL` (server-side)
-- `SUPABASE_SERVICE_ROLE_KEY` (server-side)
+## Supabase Schema
 
-## Development
+Before running the app, ensure you have executed the SQL schema provided in the `Step 1` response in your Supabase SQL Editor.
 
-```bash
-npm install
-npm run dev
-```
+## Features
 
-## Validation
+- **Overview**: Real-time metrics of raw vs verified data.
+- **Review Table**: Batch approve or reject businesses based on verification scores.
+- **Data Cleaner**: Repair encoding issues (mojibake) in Arabic/Kurdish text.
+- **Task Manager**: Launch automated agent tasks for data enrichment.
+- **Export**: Generate clean JSON files ready for the public directory.
 
-```bash
-npm run lint
-npm run build
-```
+## Language Support
 
-## Runtime truthfulness
-
-- Runtime agent status, task queueing, and log history are read from/written to Supabase tables (`agents`, `agent_tasks`, `agent_logs`).
-- Orchestrator endpoints (`/api/orchestrator/start`, `/api/orchestrator/stop`) persist status/task/log changes before responding.
-- Manual agent runs (`/api/agents/:agentName/run`) create and update persisted run-task records.
-- Pages still marked as placeholders (for example `/overview`) are explicitly labeled as non-operational and are not part of production runtime control flow.
-- No Firebase runtime paths are retained.
-
-
-## First real scraping test contract
-
-- **Canonical first real agent:** `Agent-01` (`RestaurantsGovernor`).
-- **Real connector:** Google Places Text Search API.
-- **Required connector secret:** `GOOGLE_PLACES_API_KEY` (server-side).
-- **Runtime output table:** `businesses` (rows written by `BaseGovernor.store`).
-- **Runtime control tables:** `agents`, `agent_tasks`, `agent_logs`.
-- **Schema source of truth:** `supabase_schema.sql`.
+- Full RTL support for Arabic and Kurdish.
+- Trilingual data fields (AR, KU, EN).
+- Dir="rtl" implemented on relevant UI components.

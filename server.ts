@@ -1,182 +1,80 @@
-import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import { runGovernor, getGovernorDefaults } from './server/governors/index.js';
-import { supabaseAdmin } from './server/supabase-admin.js';
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import { runGovernor } from "./server/governors/index.js";
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT || 3000);
+  const PORT = 3000;
 
   app.use(express.json());
 
-  app.get('/api/health', async (_req, res) => {
-    const [agentsCheck, tasksCheck, logsCheck, businessesCheck] = await Promise.all([
-      supabaseAdmin.from('agents').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('agent_tasks').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('agent_logs').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('businesses').select('id', { count: 'exact', head: true }),
-    ]);
+  // Mock agent state
+  let agents: any[] = [
+    { name: "Agent-01", governorate: "Baghdad", category: "Restaurants", status: "active", governmentRate: "Rate Level 1", recordsInserted: 3247, lastActivity: "2m ago" },
+    { name: "Agent-02", governorate: "Basra", category: "Cafes", status: "active", governmentRate: "Rate Level 1", recordsInserted: 1892, lastActivity: "5m ago" },
+    { name: "Agent-03", governorate: "Nineveh", category: "Bakeries", status: "idle", governmentRate: "Rate Level 1", recordsInserted: 843, lastActivity: "1h ago" },
+    { name: "Agent-04", governorate: "Erbil", category: "Hotels", status: "active", governmentRate: "Rate Level 1", recordsInserted: 612, lastActivity: "8m ago" },
+    { name: "Agent-05", governorate: "Sulaymaniyah", category: "Gyms", status: "active", governmentRate: "Rate Level 2", recordsInserted: 438, lastActivity: "12m ago" },
+    { name: "Agent-06", governorate: "Kirkuk", category: "Beauty Salons", status: "active", governmentRate: "Rate Level 2", recordsInserted: 1124, lastActivity: "3m ago" },
+    { name: "Agent-07", governorate: "Duhok", category: "Barbershops", status: "idle", governmentRate: "Rate Level 2", recordsInserted: 967, lastActivity: "45m ago" },
+    { name: "Agent-08", governorate: "Anbar", category: "Pharmacies", status: "active", governmentRate: "Rate Level 2", recordsInserted: 756, lastActivity: "6m ago" },
+    { name: "Agent-09", governorate: "Babil", category: "Supermarkets", status: "active", governmentRate: "Rate Level 3", recordsInserted: 521, lastActivity: "9m ago" },
+    { name: "Agent-10", governorate: "Karbala", category: "Electronics", status: "error", governmentRate: "Rate Level 3", recordsInserted: 389, lastActivity: "2h ago" },
+    { name: "Agent-11", governorate: "Wasit", category: "Clothing Stores", status: "active", governmentRate: "Rate Level 3", recordsInserted: 1043, lastActivity: "4m ago" },
+    { name: "Agent-12", governorate: "Dhi Qar", category: "Car Services", status: "idle", governmentRate: "Rate Level 3", recordsInserted: 334, lastActivity: "3h ago" },
+    { name: "Agent-13", governorate: "Maysan", category: "Dentists", status: "active", governmentRate: "Rate Level 4", recordsInserted: 287, lastActivity: "15m ago" },
+    { name: "Agent-14", governorate: "Muthanna", category: "Clinics", status: "active", governmentRate: "Rate Level 4", recordsInserted: 412, lastActivity: "7m ago" },
+    { name: "Agent-15", governorate: "Najaf", category: "Schools", status: "active", governmentRate: "Rate Level 4", recordsInserted: 891, lastActivity: "11m ago" },
+    { name: "Agent-16", governorate: "Qadisiyyah", category: "Co-working Spaces", status: "idle", governmentRate: "Rate Level 5", recordsInserted: 156, lastActivity: "6h ago" },
+    { name: "Agent-17", governorate: "Saladin", category: "Entertainment", status: "active", governmentRate: "Rate Level 5", recordsInserted: 743, lastActivity: "18m ago" },
+    { name: "Agent-18", governorate: "Diyala", category: "Tourism", status: "active", governmentRate: "Rate Level 5", recordsInserted: 512, lastActivity: "22m ago" },
+    { name: "QC Overseer", governorate: "QC Overseer", category: "Quality Control", status: "active", governmentRate: "Supervisory", recordsInserted: 15420, lastActivity: "1m ago" },
+  ];
 
-    const errors = [agentsCheck.error, tasksCheck.error, logsCheck.error, businessesCheck.error].filter(Boolean);
-    res.json({
-      status: errors.length ? 'degraded' : 'ok',
-      persistence: 'supabase',
-      tables: {
-        agents: agentsCheck.error ? 'unreachable' : 'ok',
-        agent_tasks: tasksCheck.error ? 'unreachable' : 'ok',
-        agent_logs: logsCheck.error ? 'unreachable' : 'ok',
-        businesses: businessesCheck.error ? 'unreachable' : 'ok',
-      },
-      detail: errors.map((e) => e?.message).join('; ') || null,
-    });
+  // API routes
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
   });
 
-  app.get('/api/agents', async (_req, res) => {
-    const { data, error } = await supabaseAdmin.from('agents').select('*').order('agent_name');
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data ?? []);
+  app.get("/api/agents", (req, res) => {
+    res.json(agents);
   });
 
-  app.post('/api/orchestrator/start', async (_req, res) => {
-    const { data: agents, error: fetchError } = await supabaseAdmin
-      .from('agents')
-      .select('agent_name, category, city, government_rate')
-      .order('agent_name');
-
-    if (fetchError) return res.status(500).json({ error: fetchError.message });
-
-    const agentRows = (agents ?? []).filter((row) => row.agent_name);
-
-    const [{ error: taskError }, { error: statusError }, { error: logError }] = await Promise.all([
-      agentRows.length
-        ? supabaseAdmin.from('agent_tasks').insert(
-            agentRows.map((agent) => ({
-              task_name: `orchestrator_${agent.agent_name}`,
-              task_type: 'orchestrator_run',
-              instruction: `Queued orchestrator run for ${agent.agent_name}`,
-              assigned_to: agent.agent_name,
-              agent_name: agent.agent_name,
-              category: agent.category ?? 'restaurants',
-              city: agent.city ?? 'Baghdad',
-              government_rate: agent.government_rate ?? 'Rate Level 1',
-              status: 'pending',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })),
-          )
-        : Promise.resolve({ error: null }),
-      supabaseAdmin.from('agents').update({ status: 'running' }).in('agent_name', agentRows.map((r) => r.agent_name)),
-      supabaseAdmin.from('agent_logs').insert({
-        agent_name: 'system',
-        action: 'orchestrator_start',
-        details: `Queued ${agentRows.length} agent run(s)`,
-        created_at: new Date().toISOString(),
-      }),
-    ]);
-
-    const error = taskError || statusError || logError;
-    if (error) return res.status(500).json({ error: error.message });
-
-    const { data: updatedAgents } = await supabaseAdmin.from('agents').select('*').order('agent_name');
-    res.json({ status: 'queued', queuedAgents: agentRows.length, agents: updatedAgents ?? [] });
+  app.post("/api/orchestrator/start", (req, res) => {
+    agents = agents.map(a => ({ ...a, status: "running" }));
+    res.json({ status: "started", agents });
   });
 
-  app.post('/api/orchestrator/stop', async (_req, res) => {
-    const [{ error: statusError }, { error: taskError }, { error: logError }] = await Promise.all([
-      supabaseAdmin.from('agents').update({ status: 'idle' }).neq('agent_name', ''),
-      supabaseAdmin
-        .from('agent_tasks')
-        .update({ status: 'failed', updated_at: new Date().toISOString() })
-        .in('status', ['pending', 'running']),
-      supabaseAdmin.from('agent_logs').insert({
-        agent_name: 'system',
-        action: 'orchestrator_stop',
-        details: 'Orchestrator stop requested; pending/running tasks marked failed',
-        created_at: new Date().toISOString(),
-      }),
-    ]);
-
-    const error = statusError || taskError || logError;
-    if (error) return res.status(500).json({ error: error.message });
-
-    const { data } = await supabaseAdmin.from('agents').select('*').order('agent_name');
-    res.json({ status: 'stopped', agents: data ?? [] });
+  app.post("/api/orchestrator/stop", (req, res) => {
+    agents = agents.map(a => ({ ...a, status: "idle" }));
+    res.json({ status: "stopped", agents });
   });
 
-  app.post('/api/agents/:agentName/run', async (req, res) => {
+  // Endpoint to manually trigger a governor
+  app.post("/api/agents/:agentName/run", async (req, res) => {
     const { agentName } = req.params;
-    const defaults = getGovernorDefaults(agentName);
-
-    const { data: task, error: insertTaskError } = await supabaseAdmin
-      .from('agent_tasks')
-      .insert({
-        task_name: `manual_${agentName}_${Date.now()}`,
-        task_type: 'manual_run',
-        instruction: `Manual governor run requested for ${agentName}`,
-        assigned_to: agentName,
-        agent_name: agentName,
-        category: defaults.category,
-        city: defaults.city,
-        government_rate: defaults.governmentRate,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select('id, category, city, government_rate')
-      .single();
-
-    if (insertTaskError) return res.status(500).json({ error: insertTaskError.message });
-
-    runGovernor(agentName, {
-      id: task.id,
-      city: task.city,
-      category: task.category,
-      government_rate: task.government_rate,
-    })
-      .then(async () => {
-        await supabaseAdmin
-          .from('agent_tasks')
-          .update({ status: 'completed', updated_at: new Date().toISOString() })
-          .eq('id', task.id);
-        await supabaseAdmin.from('agent_logs').insert({
-          agent_name: agentName,
-          action: 'manual_run_completed',
-          record_id: task.id,
-          details: `Manual governor run completed for ${agentName}`,
-          created_at: new Date().toISOString(),
-        });
-      })
-      .catch(async (error) => {
-        await supabaseAdmin
-          .from('agent_tasks')
-          .update({ status: 'failed', updated_at: new Date().toISOString() })
-          .eq('id', task.id);
-        await supabaseAdmin.from('agent_logs').insert({
-          agent_name: agentName,
-          action: 'manual_run_failed',
-          record_id: task.id,
-          details: `Manual governor run failed for ${agentName}: ${error.message}`,
-          created_at: new Date().toISOString(),
-        });
-      });
-
-    const { error: updateTaskError } = await supabaseAdmin
-      .from('agent_tasks')
-      .update({ status: 'running', updated_at: new Date().toISOString() })
-      .eq('id', task.id);
-    if (updateTaskError) return res.status(500).json({ error: updateTaskError.message });
-
-    res.json({ status: 'running', agentName, taskId: task.id });
+    try {
+      // In a real app, this would be triggered by a cron job or background worker
+      // We run it asynchronously so we don't block the response
+      runGovernor(agentName).catch(console.error);
+      res.json({ status: "started", agentName });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static('dist'));
+    app.use(express.static("dist"));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

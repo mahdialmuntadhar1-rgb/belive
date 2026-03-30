@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export default function DiscoveryFeed() {
   const [businesses, setBusinesses] = useState<any[]>([]);
@@ -23,7 +24,7 @@ export default function DiscoveryFeed() {
     });
 
     if (error) {
-      console.error('Failed to fetch nearby businesses');
+      toast.error('Failed to fetch nearby businesses');
       // Fallback to all businesses if RPC fails
       const { data: allData } = await supabase.from('businesses').select('*').limit(20);
       setBusinesses(allData || []);
@@ -42,7 +43,7 @@ export default function DiscoveryFeed() {
           fetchNearby(loc.lat, loc.lng);
         },
         () => {
-          console.warn('Location access denied. Showing all businesses.');
+          toast.error('Location access denied. Showing all businesses.');
           fetchNearby(33.3152, 44.3661); // Default to Baghdad
         }
       );

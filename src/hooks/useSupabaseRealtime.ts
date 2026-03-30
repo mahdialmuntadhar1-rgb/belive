@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
 
 export function useSupabaseRealtime() {
   const [recordCount, setRecordCount] = useState(0);
@@ -22,7 +23,11 @@ export function useSupabaseRealtime() {
         { event: 'INSERT', schema: 'public', table: 'agent_logs' },
         (payload) => {
           const log = payload.new;
-          console.info(`[${String(log.agent_name).toUpperCase()}] ${log.details}`);
+          const toastType = log.type === 'error' ? 'error' : log.type === 'warning' ? 'warning' : 'success';
+          
+          toast[toastType](`[${log.agent_id.toUpperCase()}]`, {
+            description: log.message,
+          });
         }
       )
       .subscribe();
