@@ -35,7 +35,7 @@ const Agents: React.FC = () => {
       }
     };
 
-    fetchAgents();
+    fetchAgents().catch(() => {});
 
     const channel = supabase
       .channel('agents_changes')

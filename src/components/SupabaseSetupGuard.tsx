@@ -4,11 +4,70 @@ import { AlertTriangle, ExternalLink, Settings } from 'lucide-react';
 const isSupabaseConfigured = () => {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return url && url !== 'https://placeholder.supabase.co' && key && key !== 'placeholder';
+  return url && url !== 'https://placeholder.supabase.co' && key && key !== 'placeholder' && url.startsWith('https://');
 };
 
 export const SupabaseSetupGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (isSupabaseConfigured()) {
+  const [isTesting, setIsTesting] = React.useState(false);
+  const [testError, setTestError] = React.useState<string | null>(null);
+  const [isConfigured, setIsConfigured] = React.useState(isSupabaseConfigured());
+
+  const testConnection = async () => {
+    setIsTesting(true);
+    setTestError(null);
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!url || !key || url === 'https://placeholder.supabase.co' || key === 'placeholder') {
+        throw new Error('Supabase URL or Key is missing or using placeholder values.');
+      }
+
+      const response = await fetch(`${url}/rest/v1/?apikey=${key}`, {
+        method: 'GET',
+        headers: {
+          'apikey': key,
+        }
+      });
+      
+      if (response.ok) {
+        setIsConfigured(true);
+        setTestError(null);
+        // If we were showing the error screen, reload to let the app render
+        if (!isSupabaseConfigured()) {
+          window.location.reload();
+        }
+      } else {
+        const text = await response.text();
+        setTestError(`Connection failed: ${response.status} ${response.statusText}. ${text}`);
+      }
+    } catch (err: any) {
+      setTestError(`Connection failed: ${err.message}. This usually means the URL is incorrect, the project is paused, or there is a network issue. Please check your environment variables in the AI Studio Settings.`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isConfigured) {
+      // Silently verify connection on mount
+      const verify = async () => {
+        try {
+          const url = import.meta.env.VITE_SUPABASE_URL;
+          const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const response = await fetch(`${url}/rest/v1/?apikey=${key}`, { method: 'GET' });
+          if (!response.ok) {
+            setTestError(`Supabase connection error: ${response.status} ${response.statusText}`);
+          }
+        } catch (err: any) {
+          setTestError(`Supabase connection failed: ${err.message}`);
+        }
+      };
+      verify();
+    }
+  }, []);
+
+  if (isConfigured && !testError) {
     return <>{children}</>;
   }
 
@@ -65,12 +124,19 @@ export const SupabaseSetupGuard: React.FC<{ children: React.ReactNode }> = ({ ch
               Open Supabase <ExternalLink size={14} />
             </a>
             <button 
-              onClick={() => window.location.reload()}
-              className="flex-1 py-3 bg-transparent border border-gold/30 text-gold hover:bg-gold/5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
+              onClick={testConnection}
+              disabled={isTesting}
+              className={`flex-1 py-3 bg-transparent border border-gold/30 text-gold hover:bg-gold/5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${isTesting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              I've set them up, reload
+              {isTesting ? 'Testing...' : "I've set them up, Test Connection"}
             </button>
           </div>
+
+          {testError && (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[10px] text-rose-400 font-mono leading-relaxed">
+              {testError}
+            </div>
+          )}
         </div>
 
         <div className="pt-6 border-t border-gold/10 text-center">

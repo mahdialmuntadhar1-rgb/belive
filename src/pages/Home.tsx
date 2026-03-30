@@ -90,13 +90,13 @@ export default function Home() {
       setLoading(false);
     };
 
-    fetchBusinesses();
+    fetchBusinesses().catch(() => {});
 
     // Set up real-time subscription
     const channel = supabase
       .channel('businesses_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
-        fetchBusinesses();
+        fetchBusinesses().catch(() => {});
       })
       .subscribe();
 

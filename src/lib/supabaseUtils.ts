@@ -32,8 +32,13 @@ export async function handleSupabaseError(error: any, operationType: OperationTy
     console.warn('Could not fetch user info for error reporting:', e);
   }
   
+  let errorMessage = error?.message || String(error);
+  if (errorMessage.includes('Failed to fetch')) {
+    errorMessage = `Supabase Connection Failed: ${errorMessage}. This usually means the Supabase URL is incorrect, the project is paused, or there is a network issue. Please check your environment variables in AI Studio Settings.`;
+  }
+  
   const errInfo: SupabaseErrorInfo = {
-    error: error?.message || String(error),
+    error: errorMessage,
     authInfo: {
       userId: user?.id,
       email: user?.email,

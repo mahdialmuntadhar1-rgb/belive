@@ -23,7 +23,7 @@ export default function Overview() {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchStats().catch(() => {});
 
     // Subscribe to changes in all relevant tables to update stats in real-time
     const rawChannel = supabase
