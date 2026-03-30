@@ -4,6 +4,17 @@ import { runGovernor } from "./server/governors/index.js";
 import { runDiscoveryOrchestrator } from "./server/discovery/orchestrator.js";
 import { supabaseAdmin } from "./server/supabase-admin.js";
 
+function isSupabaseConfigured() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) return false;
+  if (supabaseUrl.includes("placeholder")) return false;
+  if (supabaseServiceKey === "placeholder") return false;
+
+  return true;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;

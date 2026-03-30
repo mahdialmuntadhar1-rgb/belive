@@ -228,15 +228,37 @@ export default function CommandCenter() {
           status: 'running',
           progress: 5,
           created_at: new Date().toISOString(),
-        })
-        .select()
-        .maybeSingle();
+        },
+        {
+          task_type: selectedTask,
+          prompt: instruction,
+          instruction,
+          cities,
+          city: cities[0] || null,
+          category: selectedTask,
+          status: 'running',
+          progress: 5,
+          created_at: new Date().toISOString(),
+        }
+      ];
 
-      if (taskInsert.error) {
-        throw taskInsert.error;
+      let taskInsertData: any = null;
+      let taskInsertError: any = null;
+      for (const payload of payloadCandidates) {
+        const taskInsert = await supabase.from('agent_tasks').insert(payload).select().maybeSingle();
+        if (!taskInsert.error) {
+          taskInsertData = taskInsert.data;
+          taskInsertError = null;
+          break;
+        }
+        taskInsertError = taskInsert.error;
       }
 
-      createdTaskId = (taskInsert.data as any)?.id || null;
+      if (taskInsertError) {
+        throw taskInsertError;
+      }
+
+      createdTaskId = taskInsertData?.id ? String(taskInsertData.id) : null;
       if (createdTaskId) {
         setCurrentTaskId(createdTaskId);
       }
