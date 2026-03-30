@@ -30,6 +30,48 @@ async function startServer() {
     })));
   });
 
+  app.get("/api/discovery/status", (_req, res) => {
+    res.json({
+      ok: true,
+      running: Boolean(activeDiscoveryRun),
+      runId: activeDiscoveryRunId,
+    });
+  });
+
+  app.get("/api/businesses", async (req, res) => {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize || 20)));
+    const city = typeof req.query.city === "string" ? req.query.city : "";
+    const category = typeof req.query.category === "string" ? req.query.category : "";
+    const status = typeof req.query.status === "string" ? req.query.status : "";
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+
+    let query = supabaseAdmin
+      .from("businesses")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1);
+
+    if (city) query = query.eq("city", city);
+    if (category) query = query.eq("category", category);
+    if (status) query = query.eq("status", status);
+    if (search) query = query.or(`name_en.ilike.%${search}%,name_ar.ilike.%${search}%,phone.ilike.%${search}%`);
+
+    const { data, count, error } = await query;
+    if (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+
+    return res.json({
+      ok: true,
+      page,
+      pageSize,
+      total: count || 0,
+      totalPages: Math.ceil((count || 0) / pageSize),
+      items: data || [],
+    });
+  });
+
   app.post("/api/orchestrator/start", async (_req, res) => {
     await supabaseAdmin.from("agents").update({ status: "active" }).neq("agent_name", "");
     res.json({ status: "started" });

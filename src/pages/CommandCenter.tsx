@@ -201,121 +201,83 @@ export default function CommandCenter() {
     let createdTaskId: string | null = null;
 
     try {
-      try {
-        const response = await fetch('/api/discovery/run?mode=direct', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agentName: 'Agent-01',
-            taskType: selectedTask,
-            instruction,
-            cities,
-          }),
-        });
-
-        const discoveryResult = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(discoveryResult?.error || `Discovery run failed with status ${response.status}`);
-        }
-      } catch (backendError: any) {
-        await addLog('warn', `Discovery API unavailable: ${backendError.message}. Continuing in safe local mode.`);
-      }
-
-      const payloadCandidates = [
-        {
+      const taskInsert = await supabase
+        .from('agent_tasks')
+        .insert({
+          task_type: selectedTask,
           type: selectedTask,
+          prompt: instruction,
           instruction,
           cities,
-          status: 'running',
-          progress: 0,
-          created_at: new Date().toISOString(),
-        },
-        {
-          task_type: selectedTask,
-          prompt: instruction,
           city: cities[0] || null,
           category: selectedTask,
           status: 'running',
+          progress: 5,
           created_at: new Date().toISOString(),
-        },
-      ];
+        })
+        .select()
+        .maybeSingle();
 
-      for (const payload of payloadCandidates) {
-        const { data, error } = await supabase.from('agent_tasks').insert(payload as any).select().maybeSingle();
-        if (!error) {
-          createdTaskId = (data as any)?.id || null;
-          break;
-        }
-        console.warn('Task insert payload failed:', error.message);
+      if (taskInsert.error) {
+        throw taskInsert.error;
       }
 
+      createdTaskId = (taskInsert.data as any)?.id || null;
       if (createdTaskId) {
         setCurrentTaskId(createdTaskId);
-      } else {
-        await addLog('warn', 'Task tracking insert failed. Run will continue, but progress may not persist in Supabase.');
       }
 
       await addLog('info', `▶ Task launched: "${instruction}"`);
       await addLog('info', `Cities: ${cities.map(id => CITIES.find(c => c.id === id)?.en).join(', ')}`);
       await addLog('agent', `${selectedTask.toUpperCase()} agent activated`);
 
-      const messages: Record<string, ((c: string) => string)[]> = {
-        social: [
-          (c) => `🔍 Searching Instagram for businesses in ${c}…`,
-          (c) => `📘 Scanning Facebook pages for ${c}…`,
-          (c) => `✅ Found ${Math.floor(Math.random() * 120 + 30)} social profiles in ${c}`,
-          (c) => `💾 Writing Instagram URLs to directory for ${c}`,
-          (c) => `💾 Writing Facebook URLs to directory for ${c}`,
-          (c) => `✔ ${c} — social enrichment complete`,
-        ],
-        text: [(c) => `Repairing Arabic text in ${c}…`, (c) => `Fixed encoding in ${c}`],
-        enrich: [(c) => `Filling phones/coords in ${c}…`, (c) => `Enrichment done for ${c}`],
-        qc: [(c) => `Running QC on ${c}…`, (c) => `QC complete for ${c}`],
-        export: [(c) => `Exporting ${c} to Supabase…`, (c) => `Export done for ${c}`],
-      };
+      const response = await fetch('/api/discovery/run?mode=direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentName: 'Agent-01',
+          taskType: selectedTask,
+          instruction,
+          cities,
+        }),
+      });
 
-      const interval = setInterval(async () => {
-        const currentCities = [...selectedCities] as string[];
-        const cityId = currentCities[Math.floor(Math.random() * currentCities.length)];
-        const cityName = (CITIES.find(c => c.id === cityId)?.en || cityId) as string;
-        const msgsForTask = ((messages as any)[selectedTask] || messages.social) as any[];
-        const msgFn = msgsForTask[Math.floor(Math.random() * msgsForTask.length)] as (c: string) => string;
+      const discoveryResult = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(discoveryResult?.error || `Discovery run failed with status ${response.status}`);
+      }
 
-        await addLog('ok', msgFn(cityName));
+      const finishedProgress: Record<string, number> = {};
+      cities.forEach((cityId) => { finishedProgress[cityId] = 100; });
+      setCityProgress(finishedProgress);
+      setDoneCount(cities.length);
 
-        setCityProgress((prev: Record<string, number>) => {
-          const next = { ...prev } as any;
-          let allDone = true;
-          let completedCount = 0;
+      if (createdTaskId) {
+        await supabase
+          .from('agent_tasks')
+          .update({
+            status: 'completed',
+            progress: 100,
+            result_summary: `Discovery completed for ${cities.length} cities`,
+          })
+          .eq('id', createdTaskId);
+      }
 
-          currentCities.forEach((id: string) => {
-            if (next[id] < 100) {
-              next[id] = Math.min(100, next[id] + Math.random() * 15 + 5);
-              if (next[id] < 100) allDone = false;
-              else {
-                addLog('ok', `✔ ${CITIES.find(c => c.id === id)?.en} — task complete`);
-              }
-            }
-            if (next[id] >= 100) completedCount++;
-          });
-
-          setDoneCount(completedCount);
-
-          if (allDone) {
-            clearInterval(interval);
-            setIsRunning(false);
-            runInFlightRef.current = false;
-            if (createdTaskId) {
-              supabase.from('agent_tasks').update({ status: 'completed', progress: 100 }).eq('id', createdTaskId);
-            }
-            addLog('info', `🏁 All tasks complete · ${currentCities.length} cities processed`);
-          }
-          return next;
-        });
-      }, 1500);
+      await addLog('ok', `🏁 Discovery completed · ${cities.length} cities processed`);
+      setIsRunning(false);
+      runInFlightRef.current = false;
     } catch (error: any) {
       console.error('Error launching task:', error);
       await addLog('warn', `Task launch failed: ${error?.message || 'unknown error'}`);
+      if (createdTaskId) {
+        await supabase
+          .from('agent_tasks')
+          .update({
+            status: 'failed',
+            result_summary: error?.message || 'Task launch failed',
+          })
+          .eq('id', createdTaskId);
+      }
       setIsRunning(false);
       runInFlightRef.current = false;
     }
