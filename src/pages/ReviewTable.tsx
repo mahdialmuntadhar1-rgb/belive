@@ -12,6 +12,7 @@ import {
 import { businessService } from '../services/dashboardService';
 import { VerifiedBusiness } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 const ReviewTable: React.FC = () => {
   const [businesses, setBusinesses] = useState<VerifiedBusiness[]>([]);
@@ -26,6 +27,17 @@ const ReviewTable: React.FC = () => {
 
   useEffect(() => {
     fetchBusinesses();
+
+    const channel = supabase
+      .channel('review_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
+        fetchBusinesses();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [filters]);
 
   const fetchBusinesses = async () => {

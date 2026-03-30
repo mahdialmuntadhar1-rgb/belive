@@ -1,28 +1,72 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
-  FileText, 
-  Search, 
-  Filter, 
   Download, 
   Terminal, 
-  AlertCircle, 
-  CheckCircle, 
-  Info,
-  Clock
+  Clock,
+  Search
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 
-const LOGS = [
-  { id: 1, time: '17:05:22', agent: 'QC Manager', action: 'Record Verified', details: 'Cafe Baghdad (ID: 4231) passed all checks', type: 'success' },
-  { id: 2, time: '17:04:15', agent: 'Duplicate Detector', action: 'Duplicate Found', details: 'Potential match for "Al-Mansour Hotel" in Baghdad', type: 'warning' },
-  { id: 3, time: '17:02:48', agent: 'Google Maps Scraper', action: 'API Call', details: 'GET /places/nearby?location=33.31,44.36', type: 'info' },
-  { id: 4, time: '17:00:10', agent: 'Language Repair', action: 'Encoding Fix', details: 'Repaired mojibake in 42 records from Basra dataset', type: 'success' },
-  { id: 5, time: '16:58:33', agent: 'Erbil Agent', action: 'System Error', details: 'Connection timeout while fetching Erbil Mall data', type: 'error' },
-  { id: 6, time: '16:55:12', agent: 'Phone Extractor', action: 'Pattern Match', details: 'Extracted 12 new phone numbers from Facebook links', type: 'success' },
-  { id: 7, time: '16:52:05', agent: 'System', action: 'Task Started', details: 'Batch verification for Sulaymaniyah dataset started', type: 'info' },
-];
+interface AgentLog {
+  id: string;
+  created_at: string;
+  agent_id: string;
+  action: string;
+  details: string;
+  level: 'info' | 'success' | 'warning' | 'error';
+}
 
 const Logs: React.FC = () => {
+  const [logs, setLogs] = useState<AgentLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+
+  const fetchLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('agent_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500); // Fetch more for local filtering/pagination
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (err) {
+      handleSupabaseError(err, OperationType.GET, 'agent_logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+
+    const channel = supabase
+      .channel('logs_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_logs' }, (payload) => {
+        setLogs(prev => [payload.new as AgentLog, ...prev].slice(0, 500));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredLogs = logs.filter(log => 
+    log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.agent_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.action.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="space-y-8">
       <header className="flex items-center justify-between">
@@ -43,23 +87,13 @@ const Logs: React.FC = () => {
           <input 
             type="text" 
             placeholder="Search logs by agent, action, or details..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#C9A84C]"
           />
-        </div>
-        <div className="flex items-center gap-2">
-          <select className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-600 focus:outline-none">
-            <option>All Agents</option>
-            <option>QC Manager</option>
-            <option>Duplicate Detector</option>
-            <option>Google Maps Scraper</option>
-          </select>
-          <select className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-600 focus:outline-none">
-            <option>All Levels</option>
-            <option>Success</option>
-            <option>Warning</option>
-            <option>Error</option>
-            <option>Info</option>
-          </select>
         </div>
       </div>
 
@@ -86,37 +120,67 @@ const Logs: React.FC = () => {
         </div>
 
         <div className="p-6 font-mono text-xs space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-          {LOGS.map((log) => (
-            <motion.div 
-              key={log.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-start gap-4 group"
-            >
-              <span className="text-white/20 whitespace-nowrap">[{log.time}]</span>
-              <span className={`font-bold whitespace-nowrap min-w-[120px] ${
-                log.agent === 'System' ? 'text-purple-400' : 'text-[#C9A84C]'
-              }`}>
-                {log.agent}
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${
-                log.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' :
-                log.type === 'warning' ? 'bg-amber-500/10 text-amber-400' :
-                log.type === 'error' ? 'bg-rose-500/10 text-rose-400' :
-                'bg-blue-500/10 text-blue-400'
-              }`}>
-                {log.action}
-              </span>
-              <span className="text-white/60 group-hover:text-white transition-colors">
-                {log.details}
-              </span>
-            </motion.div>
-          ))}
+          {loading ? (
+            <div className="text-white/20 text-center py-10">Initializing log stream...</div>
+          ) : paginatedLogs.length === 0 ? (
+            <div className="text-white/20 text-center py-10">No logs found matching criteria</div>
+          ) : (
+            paginatedLogs.map((log) => (
+              <motion.div 
+                key={log.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-start gap-4 group"
+              >
+                <span className="text-white/20 whitespace-nowrap">[{new Date(log.created_at).toLocaleTimeString()}]</span>
+                <span className={`font-bold whitespace-nowrap min-w-[120px] ${
+                  log.agent_id === 'System' ? 'text-purple-400' : 'text-[#C9A84C]'
+                }`}>
+                  {log.agent_id}
+                </span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${
+                  log.level === 'success' ? 'bg-emerald-500/10 text-emerald-400' :
+                  log.level === 'warning' ? 'bg-amber-500/10 text-amber-400' :
+                  log.level === 'error' ? 'bg-rose-500/10 text-rose-400' :
+                  'bg-blue-500/10 text-blue-400'
+                }`}>
+                  {log.action}
+                </span>
+                <span className="text-white/60 group-hover:text-white transition-colors">
+                  {log.details}
+                </span>
+              </motion.div>
+            ))
+          )}
           <div className="flex items-center gap-2 text-white/20 pt-4">
             <Clock size={12} />
             <span>Waiting for new events...</span>
           </div>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-4 bg-black/20 border-t border-white/5 flex items-center justify-between">
+            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="text-white/40 hover:text-white disabled:opacity-20 transition-colors"
+              >
+                Previous
+              </button>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="text-white/40 hover:text-white disabled:opacity-20 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

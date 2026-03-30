@@ -26,8 +26,8 @@ interface UploadedFile {
   rowCount?: number;
 }
 
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 
 export default function Supervisor() {
   const [messages, setMessages] = useState<Message[]>([
@@ -46,7 +46,7 @@ export default function Supervisor() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function importToFirestore(records: any[]) {
+  async function importToSupabase(records: any[]) {
     setImportStatus('Importing...');
     const cleaned = records.map(r => ({
       name_en:     r.name_en || r.name || r.business_name || r.raw_name,
@@ -54,20 +54,17 @@ export default function Supervisor() {
       city:        r.city || 'Sulaymaniyah',
       phone:       r.phone || r.raw_phone || null,
       address:     r.address || r.raw_address || null,
-      score:       r.data_quality_score || r.score || 0,
+      confidence_score: r.data_quality_score || r.score || 0,
       status:      'pending',
-      created_at:  new Date().toISOString()
+      last_updated: new Date().toISOString()
     })).filter(r => r.name_en);
 
     try {
-      const batch = writeBatch(db);
-      cleaned.forEach(record => {
-        const newDocRef = doc(collection(db, 'businesses'));
-        batch.set(newDocRef, record);
-      });
-      await batch.commit();
+      const { error } = await supabase.from('businesses').insert(cleaned);
+      if (error) throw error;
       setImportStatus(`✅ Imported ${cleaned.length} records`);
     } catch (error: any) {
+      handleSupabaseError(error, OperationType.WRITE, 'businesses');
       setImportStatus(`Error: ${error.message}`);
     }
   }
@@ -157,7 +154,7 @@ export default function Supervisor() {
             });
           }
           
-          await importToFirestore(Array.isArray(records) ? records : [records]);
+          await importToSupabase(Array.isArray(records) ? records : [records]);
           updateFileStatus(fileObj.id, 'completed', Array.isArray(records) ? records.length : 1);
         } catch (err) {
           console.error('Error processing file:', err);

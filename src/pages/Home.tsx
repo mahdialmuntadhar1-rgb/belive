@@ -22,8 +22,8 @@ import {
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { CityGrid } from "../components/CityGrid";
-import { db, auth } from "../firebase";
-import { collection, query, where, onSnapshot, orderBy, limit } from "firebase/firestore";
+import { supabase } from "../lib/supabase";
+import { handleSupabaseError, OperationType } from "../lib/supabaseUtils";
 
 interface Business {
   id: string;
@@ -55,8 +55,6 @@ const CATEGORIES = [
   { id: 'Pharmacy', icon: <Activity size={16} />, label: 'Pharmacy' }
 ];
 
-import { handleFirestoreError, OperationType } from "../lib/firestoreUtils";
-
 export default function Home() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedCat, setSelectedCat] = useState<string>("all");
@@ -68,26 +66,43 @@ export default function Home() {
 
   useEffect(() => {
     setLoading(true);
-    let q = query(collection(db, 'businesses'));
+    
+    const fetchBusinesses = async () => {
+      let query = supabase.from('businesses').select('*');
 
-    if (selectedCity) {
-      q = query(q, where('city', '==', selectedCity));
-    }
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
+      }
 
-    if (selectedCat !== 'all') {
-      q = query(q, where('category', '==', selectedCat));
-    }
+      if (selectedCat !== 'all') {
+        query = query.eq('category', selectedCat);
+      }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-      setBusinesses(data);
+      const { data, error } = await query;
+
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, 'businesses');
+        setLoading(false);
+        return;
+      }
+
+      setBusinesses(data || []);
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'businesses');
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchBusinesses();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('businesses_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
+        fetchBusinesses();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedCity, selectedCat]);
 
   const filteredBusinesses = useMemo(() => {
@@ -231,7 +246,7 @@ export default function Home() {
                               </div>
                             </td>
                             <td className="px-8 py-6">
-                              {b.status === 'verified' ? (
+                              {(b.status === 'verified' || b.status === 'approved') ? (
                                 <div className="flex items-center gap-2 text-vibrant-purple">
                                   <CheckCircle2 size={16} className="drop-shadow-[0_0_5px_rgba(188,19,254,0.8)]" />
                                   <span className="text-[10px] font-black uppercase tracking-tighter">Verified ✅</span>

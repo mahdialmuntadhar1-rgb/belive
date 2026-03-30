@@ -1,36 +1,78 @@
-import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Edit2, RotateCw, Search, Filter, ShieldCheck } from 'lucide-react';
-
-interface ProcessedBusiness {
-  id: string;
-  name: string;
-  city: string;
-  description: string;
-  qcStatus: 'Approved' | 'Flagged' | 'Needs Review';
-}
-
-const MOCK_DATA: ProcessedBusiness[] = [
-  { id: '1', name: 'Al Noor Pharmacy', city: 'Baghdad', description: 'A trusted local pharmacy providing essential medicines and health products.', qcStatus: 'Approved' },
-  { id: '2', name: 'Golden Square Mall', city: 'Sulaymaniyah', description: 'A popular shopping destination with retail stores, restaurants, and family entertainment.', qcStatus: 'Approved' },
-  { id: '3', name: 'Babylon Hotel', city: 'Erbil', description: 'Luxury accommodation with premium amenities in the heart of the city.', qcStatus: 'Needs Review' },
-  { id: '4', name: 'Tigris Cafe', city: 'Basra', description: 'Local cafe serving traditional Iraqi tea and pastries.', qcStatus: 'Flagged' },
-  { id: '5', name: 'FitZone Gym', city: 'Karbala', description: 'Modern fitness center with state-of-the-art equipment and personal trainers.', qcStatus: 'Approved' },
-];
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, Edit2, RotateCw, Search, Filter, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
+import { VerifiedBusiness } from '../types';
 
 export default function ApprovalHub() {
-  const [businesses, setBusinesses] = useState<ProcessedBusiness[]>(MOCK_DATA);
+  const [businesses, setBusinesses] = useState<VerifiedBusiness[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleAction = (id: string, action: string) => {
-    if (action === 'approve') {
-      setBusinesses(prev => prev.map(b => b.id === id ? { ...b, qcStatus: 'Approved' } : b));
-    } else if (action === 'reject') {
-      setBusinesses(prev => prev.filter(b => b.id !== id));
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const fetchPendingBusinesses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .or('status.eq.pending,needs_review.eq.true')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBusinesses(data || []);
+    } catch (err) {
+      handleSupabaseError(err, OperationType.GET, 'businesses');
+    } finally {
+      setLoading(false);
     }
-    // Mock edit/regenerate
   };
 
-  const filtered = businesses.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  useEffect(() => {
+    fetchPendingBusinesses();
+
+    const channel = supabase
+      .channel('approval_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
+        fetchPendingBusinesses();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ 
+          status: action === 'approve' ? 'approved' : 'rejected',
+          needs_review: false,
+          approved_at: action === 'approve' ? new Date().toISOString() : null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      if (paginated.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
+    } catch (err) {
+      handleSupabaseError(err, OperationType.UPDATE, `businesses/${id}`);
+    }
+  };
+
+  const filtered = businesses.filter(b => 
+    (b.name_en?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (b.name_ar?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (b.name_ku?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-300 font-sans p-4 md:p-6 lg:p-8">
@@ -51,7 +93,10 @@ export default function ApprovalHub() {
                 type="text" 
                 placeholder="Search businesses..." 
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none"
               />
             </div>
@@ -68,47 +113,94 @@ export default function ApprovalHub() {
                 <tr className="bg-slate-900/50 border-b border-slate-800">
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Business Name</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">City</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Generated Description</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">QC Status</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Category</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Status</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {filtered.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-800/20 transition-colors">
-                    <td className="px-6 py-4 font-bold text-white">{b.name}</td>
-                    <td className="px-6 py-4 text-slate-400">{b.city}</td>
-                    <td className="px-6 py-4 text-sm text-slate-300 max-w-md truncate">{b.description}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                        b.qcStatus === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        b.qcStatus === 'Flagged' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}>
-                        {b.qcStatus}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleAction(b.id, 'approve')} className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors" title="Approve">
-                          <CheckCircle2 size={16} />
-                        </button>
-                        <button className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors" title="Edit">
-                          <Edit2 size={16} />
-                        </button>
-                        <button className="p-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded-lg transition-colors" title="Regenerate">
-                          <RotateCw size={16} />
-                        </button>
-                        <button onClick={() => handleAction(b.id, 'reject')} className="p-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors" title="Reject">
-                          <XCircle size={16} />
-                        </button>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <span>Loading queue...</span>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <CheckCircle2 size={48} className="text-slate-700 mb-2" />
+                        <p className="font-bold text-white">Queue Empty</p>
+                        <p className="text-sm">All businesses have been reviewed</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginated.map(b => (
+                    <tr key={b.id} className="hover:bg-slate-800/20 transition-colors">
+                      <td className="px-6 py-4 font-bold text-white">
+                        {b.name_en || b.name_ar || b.name_ku || 'Unnamed'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-400">{b.city}</td>
+                      <td className="px-6 py-4 text-sm text-slate-300">{b.category}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                          b.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          b.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => handleAction(b.id, 'approve')} className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors" title="Approve">
+                            <CheckCircle2 size={16} />
+                          </button>
+                          <button className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors" title="Edit">
+                            <Edit2 size={16} />
+                          </button>
+                          <button className="p-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded-lg transition-colors" title="Regenerate">
+                            <RotateCw size={16} />
+                          </button>
+                          <button onClick={() => handleAction(b.id, 'reject')} className="p-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors" title="Reject">
+                            <XCircle size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-800 flex items-center justify-between">
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} pending reviews
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 bg-slate-800 rounded-lg text-slate-400 disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 bg-slate-800 rounded-lg text-slate-400 disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

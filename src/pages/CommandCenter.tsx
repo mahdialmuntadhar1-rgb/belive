@@ -8,8 +8,8 @@ import {
   LayoutDashboard, Terminal as TerminalIcon,
   CheckSquare, AlertTriangle, Download, MapPin
 } from 'lucide-react';
-import { db, auth } from '../firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, doc, updateDoc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 import { GoogleGenAI } from "@google/genai";
 
 const CITIES = [
@@ -50,7 +50,6 @@ interface LogEntry {
 }
 
 import { useAuth } from '../AuthContext';
-import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
 
 export default function CommandCenter() {
   const { user } = useAuth();
@@ -73,38 +72,70 @@ export default function CommandCenter() {
     return () => clearInterval(timer);
   }, []);
 
-  // Listen for logs from Firestore
+  // Listen for logs from Supabase
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'agent_logs'), orderBy('timestamp', 'desc'), limit(50));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const firestoreLogs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        time: (doc.data().timestamp?.toDate?.() || new Date()).toLocaleTimeString([], { hour12: false })
+
+    const fetchInitialLogs = async () => {
+      const { data, error } = await supabase
+        .from('agent_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, 'agent_logs');
+        return;
+      }
+
+      const formattedLogs = data.map(log => ({
+        id: log.id,
+        ...log,
+        time: new Date(log.timestamp).toLocaleTimeString([], { hour12: false })
       })) as LogEntry[];
-      setLogs(firestoreLogs.reverse());
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'agent_logs');
-    });
-    return () => unsubscribe();
+      setLogs(formattedLogs.reverse());
+    };
+
+    fetchInitialLogs();
+
+    const channel = supabase
+      .channel('agent_logs_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_logs' }, (payload) => {
+        const newLog = {
+          id: payload.new.id,
+          ...payload.new,
+          time: new Date(payload.new.timestamp).toLocaleTimeString([], { hour12: false })
+        } as LogEntry;
+        setLogs(prev => [...prev.slice(-49), newLog]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Listen for task progress
   useEffect(() => {
     if (!currentTaskId || !user) return;
-    const unsubscribe = onSnapshot(doc(db, 'agent_tasks', currentTaskId), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data.status === 'completed' || data.status === 'stopped') {
+
+    const channel = supabase
+      .channel(`agent_task_${currentTaskId}`)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'agent_tasks',
+        filter: `id=eq.${currentTaskId}`
+      }, (payload) => {
+        if (payload.new.status === 'completed' || payload.new.status === 'stopped') {
           setIsRunning(false);
         }
-        // Update local progress if needed (though we simulate it for UI smoothness)
-      }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `agent_tasks/${currentTaskId}`);
-    });
-    return () => unsubscribe();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentTaskId, user]);
 
   useEffect(() => {
@@ -114,14 +145,14 @@ export default function CommandCenter() {
   const addLog = async (type: LogEntry['type'], message: string) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'agent_logs'), {
-        timestamp: serverTimestamp(),
+      await supabase.from('agent_logs').insert({
+        timestamp: new Date().toISOString(),
         message,
         type,
         taskId: currentTaskId
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'agent_logs');
+      handleSupabaseError(error, OperationType.WRITE, 'agent_logs');
     }
   };
 
@@ -162,15 +193,17 @@ export default function CommandCenter() {
     setCityProgress(initialProgress);
 
     try {
-      const taskRef = await addDoc(collection(db, 'agent_tasks'), {
+      const { data: taskData, error: taskError } = await supabase.from('agent_tasks').insert({
         type: selectedTask,
         instruction,
         cities,
         status: 'running',
         progress: 0,
-        created_at: serverTimestamp()
-      });
-      setCurrentTaskId(taskRef.id);
+        created_at: new Date().toISOString()
+      }).select().single();
+
+      if (taskError) throw taskError;
+      setCurrentTaskId(taskData.id);
 
       await addLog('info', `▶ Task launched: "${instruction}"`);
       await addLog('info', `Cities: ${cities.map(id => CITIES.find(c => c.id === id)?.en).join(', ')}`);
@@ -222,7 +255,7 @@ export default function CommandCenter() {
           if (allDone) {
             clearInterval(interval);
             setIsRunning(false);
-            updateDoc(doc(db, 'agent_tasks', taskRef.id), { status: 'completed', progress: 100 });
+            supabase.from('agent_tasks').update({ status: 'completed', progress: 100 }).eq('id', taskData.id);
             addLog('info', `🏁 All tasks complete · ${currentCities.length} cities processed`);
           }
           return next;
@@ -237,7 +270,7 @@ export default function CommandCenter() {
 
   const stopAll = async () => {
     if (currentTaskId) {
-      await updateDoc(doc(db, 'agent_tasks', currentTaskId), { status: 'stopped' });
+      await supabase.from('agent_tasks').update({ status: 'stopped' }).eq('id', currentTaskId);
     }
     setIsRunning(false);
     addLog('warn', '■ All agents stopped by user');

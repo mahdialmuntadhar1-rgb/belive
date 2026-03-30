@@ -7,18 +7,8 @@ import {
   Activity, Settings, LogOut, Menu, Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { db } from '../firebase';
-import { 
-  collection, 
-  query, 
-  onSnapshot, 
-  orderBy, 
-  getDocs, 
-  where,
-  doc,
-  updateDoc,
-  deleteDoc
-} from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 
 // --- Types ---
 interface Business {
@@ -76,8 +66,6 @@ const COLORS = {
 
 import { useAuth } from '../AuthContext';
 
-import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
-
 export default function Admin() {
   const { user } = useAuth();
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -91,23 +79,44 @@ export default function Admin() {
     status: 'All'
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
     
-    const q = query(collection(db, 'businesses'), orderBy('created_at', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Business[];
-      setBusinesses(data);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'businesses');
-      setLoading(false);
-    });
+    const fetchBusinesses = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    return () => unsubscribe();
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, 'businesses');
+        setLoading(false);
+        return;
+      }
+
+      setBusinesses(data || []);
+      setLoading(false);
+    };
+
+    fetchBusinesses();
+
+    const channel = supabase
+      .channel('admin_businesses_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
+        fetchBusinesses();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const filteredBusinesses = businesses.filter(b => {
@@ -129,6 +138,9 @@ export default function Admin() {
     
     return matchesSearch && matchesCity && matchesCategory && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredBusinesses.length / itemsPerPage);
+  const paginatedBusinesses = filteredBusinesses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const stats = {
     total: businesses.length,
@@ -213,7 +225,10 @@ export default function Admin() {
                 placeholder="Search by name..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1B2B5E] focus:border-transparent outline-none"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
             
@@ -221,19 +236,28 @@ export default function Admin() {
               label="City" 
               options={['All', 'Baghdad', 'Erbil', 'Sulaymaniyah', 'Basra', 'Najaf', 'Karbala']} 
               value={filters.city}
-              onChange={(val) => setFilters({...filters, city: val})}
+              onChange={(val) => {
+                setFilters({...filters, city: val});
+                setCurrentPage(1);
+              }}
             />
             <FilterSelect 
               label="Category" 
               options={['All', 'Restaurant', 'Hotel', 'Hospital', 'Retail', 'Tech']} 
               value={filters.category}
-              onChange={(val) => setFilters({...filters, category: val})}
+              onChange={(val) => {
+                setFilters({...filters, category: val});
+                setCurrentPage(1);
+              }}
             />
             <FilterSelect 
               label="Status" 
               options={['All', 'Verified', 'Pending', 'Rejected']} 
               value={filters.status}
-              onChange={(val) => setFilters({...filters, status: val})}
+              onChange={(val) => {
+                setFilters({...filters, status: val});
+                setCurrentPage(1);
+              }}
             />
           </div>
 
@@ -261,7 +285,7 @@ export default function Admin() {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredBusinesses.length === 0 ? (
+                  ) : paginatedBusinesses.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         <div className="flex flex-col items-center gap-2">
@@ -272,7 +296,7 @@ export default function Admin() {
                       </td>
                     </tr>
                   ) : (
-                    filteredBusinesses.map((b) => (
+                    paginatedBusinesses.map((b) => (
                       <tr key={b.id} className="hover:bg-gray-50 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -326,7 +350,20 @@ export default function Admin() {
                             <button className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit">
                               <Edit2 size={18} />
                             </button>
-                            <button className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete">
+                            <button 
+                              onClick={async () => {
+                                if (window.confirm('Are you sure you want to delete this business?')) {
+                                  try {
+                                    const { error } = await supabase.from('businesses').delete().eq('id', b.id);
+                                    if (error) throw error;
+                                  } catch (err) {
+                                    handleSupabaseError(err, OperationType.DELETE, `businesses/${b.id}`);
+                                  }
+                                }
+                              }}
+                              className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" 
+                              title="Delete"
+                            >
                               <Trash2 size={18} />
                             </button>
                           </div>
@@ -338,6 +375,30 @@ export default function Admin() {
               </table>
             </div>
           </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-4 px-6 py-4 bg-white rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+              <div className="text-xs text-gray-500 font-medium">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredBusinesses.length)} of {filteredBusinesses.length} records
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-400 disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight className="rotate-180" size={18} />
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-400 disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

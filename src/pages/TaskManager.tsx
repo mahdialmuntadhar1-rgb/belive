@@ -13,6 +13,7 @@ import {
 import { taskService } from '../services/dashboardService';
 import { AgentTask } from '../types';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 const TaskManager: React.FC = () => {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
@@ -27,6 +28,17 @@ const TaskManager: React.FC = () => {
 
   useEffect(() => {
     fetchTasks();
+
+    const channel = supabase
+      .channel('task_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_tasks' }, () => {
+        fetchTasks();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchTasks = async () => {

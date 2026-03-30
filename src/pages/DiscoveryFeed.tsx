@@ -17,21 +17,24 @@ export default function DiscoveryFeed() {
 
   const fetchNearby = async (lat: number, lng: number) => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc('get_nearby_businesses', {
-      lat,
-      lng,
-      radius_km: radius
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_nearby_businesses', {
+        lat,
+        lng,
+        radius_km: radius
+      });
 
-    if (error) {
-      toast.error('Failed to fetch nearby businesses');
+      if (error) throw error;
+      setBusinesses(data || []);
+    } catch (err) {
+      console.error('Failed to fetch nearby businesses:', err);
+      toast.error('Failed to fetch nearby businesses. Showing all businesses.');
       // Fallback to all businesses if RPC fails
       const { data: allData } = await supabase.from('businesses').select('*').limit(20);
       setBusinesses(allData || []);
-    } else {
-      setBusinesses(data || []);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -51,8 +54,9 @@ export default function DiscoveryFeed() {
   }, [radius]);
 
   const filteredBusinesses = businesses.filter(b => 
-    b.name.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.category.toLowerCase().includes(searchQuery.toLowerCase())
+    (b.name_en || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.name_ar || '').includes(searchQuery) ||
+    (b.category || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -106,8 +110,8 @@ export default function DiscoveryFeed() {
               {/* Image Header */}
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img 
-                  src={business.scraped_photo_url || `https://picsum.photos/seed/${business.id}/800/600`} 
-                  alt={business.name.en}
+                  src={business.photos?.[0] || `https://picsum.photos/seed/${business.id}/800/600`} 
+                  alt={business.name_en || business.name_ar}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   referrerPolicy="no-referrer"
                 />
@@ -119,7 +123,7 @@ export default function DiscoveryFeed() {
                   </div>
                 </div>
 
-                {business.is_verified && (
+                {business.status === 'approved' && (
                   <div className="absolute top-4 right-4 p-1.5 bg-emerald-500 text-slate-950 rounded-full shadow-lg">
                     <ShieldCheck size={16} />
                   </div>
@@ -130,7 +134,7 @@ export default function DiscoveryFeed() {
               <div className="p-6 space-y-4 flex-1 flex flex-col">
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-white leading-tight group-hover:text-emerald-400 transition-colors">
-                    {business.name.en}
+                    {business.name_en || business.name_ar}
                   </h3>
                   <div className="flex items-center gap-1 text-amber-400">
                     <Star size={12} fill="currentColor" />
@@ -138,7 +142,7 @@ export default function DiscoveryFeed() {
                     <Star size={12} fill="currentColor" />
                     <Star size={12} fill="currentColor" />
                     <Star size={12} className="opacity-30" />
-                    <span className="text-[10px] text-slate-500 font-bold ml-1">(4.2)</span>
+                    <span className="text-[10px] text-slate-500 font-bold ml-1">({business.confidence_score}%)</span>
                   </div>
                 </div>
 
@@ -146,19 +150,19 @@ export default function DiscoveryFeed() {
                   <div className="flex items-start gap-2 text-slate-400">
                     <MapPin size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                     <p className="text-xs font-medium leading-relaxed line-clamp-2">
-                      {business.governorate}, Iraq
+                      {business.city}, Iraq
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <Clock size={16} className="text-emerald-500 shrink-0" />
-                    <span className="text-xs font-medium">Open · Closes 10 PM</span>
+                    <span className="text-xs font-medium">Verified Status: {business.status}</span>
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="pt-4 flex items-center gap-2">
                   <a 
-                    href={`https://wa.me/${business.whatsapp}`}
+                    href={`https://wa.me/${business.phone}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]"

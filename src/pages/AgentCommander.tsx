@@ -18,8 +18,8 @@ import {
   Info,
   Globe
 } from 'lucide-react';
-import { db, auth } from '../firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, where, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -42,7 +42,7 @@ interface UploadedFile {
 }
 
 interface AgentTask {
-  id: number;
+  id: string;
   agent_name: string;
   status: string;
   prompt: string;
@@ -108,8 +108,6 @@ const TASK_TEMPLATES = [
 
 import { useAuth } from '../AuthContext';
 
-import { handleFirestoreError, OperationType } from '../lib/firestoreUtils';
-
 export default function AgentCommander() {
   const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
@@ -134,18 +132,35 @@ export default function AgentCommander() {
     scrollToBottom();
   }, [chatHistories, selectedAgent.id, isLoading]);
 
-  useEffect(() => {
+  const fetchTasks = async () => {
     if (!user) return;
-    
-    const q = query(collection(db, 'agent_tasks'), orderBy('created_at', 'desc'), limit(20));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-      setTaskHistory(tasks);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'agent_tasks');
-    });
+    try {
+      const { data, error } = await supabase
+        .from('agent_tasks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      setTaskHistory(data || []);
+    } catch (error) {
+      handleSupabaseError(error, OperationType.GET, 'agent_tasks');
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchTasks();
+
+    const channel = supabase
+      .channel('agent_tasks_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_tasks' }, () => {
+        fetchTasks();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const currentHistory = chatHistories[selectedAgent.id] || [];
@@ -194,16 +209,18 @@ export default function AgentCommander() {
         [selectedAgent.id]: [...newHistory, agentMessage]
       }));
 
-      // Save task to Firestore
-      await addDoc(collection(db, 'agent_tasks'), {
+      // Save task to Supabase
+      const { error } = await supabase.from('agent_tasks').insert({
         agent_id: selectedAgent.id,
         agent_name: selectedAgent.name,
         task_type: 'chat',
         prompt: text,
         status: 'completed',
         result: agentResponse,
-        created_at: serverTimestamp()
+        created_at: new Date().toISOString()
       });
+      
+      if (error) throw error;
       
     } catch (error) {
       console.error('Gemini error:', error);
@@ -258,18 +275,32 @@ export default function AgentCommander() {
         city: r.city || 'Sulaymaniyah City',
         phone: r.phone || r.raw_phone || null,
         address: r.address || r.raw_address || null,
-        score: r.data_quality_score || r.score || 0,
+        confidence_score: r.data_quality_score || r.score || 0,
         status: 'pending',
         last_updated: new Date().toISOString()
       })).filter(r => r.name_en);
 
-      for (const record of cleaned) {
-        await addDoc(collection(db, 'businesses'), record);
-      }
+      const { error } = await supabase.from('businesses').insert(cleaned);
+      if (error) throw error;
 
-      setImportStatus(`✅ Imported ${cleaned.length} records to Firestore`);
+      setImportStatus(`✅ Imported ${cleaned.length} records to Supabase`);
     } catch (error: any) {
+      handleSupabaseError(error, OperationType.WRITE, 'businesses');
       setImportStatus(`Error: ${error.message}`);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      const { error } = await supabase
+        .from('agent_tasks')
+        .delete()
+        .eq('status', 'completed');
+      
+      if (error) throw error;
+      fetchTasks();
+    } catch (error) {
+      handleSupabaseError(error, OperationType.DELETE, 'agent_tasks');
     }
   };
 
@@ -527,13 +558,7 @@ export default function AgentCommander() {
               <div className="flex items-center justify-between">
                 <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Recent Tasks</h4>
                 <button 
-                  onClick={async () => {
-                    const q = query(collection(db, 'agent_tasks'), where('status', '==', 'completed'));
-                    const snapshot = await getDocs(q);
-                    for (const doc of snapshot.docs) {
-                      await deleteDoc(doc.ref);
-                    }
-                  }}
+                  onClick={clearHistory}
                   className="text-[9px] font-black text-rose-500 uppercase tracking-widest"
                 >
                   Clear history

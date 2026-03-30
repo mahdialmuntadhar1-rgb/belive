@@ -52,27 +52,39 @@ const DataCleaner: React.FC = () => {
     if (!file) return;
     setIsProcessing(true);
     try {
-      // In a real app, we'd process the whole file, not just preview
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const json = JSON.parse(event.target?.result as string);
-        const records = (Array.isArray(json) ? json : [json]).map(item => ({
-          name_raw: item.name || item.name_raw,
-          category_raw: item.category || item.category_raw,
-          city: item.city,
-          address: item.address,
-          phone: item.phone,
-          source: 'JSON Upload',
-          coordinates: item.coordinates
-        }));
-        
-        await cleaningService.pushToRaw(records);
-        setIsPushed(true);
+        try {
+          const json = JSON.parse(event.target?.result as string);
+          const records = (Array.isArray(json) ? json : [json]).map(item => ({
+            name_raw: item.name || item.name_raw || 'Unknown',
+            category_raw: item.category || item.category_raw || 'Uncategorized',
+            city: item.city || 'Unknown',
+            address: item.address || '',
+            phone: item.phone || '',
+            source: 'JSON Upload',
+            coordinates: item.coordinates || { lat: 0, lng: 0 }
+          }));
+          
+          if (records.length === 0) {
+            throw new Error('No valid records found in JSON');
+          }
+
+          await cleaningService.pushToRaw(records);
+          setIsPushed(true);
+        } catch (err: any) {
+          alert(`Push failed: ${err.message}`);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      reader.onerror = () => {
+        alert('Failed to read file');
         setIsProcessing(false);
       };
       reader.readAsText(file);
     } catch (error) {
-      alert('Push failed');
+      alert('An unexpected error occurred');
       setIsProcessing(false);
     }
   };

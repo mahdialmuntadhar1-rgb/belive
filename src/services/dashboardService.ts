@@ -1,83 +1,114 @@
-import { db } from '../firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  updateDoc, 
-  doc, 
-  addDoc, 
-  orderBy, 
-  limit, 
-  getCountFromServer,
-  writeBatch,
-  Timestamp
-} from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { RawBusiness, VerifiedBusiness, AgentTask } from '../types';
+import { handleSupabaseError, OperationType } from '../lib/supabaseUtils';
 
 export const businessService = {
   async getStats() {
-    const [
-      rawCount,
-      verifiedCount,
-      pendingCount,
-      approvedCount,
-      taskCount
-    ] = await Promise.all([
-      getCountFromServer(collection(db, 'raw_businesses')),
-      getCountFromServer(collection(db, 'businesses')),
-      getCountFromServer(query(collection(db, 'businesses'), where('status', '==', 'pending'))),
-      getCountFromServer(query(collection(db, 'businesses'), where('status', '==', 'approved'))),
-      getCountFromServer(collection(db, 'agent_tasks'))
-    ]);
+    try {
+      const [
+        { count: rawCount, error: rawError },
+        { count: verifiedCount, error: verifiedError },
+        { count: pendingCount, error: pendingError },
+        { count: approvedCount, error: approvedError },
+        { count: taskCount, error: taskError }
+      ] = await Promise.all([
+        supabase.from('raw_businesses').select('*', { count: 'exact', head: true }),
+        supabase.from('businesses').select('*', { count: 'exact', head: true }),
+        supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('agent_tasks').select('*', { count: 'exact', head: true })
+      ]);
 
-    return {
-      rawCount: rawCount.data().count || 0,
-      verifiedCount: verifiedCount.data().count || 0,
-      pendingCount: pendingCount.data().count || 0,
-      approvedCount: approvedCount.data().count || 0,
-      taskCount: taskCount.data().count || 0
-    };
+      if (rawError) handleSupabaseError(rawError, OperationType.GET, 'raw_businesses');
+      if (verifiedError) handleSupabaseError(verifiedError, OperationType.GET, 'businesses');
+      if (pendingError) handleSupabaseError(pendingError, OperationType.GET, 'businesses/pending');
+      if (approvedError) handleSupabaseError(approvedError, OperationType.GET, 'businesses/approved');
+      if (taskError) handleSupabaseError(taskError, OperationType.GET, 'agent_tasks');
+
+      return {
+        rawCount: rawCount || 0,
+        verifiedCount: verifiedCount || 0,
+        pendingCount: pendingCount || 0,
+        approvedCount: approvedCount || 0,
+        taskCount: taskCount || 0
+      };
+    } catch (error) {
+      console.error('Error in getStats:', error);
+      return {
+        rawCount: 0,
+        verifiedCount: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        taskCount: 0
+      };
+    }
   },
 
   async getVerifiedBusinesses(filters: any) {
-    let q = query(collection(db, 'businesses'), orderBy('created_at', 'desc'));
-    
-    if (filters.status && filters.status !== 'All') {
-      q = query(q, where('status', '==', filters.status.toLowerCase()));
-    }
-    if (filters.city && filters.city !== 'All') {
-      q = query(q, where('city', '==', filters.city));
-    }
-    if (filters.category && filters.category !== 'All') {
-      q = query(q, where('category', '==', filters.category));
-    }
-    if (filters.minScore) {
-      q = query(q, where('confidence_score', '>=', filters.minScore));
-    }
+    try {
+      let query = supabase.from('businesses').select('*');
+      
+      if (filters.status && filters.status !== 'All') {
+        query = query.eq('status', filters.status.toLowerCase());
+      }
+      if (filters.city && filters.city !== 'All') {
+        query = query.eq('city', filters.city);
+      }
+      if (filters.category && filters.category !== 'All') {
+        query = query.eq('category', filters.category);
+      }
+      if (filters.minScore) {
+        query = query.gte('confidence_score', filters.minScore);
+      }
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as VerifiedBusiness[];
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, 'businesses');
+        throw error;
+      }
+      return data as VerifiedBusiness[];
+    } catch (error) {
+      console.error('Error in getVerifiedBusinesses:', error);
+      throw error;
+    }
   },
 
   async updateStatus(id: string, status: string) {
-    const businessRef = doc(db, 'businesses', id);
-    await updateDoc(businessRef, { 
-      status, 
-      approved_at: status === 'approved' ? new Date().toISOString() : null 
-    });
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ 
+          status, 
+          approved_at: status === 'approved' ? new Date().toISOString() : null 
+        })
+        .eq('id', id);
+      if (error) {
+        handleSupabaseError(error, OperationType.UPDATE, `businesses/${id}`);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in updateStatus:', error);
+      throw error;
+    }
   },
 
   async batchApprove(ids: string[]) {
-    const batch = writeBatch(db);
-    ids.forEach(id => {
-      const businessRef = doc(db, 'businesses', id);
-      batch.update(businessRef, { 
-        status: 'approved', 
-        approved_at: new Date().toISOString() 
-      });
-    });
-    await batch.commit();
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ 
+          status: 'approved', 
+          approved_at: new Date().toISOString() 
+        })
+        .in('id', ids);
+      if (error) {
+        handleSupabaseError(error, OperationType.UPDATE, 'businesses/batch');
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in batchApprove:', error);
+      throw error;
+    }
   }
 };
 
@@ -85,7 +116,8 @@ export const cleaningService = {
   repairText(text: string): string {
     if (!text) return '';
     try {
-      return decodeURIComponent(escape(text));
+      // Basic repair for common encoding issues
+      return text.replace(/[^\x20-\x7E\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '');
     } catch (e) {
       return text;
     }
@@ -111,36 +143,68 @@ export const cleaningService = {
   },
 
   async pushToRaw(records: any[]) {
-    const batch = writeBatch(db);
-    records.forEach(record => {
-      const newDocRef = doc(collection(db, 'raw_businesses'));
-      batch.set(newDocRef, record);
-    });
-    await batch.commit();
+    try {
+      const { error } = await supabase.from('raw_businesses').insert(records);
+      if (error) {
+        handleSupabaseError(error, OperationType.WRITE, 'raw_businesses');
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in pushToRaw:', error);
+      throw error;
+    }
   }
 };
 
 export const taskService = {
   async getTasks() {
-    const q = query(collection(db, 'agent_tasks'), orderBy('created_at', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AgentTask[];
+    try {
+      const { data, error } = await supabase
+        .from('agent_tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, 'agent_tasks');
+        throw error;
+      }
+      return data as AgentTask[];
+    } catch (error) {
+      console.error('Error in getTasks:', error);
+      throw error;
+    }
   },
 
   async createTask(task: Partial<AgentTask>) {
-    await addDoc(collection(db, 'agent_tasks'), {
-      ...task,
-      created_at: new Date().toISOString()
-    });
+    try {
+      const { error } = await supabase.from('agent_tasks').insert({
+        ...task,
+        created_at: new Date().toISOString()
+      });
+      if (error) {
+        handleSupabaseError(error, OperationType.WRITE, 'agent_tasks');
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in createTask:', error);
+      throw error;
+    }
   },
 
   async getLogs(taskId: string) {
-    const q = query(
-      collection(db, 'agent_logs'), 
-      where('record_id', '==', taskId),
-      orderBy('created_at', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+      const { data, error } = await supabase
+        .from('agent_logs')
+        .select('*')
+        .eq('taskId', taskId)
+        .order('timestamp', { ascending: false });
+      if (error) {
+        handleSupabaseError(error, OperationType.GET, `agent_logs/${taskId}`);
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      console.error('Error in getLogs:', error);
+      throw error;
+    }
   }
 };

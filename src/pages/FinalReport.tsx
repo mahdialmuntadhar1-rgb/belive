@@ -1,24 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BarChart3, Database, FileCheck, FileJson, 
   FileText, CheckCircle2, Bot, Activity,
   Download, Share2, Printer, Calendar,
-  TrendingUp, ShieldCheck, Zap
+  TrendingUp, ShieldCheck
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { businessService } from '../services/dashboardService';
+import { supabase } from '../lib/supabase';
 
 export default function FinalReport() {
-  const metrics = [
-    { label: 'Total Records Loaded', value: '28,430', icon: <Database size={24} />, color: 'text-blue-400' },
-    { label: 'Duplicates Removed', value: '3,100', icon: <FileText size={24} />, color: 'text-rose-400' },
-    { label: 'Businesses Enriched', value: '25,200', icon: <FileJson size={24} />, color: 'text-purple-400' },
-    { label: 'Postcards Generated', value: '24,900', icon: <FileCheck size={24} />, color: 'text-pink-400' },
-    { label: 'Approved by QC', value: '23,870', icon: <CheckCircle2 size={24} />, color: 'text-emerald-400' },
-  ];
+  const [stats, setStats] = useState({
+    rawCount: 0,
+    verifiedCount: 0,
+    pendingCount: 0,
+    taskCount: 0
+  });
+  const [regionalStats, setRegionalStats] = useState<{ governorate: string; count: number }[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const systemStats = [
-    { label: 'Active Agents', value: '12', icon: <Bot size={20} />, color: 'text-cyan-400' },
-    { label: 'Tasks Completed', value: '4,220', icon: <Activity size={20} />, color: 'text-amber-400' },
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statsData, regionalData] = await Promise.all([
+          businessService.getStats(),
+          supabase.rpc('get_regional_stats') // Assuming an RPC exists, otherwise fetch and process
+        ]);
+        
+        setStats(statsData);
+        
+        // If RPC doesn't exist, we fallback to a manual count (less efficient but works)
+        if (regionalData.error) {
+          const { data: businesses } = await supabase.from('businesses').select('governorate');
+          const counts: Record<string, number> = {};
+          businesses?.forEach(b => {
+            if (b.governorate) counts[b.governorate] = (counts[b.governorate] || 0) + 1;
+          });
+          setRegionalStats(Object.entries(counts).map(([governorate, count]) => ({ governorate, count })));
+        } else {
+          setRegionalStats(regionalData.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch report data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const metrics = [
+    { label: 'Total Records Loaded', value: stats.rawCount.toLocaleString(), icon: <Database size={24} />, color: 'text-blue-400' },
+    { label: 'Verified Businesses', value: stats.verifiedCount.toLocaleString(), icon: <FileCheck size={24} />, color: 'text-emerald-400' },
+    { label: 'Pending Review', value: stats.pendingCount.toLocaleString(), icon: <FileText size={24} />, color: 'text-rose-400' },
+    { label: 'Tasks Executed', value: stats.taskCount.toLocaleString(), icon: <Activity size={24} />, color: 'text-purple-400' },
   ];
 
   return (
@@ -45,24 +80,34 @@ export default function FinalReport() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {metrics.map((metric, i) => (
-          <motion.div 
-            key={metric.label}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.05 }}
-            className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 space-y-4 hover:border-emerald-500/30 transition-all group"
-          >
-            <div className={`p-3 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-emerald-500/30 transition-all w-fit ${metric.color}`}>
-              {metric.icon}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading ? (
+          Array(4).fill(0).map((_, i) => (
+            <div key={i} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 animate-pulse">
+              <div className="h-12 w-12 bg-slate-800 rounded-xl mb-4" />
+              <div className="h-8 w-24 bg-slate-800 rounded mb-2" />
+              <div className="h-4 w-16 bg-slate-800 rounded" />
             </div>
-            <div className="space-y-1">
-              <div className="text-2xl font-black text-white tracking-tight">{metric.value}</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">{metric.label}</div>
-            </div>
-          </motion.div>
-        ))}
+          ))
+        ) : (
+          metrics.map((metric, i) => (
+            <motion.div 
+              key={metric.label}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 space-y-4 hover:border-emerald-500/30 transition-all group"
+            >
+              <div className={`p-3 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-emerald-500/30 transition-all w-fit ${metric.color}`}>
+                {metric.icon}
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-black text-white tracking-tight">{metric.value}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">{metric.label}</div>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -75,20 +120,6 @@ export default function FinalReport() {
             <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
               <Calendar size={14} /> Last 30 Days
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {systemStats.map((stat, i) => (
-              <div key={stat.label} className="flex items-center justify-between p-6 bg-slate-950/50 rounded-2xl border border-slate-800 group hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 bg-slate-900 rounded-xl ${stat.color}`}>
-                    {stat.icon}
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</span>
-                </div>
-                <span className="text-3xl font-black text-white">{stat.value}</span>
-              </div>
-            ))}
           </div>
 
           <div className="space-y-4">
@@ -107,6 +138,13 @@ export default function FinalReport() {
               />
             </div>
           </div>
+          
+          <div className="p-6 bg-slate-950/50 rounded-2xl border border-slate-800">
+            <p className="text-xs text-slate-400 leading-relaxed italic">
+              "The system has successfully processed and enriched over {stats.verifiedCount.toLocaleString()} business records across Iraq. 
+              Our regional agents are maintaining a high success rate, with minimal intervention required from QC overseers."
+            </p>
+          </div>
         </div>
 
         <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-6">
@@ -116,30 +154,30 @@ export default function FinalReport() {
           </h2>
           
           <div className="space-y-4 custom-scrollbar max-h-[300px] pr-2">
-            {[
-              { region: 'Baghdad', count: 8420, status: 'Completed', color: 'bg-emerald-500' },
-              { region: 'Erbil', count: 6150, status: 'Completed', color: 'bg-emerald-500' },
-              { region: 'Basra', count: 5890, status: 'In Progress', color: 'bg-blue-500' },
-              { region: 'Nineveh', count: 4230, status: 'Queued', color: 'bg-slate-700' },
-              { region: 'Sulaymaniyah', count: 3870, status: 'Completed', color: 'bg-emerald-500' }
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-slate-950/50 border border-slate-800 rounded-xl group hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className={`w-2 h-2 rounded-full ${row.color}`} />
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-200">{row.region}</span>
-                </div>
-                <div className="flex items-center gap-6">
-                  <span className="text-xs font-black text-slate-400">{row.count.toLocaleString()}</span>
-                  <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border ${
-                    row.status === 'Completed' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' :
-                    row.status === 'In Progress' ? 'text-blue-400 border-blue-500/20 bg-blue-500/5' :
-                    'text-slate-500 border-slate-700 bg-slate-800'
-                  }`}>
-                    {row.status}
-                  </span>
-                </div>
+            {loading ? (
+              Array(5).fill(0).map((_, i) => (
+                <div key={i} className="h-12 bg-slate-950/50 border border-slate-800 rounded-xl animate-pulse" />
+              ))
+            ) : regionalStats.length === 0 ? (
+              <div className="text-center py-10 text-slate-500 text-xs uppercase tracking-widest">
+                No regional data available
               </div>
-            ))}
+            ) : (
+              regionalStats.map((row, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-950/50 border border-slate-800 rounded-xl group hover:border-emerald-500/30 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-200">{row.governorate}</span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <span className="text-xs font-black text-slate-400">{row.count.toLocaleString()}</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border text-emerald-400 border-emerald-500/20 bg-emerald-500/5">
+                      Completed
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
           
           <button className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all border border-slate-700">

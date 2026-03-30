@@ -41,8 +41,9 @@ const Export: React.FC = () => {
 
   const handleExport = () => {
     setExporting(true);
-    setTimeout(() => {
+    try {
       const exportData = businesses.map(b => ({
+        id: b.id,
         name: {
           ar: b.name_ar,
           ku: b.name_ku,
@@ -55,7 +56,8 @@ const Export: React.FC = () => {
         phone: b.phone,
         website: b.website,
         photos: b.photos,
-        confidence_score: b.confidence_score
+        confidence_score: b.confidence_score,
+        approved_at: b.approved_at
       }));
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -66,8 +68,13 @@ const Export: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to generate export file');
+    } finally {
       setExporting(false);
-    }, 1000);
+    }
   };
 
   return (
