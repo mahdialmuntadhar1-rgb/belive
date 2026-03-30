@@ -220,35 +220,25 @@ export default function CommandCenter() {
       const payloadCandidates = [
         {
           type: selectedTask,
+          prompt: instruction,
           instruction,
           cities,
-          status: 'running',
-          progress: 0,
-          created_at: new Date().toISOString(),
-        },
-        {
-          task_type: selectedTask,
-          prompt: instruction,
           city: cities[0] || null,
           category: selectedTask,
           status: 'running',
+          progress: 5,
           created_at: new Date().toISOString(),
-        },
-      ];
+        })
+        .select()
+        .maybeSingle();
 
-      for (const payload of payloadCandidates) {
-        const { data, error } = await supabase.from('agent_tasks').insert(payload as any).select().maybeSingle();
-        if (!error) {
-          createdTaskId = (data as any)?.id || null;
-          break;
-        }
-        console.warn('Task insert payload failed:', error.message);
+      if (taskInsert.error) {
+        throw taskInsert.error;
       }
 
+      createdTaskId = (taskInsert.data as any)?.id || null;
       if (createdTaskId) {
         setCurrentTaskId(createdTaskId);
-      } else {
-        await addLog('warn', 'Task tracking insert failed. Run will continue, but progress may not persist in Supabase.');
       }
 
       await addLog('info', `▶ Task launched: "${instruction}"`);
@@ -275,6 +265,15 @@ export default function CommandCenter() {
     } catch (error: any) {
       console.error('Error launching task:', error);
       await addLog('warn', `Task launch failed: ${error?.message || 'unknown error'}`);
+      if (createdTaskId) {
+        await supabase
+          .from('agent_tasks')
+          .update({
+            status: 'failed',
+            result_summary: error?.message || 'Task launch failed',
+          })
+          .eq('id', createdTaskId);
+      }
       setIsRunning(false);
       runInFlightRef.current = false;
     }
