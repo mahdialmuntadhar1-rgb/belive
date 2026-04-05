@@ -93,26 +93,12 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
               </div>
 
               <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
-                {biz.nameAr ? (
-                  <div className="space-y-1">
-                    <div className="text-lg">{biz.name}</div>
-                    <div className="text-sm text-white/80 font-normal">{biz.nameAr}</div>
-                  </div>
-                ) : (
-                  biz.name
-                )}
+                {biz.name}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
                 <MapPin className="w-4 h-4 text-[#2CA6A4]" />
                 <span className="line-clamp-1">{biz.city}, {biz.governorate}</span>
-              </div>
-
-              {/* Bottom IX Badge */}
-              <div className="absolute bottom-6 right-6">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md transition-all duration-500 group-hover:bg-[#2CA6A4] group-hover:border-[#2CA6A4]">
-                  <span className="text-[10px] font-black text-white tracking-tighter">IX</span>
-                </div>
               </div>
             </div>
           </motion.div>

@@ -89,16 +89,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                     <span className="text-[10px] text-white/60 font-bold ml-1">({business.reviewCount || 0})</span>
                   </div>
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-bold poppins-bold leading-tight tracking-tight drop-shadow-2xl">
-                  {business.nameAr ? (
-                    <div className="space-y-2">
-                      <div>{business.name}</div>
-                      <div className="text-3xl text-white/90 font-normal">{business.nameAr}</div>
-                    </div>
-                  ) : (
-                    business.name
-                  )}
-                </h2>
+                <h2 className="text-4xl sm:text-5xl font-bold poppins-bold leading-tight tracking-tight drop-shadow-2xl">{business.name}</h2>
                 <div className="flex items-center gap-2 mt-3 text-white/80 font-medium">
                   <MapPin className="w-4 h-4 text-[#2CA6A4]" />
                   <span className="text-sm">{business.address}</span>

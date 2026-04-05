@@ -79,11 +79,12 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
           updatedAt: new Date(item.updated_at || item.created_at)
         }));
 
-        setBusinesses(prev => isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses]);
-        
-        const totalCount = count || 0;
-        const currentTotal = isRefresh ? mappedBusinesses.length : businesses.length + mappedBusinesses.length;
-        setHasMore(currentTotal < totalCount);
+        setBusinesses(prev => {
+          const newBusinesses = isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses];
+          const totalCount = count || 0;
+          setHasMore(newBusinesses.length < totalCount);
+          return newBusinesses;
+        });
       }
     } catch (err) {
       console.error('Error fetching businesses:', err);
@@ -91,7 +92,7 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery, businesses.length]);
+  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
   useEffect(() => {
     setPage(1);
