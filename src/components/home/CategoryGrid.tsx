@@ -1,51 +1,57 @@
 import { useHomeStore } from '@/stores/homeStore';
 import { motion } from 'motion/react';
-import { 
-  Utensils, Coffee, Hotel, ShoppingBag, Landmark, 
-  GraduationCap, Clapperboard, Plane, Stethoscope, Scale, 
-  Hospital, HeartPulse, Home, PartyPopper, MoreHorizontal, 
-  Pill, Dumbbell, Sparkles, Store, Armchair, Check, Tag
-} from 'lucide-react';
-
-const CATEGORIES = [
-  { id: 'dining', name: 'RESTAURANTS & DINING', icon: Utensils, types: 4 },
-  { id: 'cafe', name: 'CAFES & COFFEE', icon: Coffee, types: 3 },
-  { id: 'hotels', name: 'HOTELS & STAYS', icon: Hotel, types: 3 },
-  { id: 'shopping', name: 'SHOPPING & RETAIL', icon: ShoppingBag, types: 3 },
-  { id: 'banks', name: 'BANKS & FINANCE', icon: Landmark, types: 3 },
-  { id: 'education', name: 'EDUCATION', icon: GraduationCap, types: 3 },
-  { id: 'entertainment', name: 'ENTERTAINMENT', icon: Clapperboard, types: 3 },
-  { id: 'tourism', name: 'TOURISM & TRAVEL', icon: Plane, types: 3 },
-  { id: 'doctors', name: 'DOCTORS & PHYSICIANS', icon: Stethoscope, types: 6 },
-  { id: 'lawyers', name: 'LAWYERS & LEGAL', icon: Scale, types: 3 },
-  { id: 'hospitals', name: 'HOSPITALS & CLINICS', icon: Hospital, types: 4 },
-  { id: 'clinics', name: 'MEDICAL CLINICS', icon: HeartPulse, types: 5 },
-  { id: 'realestate', name: 'REAL ESTATE', icon: Home, types: 4 },
-  { id: 'events', name: 'EVENTS & VENUES', icon: PartyPopper, types: 4, isHot: true },
-  { id: 'others', name: 'OTHERS & GENERAL', icon: MoreHorizontal, types: 4 },
-  { id: 'pharmacy', name: 'PHARMACY & DRUGS', icon: Pill, types: 3 },
-  { id: 'gym', name: 'GYM & FITNESS', icon: Dumbbell, types: 4 },
-  { id: 'beauty', name: 'BEAUTY & SALONS', icon: Sparkles, types: 4 },
-  { id: 'supermarkets', name: 'SUPERMARKETS', icon: Store, types: 4 },
-  { id: 'furniture', name: 'FURNITURE & HOME', icon: Armchair, types: 4 },
-];
+import { Check, Tag, Utensils } from 'lucide-react';
+import { ICON_MAP } from '@/constants';
+import { useMetadata } from '@/hooks/useMetadata';
 
 export default function CategoryGrid() {
-  const { selectedCategory, setCategory } = useHomeStore();
+  const { selectedCategory, setCategory, language } = useHomeStore();
+  const { categories, loading } = useMetadata();
+
+  const translations = {
+    categories: {
+      en: 'Categories',
+      ar: 'التصنيفات',
+      ku: 'پۆلەکان'
+    },
+    selected: {
+      en: 'selected',
+      ar: 'محدد',
+      ku: 'دیاریکراوە'
+    },
+    types: {
+      en: 'TYPES',
+      ar: 'أنواع',
+      ku: 'جۆر'
+    },
+    hot: {
+      en: 'HOT',
+      ar: 'رائج',
+      ku: 'گەرم'
+    }
+  };
+
+  if (loading && categories.length === 0) {
+    return (
+      <div className="w-full h-48 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f59e0b]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
       <div className="flex items-center gap-3 mb-10 px-2">
         <Tag className="w-5 h-5 text-[#f59e0b]" />
         <h2 className="text-white font-bold text-xl poppins-bold">
-          Categories ({selectedCategory ? '1' : '0'} selected)
+          {translations.categories[language]} ({selectedCategory ? '1' : '0'} {translations.selected[language]})
         </h2>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isActive = selectedCategory === cat.id;
-          const Icon = cat.icon;
+          const Icon = cat.icon || (cat.icon_name ? ICON_MAP[cat.icon_name] : Utensils) || Utensils;
           
           return (
             <motion.button
@@ -62,7 +68,7 @@ export default function CategoryGrid() {
               {/* Hot Badge */}
               {cat.isHot && (
                 <div className="absolute -top-1 left-4 bg-[#f59e0b] text-[#1e293b] text-[8px] font-black px-2 py-0.5 rounded-md z-10 uppercase shadow-lg">
-                  HOT
+                  {translations.hot[language]}
                 </div>
               )}
 
@@ -81,11 +87,8 @@ export default function CategoryGrid() {
 
               <div className="text-center">
                 <h3 className="text-[11px] font-black tracking-wider mb-1 uppercase leading-tight text-white poppins-bold">
-                  {cat.name}
+                  {cat.name[language]}
                 </h3>
-                <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-gray-400">
-                  {cat.types} TYPES
-                </p>
               </div>
             </motion.button>
           );

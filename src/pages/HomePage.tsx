@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Search, User, PlusCircle, MapPin, LayoutGrid, Sparkles, Compass, LogOut, Settings } from "lucide-react";
 import HeroSection from "@/components/home/HeroSection";
-import LocationFilterDynamic from "@/components/home/LocationFilterDynamic";
+import LocationFilter from "@/components/home/LocationFilter";
 import StoryRow from "@/components/home/StoryRow";
-import CategoryGridDynamic from "@/components/home/CategoryGridDynamic";
+import CategoryGrid from "@/components/home/CategoryGrid";
 import TrendingSection from "@/components/home/TrendingSection";
 import BusinessGrid from "@/components/home/BusinessGrid";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAuthStore } from "@/stores/authStore";
+import { useHomeStore } from "@/stores/homeStore";
 import type { Business } from "@/lib/supabase";
 
 export default function HomePage() {
@@ -20,71 +21,151 @@ export default function HomePage() {
 
   const { user, profile, signOut, loading: authLoading } = useAuthStore();
   const { 
+    language,
+    setLanguage
+  } = useHomeStore();
+  
+  const { 
     businesses, 
     loading: businessesLoading, 
     error, 
     hasMore, 
+    totalCount,
     loadMore 
   } = useBusinesses(searchQuery);
 
+  const isRTL = language === 'ar' || language === 'ku';
+
   const featuredBusinesses = businesses.filter(b => b.isFeatured);
 
-  console.log('🏠 [UI] HomePage rendering with:', {
-    businessesCount: businesses.length,
-    businessesLoading,
-    error,
-    hasMore,
-    featuredBusinessesCount: featuredBusinesses.length,
-    searchQuery
-  });
+  const translations = {
+    explore: {
+      en: 'Explore Businesses',
+      ar: 'استكشف الشركات',
+      ku: 'گەڕان بەدوای کارەکاندا'
+    },
+    directory: {
+      en: 'Directory',
+      ar: 'الدليل',
+      ku: 'دایرێکتۆری'
+    },
+    subtitle: {
+      en: 'Discover the best local services across Iraq',
+      ar: 'اكتشف أفضل الخدمات المحلية في جميع أنحاء العراق',
+      ku: 'باشترین خزمەتگوزارییە ناوخۆییەکان لە سەرانسەری عێراق بدۆزەرەوە'
+    },
+    showing: {
+      en: 'Showing',
+      ar: 'عرض',
+      ku: 'پیشاندانی'
+    },
+    of: {
+      en: 'of',
+      ar: 'من',
+      ku: 'لە'
+    },
+    services: {
+      en: 'local services across Iraq',
+      ar: 'خدمة محلية في العراق',
+      ku: 'خزمەتگوزاری ناوخۆیی لە عێراق'
+    },
+    grid: {
+      en: 'Grid',
+      ar: 'شبكة',
+      ku: 'تۆڕ'
+    },
+    map: {
+      en: 'Map',
+      ar: 'خريطة',
+      ku: 'نەخشە'
+    },
+    manage: {
+      en: 'Manage Business',
+      ar: 'إدارة الأعمال',
+      ku: 'بەڕێوەبردنی کار'
+    },
+    settings: {
+      en: 'Settings',
+      ar: 'الإعدادات',
+      ku: 'ڕێکخستنەکان'
+    },
+    signOut: {
+      en: 'Sign Out',
+      ar: 'تسجيل الخروج',
+      ku: 'چوونەدەرەوە'
+    },
+    owner: {
+      en: 'Owner',
+      ar: 'مالك',
+      ku: 'خاوەن'
+    },
+    member: {
+      en: 'Member',
+      ar: 'عضو',
+      ku: 'ئەندام'
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F5F7F9] selection:bg-[#2CA6A4]/30">
+    <div className="min-h-screen bg-[#F5F7F9] selection:bg-[#2CA6A4]/30" dir={isRTL ? 'rtl' : 'ltr'}>
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <BusinessDetailModal business={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
+
+      {/* Top Bar (Languages & Branding) */}
+      <div className="bg-white/90 backdrop-blur-md py-3 border-b border-[#E5E7EB] shadow-sm relative z-[70]">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          {/* Top Left Branding */}
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black text-[#2CA6A4] poppins-bold">شکو ماکو؟</span>
+          </div>
+
+          {/* Center Language Selector */}
+          <div className="flex items-center gap-4 sm:gap-8">
+            <button 
+              onClick={() => setLanguage('en')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${language === 'en' ? 'bg-[#2CA6A4]/10 text-[#2CA6A4] ring-1 ring-[#2CA6A4]' : 'text-gray-500 hover:text-[#2CA6A4]'}`}
+            >
+              <img src="https://flagcdn.com/us.svg" alt="USA" className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+              <span className="text-[10px] font-black tracking-widest uppercase">EN</span>
+            </button>
+            <button 
+              onClick={() => setLanguage('ar')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${language === 'ar' ? 'bg-[#2CA6A4]/10 text-[#2CA6A4] ring-1 ring-[#2CA6A4]' : 'text-gray-500 hover:text-[#2CA6A4]'}`}
+            >
+              <img src="https://flagcdn.com/iq.svg" alt="Iraq" className="w-5 h-3.5 object-cover rounded-sm shadow-sm" />
+              <span className="text-sm font-black">عربي</span>
+            </button>
+            <button 
+              onClick={() => setLanguage('ku')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 ${language === 'ku' ? 'bg-[#2CA6A4]/10 text-[#2CA6A4] ring-1 ring-[#2CA6A4]' : 'text-gray-500 hover:text-[#2CA6A4]'}`}
+            >
+              <div className="w-5 h-3.5 relative overflow-hidden rounded-sm shadow-sm flex flex-col">
+                <div className="h-1/3 bg-[#ED2024]" />
+                <div className="h-1/3 bg-white flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-[#FEB109] rounded-full" />
+                </div>
+                <div className="h-1/3 bg-[#278E43]" />
+              </div>
+              <span className="text-sm font-black">کوردی</span>
+            </button>
+          </div>
+
+          {/* Top Right Branding */}
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black text-[#2B2F33] poppins-bold tracking-tight">Saku Maku</span>
+          </div>
+        </div>
+      </div>
 
       {/* Sticky Header */}
       <header className="sticky top-0 z-[60] bg-white/80 backdrop-blur-xl border-b border-[#E5E7EB] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <div 
-            className="flex items-center space-x-3 group cursor-pointer flex-shrink-0" 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <div className="w-11 h-11 bg-gradient-to-br from-[#2CA6A4] to-[#1e7a78] rounded-[14px] flex items-center justify-center shadow-lg shadow-[#2CA6A4]/20 group-hover:scale-105 transition-all duration-500">
-              <span className="text-white font-black text-2xl poppins-bold">S</span>
-            </div>
-            <div className="hidden md:block">
-              <h1 className="text-xl font-black text-[#2B2F33] poppins-bold tracking-tight leading-none">Shakou Marku</h1>
-              <p className="text-[9px] text-[#2CA6A4] font-black uppercase tracking-[0.3em] mt-1">Iraqi Directory</p>
-            </div>
+          {/* Left Branding (Kurdish/Arabic) */}
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-[#2CA6A4] poppins-bold tracking-tight">شکو ماکو؟</h2>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-xl relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280] group-focus-within:text-[#2CA6A4] transition-colors">
-              <Search className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search businesses, services, or locations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-[#F5F7F9] border-2 border-transparent focus:border-[#2CA6A4] focus:bg-white rounded-2xl focus:outline-none transition-all duration-300 text-sm font-medium shadow-inner"
-            />
-          </div>
-
-          {/* Languages */}
-          <div className="hidden xl:flex items-center gap-4 px-4 border-x border-[#E5E7EB]">
-            <button className="text-[10px] font-black text-[#2CA6A4] hover:opacity-80 transition-opacity">ENGLISH</button>
-            <button className="text-[10px] font-black text-[#2B2F33] hover:text-[#2CA6A4] transition-colors">العربية</button>
-            <button className="text-[10px] font-black text-[#2B2F33] hover:text-[#2CA6A4] transition-colors">کوردی</button>
-            <button className="text-[10px] font-black text-[#2B2F33] hover:text-[#2CA6A4] transition-colors">سۆرانی</button>
-            <button className="text-[10px] font-black text-[#2B2F33] hover:text-[#2CA6A4] transition-colors">ناوه‌ندی</button>
-            <button className="text-[10px] font-black text-[#2B2F33] hover:text-[#2CA6A4] transition-colors">فارسی</button>
-          </div>
-
-          {/* Actions */}
+          {/* Center Actions (Optional, but keeping them here for now) */}
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {authLoading ? (
               <div className="w-11 h-11 rounded-xl bg-[#F5F7F9] animate-pulse" />
@@ -95,7 +176,7 @@ export default function HomePage() {
                     className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-[#E87A41] text-white text-xs font-black rounded-xl shadow-lg shadow-[#E87A41]/20 hover:bg-[#d16a35] hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    Manage Business
+                    {translations.manage[language]}
                   </button>
                 )}
                 
@@ -120,7 +201,7 @@ export default function HomePage() {
                           {profile?.full_name || 'User'}
                         </p>
                         <p className="text-[8px] font-bold text-[#6B7280] uppercase tracking-tighter mt-0.5">
-                          {profile?.role === 'business_owner' ? 'Owner' : 'Member'}
+                          {profile?.role === 'business_owner' ? translations.owner[language] : translations.member[language]}
                         </p>
                       </div>
                     </button>
@@ -131,7 +212,7 @@ export default function HomePage() {
                           <p className="text-[10px] font-black text-[#2B2F33] truncate">{user.email}</p>
                         </div>
                         <button className="w-full px-4 py-2 text-left text-xs font-bold text-[#6B7280] hover:bg-[#F5F7F9] hover:text-[#2CA6A4] flex items-center gap-2 transition-colors">
-                          <Settings className="w-4 h-4" /> Settings
+                          <Settings className="w-4 h-4" /> {translations.settings[language]}
                         </button>
                         <button 
                           onClick={() => {
@@ -140,7 +221,7 @@ export default function HomePage() {
                           }}
                           className="w-full px-4 py-2 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
                         >
-                          <LogOut className="w-4 h-4" /> Sign Out
+                          <LogOut className="w-4 h-4" /> {translations.signOut[language]}
                         </button>
                       </div>
                     )}
@@ -148,6 +229,20 @@ export default function HomePage() {
                 )}
               </>
             )}
+          </div>
+
+          {/* Right Branding (English) */}
+          <div 
+            className="flex items-center space-x-3 group cursor-pointer flex-shrink-0" 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <div className="hidden md:block text-right">
+              <h1 className="text-xl font-black text-[#2B2F33] poppins-bold tracking-tight leading-none">Saku Maku</h1>
+              <p className="text-[9px] text-[#2CA6A4] font-black uppercase tracking-[0.3em] mt-1">Iraqi Directory</p>
+            </div>
+            <div className="w-11 h-11 bg-gradient-to-br from-[#2CA6A4] to-[#1e7a78] rounded-[14px] flex items-center justify-center shadow-lg shadow-[#2CA6A4]/20 group-hover:scale-105 transition-all duration-500">
+              <span className="text-white font-black text-2xl poppins-bold">S</span>
+            </div>
           </div>
         </div>
       </header>
@@ -161,13 +256,13 @@ export default function HomePage() {
 
         {/* 3. GOVERNORATE & CITY FILTERS */}
         <div className="mt-12">
-          <LocationFilterDynamic />
+          <LocationFilter />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
           {/* 4. CATEGORY GRID SECTION */}
           <section className="bg-[#0f172a] rounded-[48px] p-4 sm:p-8 shadow-2xl shadow-black/20 border border-white/5">
-            <CategoryGridDynamic />
+            <CategoryGrid />
           </section>
 
           {/* 5. TRENDING SECTION */}
@@ -185,15 +280,17 @@ export default function HomePage() {
               <div>
                 <div className="flex items-center gap-2 text-[#2CA6A4] mb-2">
                   <Compass className="w-5 h-5" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Directory</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">{translations.directory[language]}</span>
                 </div>
-                <h2 className="text-3xl font-black text-[#2B2F33] poppins-bold tracking-tight">Explore Businesses</h2>
-                <p className="text-base text-[#6B7280] mt-1">Discover the best local services across Iraq</p>
+                <h2 className="text-3xl font-black text-[#2B2F33] poppins-bold tracking-tight">{translations.explore[language]}</h2>
+                <p className="text-base text-[#6B7280] mt-1">
+                  {translations.showing[language]} {businesses.length} {translations.of[language]} {totalCount} {translations.services[language]}
+                </p>
               </div>
               
               <div className="flex items-center gap-2 bg-[#F5F7F9] p-1.5 rounded-xl border border-[#E5E7EB]">
-                <button className="px-4 py-2 bg-[#2CA6A4] text-white text-[10px] font-black rounded-lg uppercase tracking-widest shadow-md">Grid</button>
-                <button className="px-4 py-2 text-[#6B7280] text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-white">Map</button>
+                <button className="px-4 py-2 bg-[#2CA6A4] text-white text-[10px] font-black rounded-lg uppercase tracking-widest shadow-md">{translations.grid[language]}</button>
+                <button className="px-4 py-2 text-[#6B7280] text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-white">{translations.map[language]}</button>
               </div>
             </div>
             
@@ -229,7 +326,7 @@ export default function HomePage() {
                 <div className="w-12 h-12 bg-[#2CA6A4] rounded-2xl flex items-center justify-center shadow-xl shadow-[#2CA6A4]/20">
                   <span className="text-white font-black text-2xl poppins-bold">S</span>
                 </div>
-                <h3 className="text-3xl font-black poppins-bold tracking-tighter">Shakou Marku</h3>
+                <h3 className="text-3xl font-black poppins-bold tracking-tighter">Saku Maku</h3>
               </div>
               <p className="text-gray-400 leading-relaxed mb-10 text-base max-w-sm">
                 Iraq's most trusted business discovery platform. Connecting millions of users with local businesses across all 19 governorates.
@@ -265,7 +362,7 @@ export default function HomePage() {
 
             <div className="lg:col-span-4">
               <h4 className="text-xs font-black text-[#2CA6A4] uppercase tracking-[0.3em] mb-8">Mobile App</h4>
-              <p className="text-sm text-gray-500 mb-8 font-medium">Download the Shakou Marku app for the best experience on the go.</p>
+              <p className="text-sm text-gray-500 mb-8 font-medium">Download the Saku Maku app for the best experience on the go.</p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <a href="#" className="flex-1 bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 hover:bg-white/10 transition-all group">
                   <div className="text-3xl group-hover:scale-110 transition-transform">🍎</div>
@@ -286,7 +383,7 @@ export default function HomePage() {
           </div>
           
           <div className="border-t border-white/5 mt-24 pt-12 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">
-            <p>&copy; {new Date().getFullYear()} SHAKOU MARKU. ALL RIGHTS RESERVED.</p>
+            <p>&copy; {new Date().getFullYear()} Saku Maku. ALL RIGHTS RESERVED.</p>
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 font-black text-[10px]">SM</div>
               <div className="flex gap-12">

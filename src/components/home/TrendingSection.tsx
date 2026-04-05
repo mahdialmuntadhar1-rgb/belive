@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Star, MapPin, ArrowRight, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Business } from '@/lib/supabase';
+import { useHomeStore } from '@/stores/homeStore';
+import { CATEGORIES } from '@/constants';
 
 interface TrendingSectionProps {
   businesses: Business[];
@@ -11,6 +13,42 @@ interface TrendingSectionProps {
 
 export default function TrendingSection({ businesses, loading, onBusinessClick }: TrendingSectionProps) {
   const featured = businesses.filter(b => b.isFeatured).slice(0, 6);
+  const { language } = useHomeStore();
+
+  const translations = {
+    featured: {
+      en: 'Featured Businesses',
+      ar: 'شركات مميزة',
+      ku: 'کارە دیارەکان'
+    },
+    featuredDesc: {
+      en: 'Handpicked premium places for you',
+      ar: 'أماكن متميزة مختارة بعناية لك',
+      ku: 'شوێنی نایاب کە بۆ تۆ هەڵبژێردراون'
+    },
+    seeAll: {
+      en: 'See All',
+      ar: 'عرض الكل',
+      ku: 'بینینی هەموو'
+    },
+    verified: {
+      en: 'Verified',
+      ar: 'موثق',
+      ku: 'پشتڕاستکراوە'
+    }
+  };
+
+  const getBusinessName = (biz: Business) => {
+    if (language === 'ar' && biz.nameAr) return biz.nameAr;
+    if (language === 'ku' && biz.nameKu) return biz.nameKu;
+    return biz.name;
+  };
+
+  const getCategoryName = (catId: string) => {
+    const cat = CATEGORIES.find(c => c.id === catId);
+    if (!cat) return catId.replace('_', ' ');
+    return cat.name[language as keyof typeof cat.name];
+  };
 
   if (loading && businesses.length === 0) return (
     <div className="w-full mb-12">
@@ -38,14 +76,14 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
     <div className="w-full mb-16">
       <div className="flex items-center justify-between px-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">Featured Businesses</h2>
-          <p className="text-sm text-[#6B7280]">Handpicked premium places for you</p>
+          <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">{translations.featured[language]}</h2>
+          <p className="text-sm text-[#6B7280]">{translations.featuredDesc[language]}</p>
         </div>
         <button 
           onClick={() => document.getElementById('explore-section')?.scrollIntoView({ behavior: 'smooth' })}
           className="group flex items-center gap-2 px-4 py-2 bg-[#2CA6A4]/10 text-[#2CA6A4] text-xs font-black rounded-full hover:bg-[#2CA6A4] hover:text-white transition-all duration-500 uppercase tracking-widest"
         >
-          See All <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          {translations.seeAll[language]} <ArrowRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${language === 'en' ? '' : 'rotate-180'}`} />
         </button>
       </div>
 
@@ -73,12 +111,12 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
               {/* Badges */}
               <div className="absolute top-6 left-6 flex flex-col gap-2">
                 <span className="px-3 py-1.5 bg-[#2CA6A4] text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
-                  {biz.category.replace('_', ' ')}
+                  {getCategoryName(biz.category)}
                 </span>
                 {biz.isVerified && (
                   <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-xl border border-white/20 w-fit">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#2CA6A4]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Verified</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">{translations.verified[language]}</span>
                   </div>
                 )}
               </div>
@@ -91,7 +129,7 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
               </div>
 
               <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
-                {biz.name}
+                {getBusinessName(biz)}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium mb-6">

@@ -1,28 +1,28 @@
 export interface Business {
   id: string;
   name: string;
-  nameAr?: string | null;
-  nameKu?: string | null;
+  nameAr?: string;
+  nameKu?: string;
   category: string;
   governorate: string;
   city: string;
-  address?: string | null;
-  phone?: string | null;
-  rating?: number | null;
-  reviewCount?: number | null;
-  isFeatured?: boolean | null;
-  isVerified?: boolean | null;
-  image?: string | null;
-  website?: string | null;
+  address: string;
+  phone: string;
+  rating?: number;
+  reviewCount?: number;
+  isFeatured?: boolean;
+  isVerified?: boolean;
+  image?: string;
+  website?: string;
   socialLinks?: {
-    facebook?: string | null;
-    instagram?: string | null;
-    twitter?: string | null;
-    whatsapp?: string | null;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    whatsapp?: string;
   };
-  description?: string | null;
-  descriptionAr?: string | null;
-  openingHours?: string | null;
+  description?: string;
+  descriptionAr?: string;
+  openingHours?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -50,26 +50,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 supabase.auth.onAuthStateChange(async (event, session) => {
   const store = useAuthStore.getState();
   const user = session?.user ?? null;
+  
+  console.log('Auth state changed:', event, user?.email);
+  
   store.setUser(user);
   
   if (user) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-      
-    if (!error && data) {
-      store.setProfile(data as Profile);
-    } else if (error && error.code === 'PGRST116') {
-      // Profile doesn't exist yet, might be mid-signup
-      console.log('Profile not found for user:', user.id);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (!error && data) {
+        store.setProfile(data as Profile);
+      } else if (error && error.code === 'PGRST116') {
+        console.log('Profile not found for user:', user.id);
+        // Might need to create profile if it was a Google signup
+        if (event === 'SIGNED_IN') {
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+                role: user.user_metadata?.role || 'user',
+              },
+            ])
+            .select()
+            .single();
+          
+          if (!insertError && newProfile) {
+            store.setProfile(newProfile as Profile);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
     }
   } else {
     store.setProfile(null);
   }
   
   setAuthLoading(false);
+});
+
+// Initial session check
+supabase.auth.getSession().then(({ data: { session } }) => {
+  const store = useAuthStore.getState();
+  if (session) {
+    store.setUser(session.user);
+    // Profile will be fetched by onAuthStateChange which fires after getSession
+  } else {
+    setAuthLoading(false);
+  }
 });
 
 function setAuthLoading(loading: boolean) {

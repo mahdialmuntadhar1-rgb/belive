@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Star, MapPin, Loader2, SearchX, CheckCircle2 } from 'lucide-react';
 import { Business } from '@/lib/supabase';
+import { useHomeStore } from '@/stores/homeStore';
+import { CATEGORIES } from '@/constants';
 
 interface BusinessGridProps {
   businesses: Business[];
@@ -12,19 +14,58 @@ interface BusinessGridProps {
 }
 
 export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore, onBusinessClick }: BusinessGridProps) {
-  console.log('🎨 [UI] BusinessGrid rendering with:', {
-    businessesCount: businesses.length,
-    loading,
-    hasMore,
-    sampleBusiness: businesses[0] ? {
-      name: businesses[0].name,
-      nameAr: businesses[0].nameAr,
-      category: businesses[0].category,
-      governorate: businesses[0].governorate,
-      phone: businesses[0].phone,
-      rating: businesses[0].rating
-    } : null
-  });
+  const { language } = useHomeStore();
+
+  const translations = {
+    noResults: {
+      en: 'No results found',
+      ar: 'لم يتم العثور على نتائج',
+      ku: 'هیچ ئەنجامێک نەدۆزرایەوە'
+    },
+    noResultsDesc: {
+      en: "We couldn't find any businesses matching your current filters or search query. Try broadening your search.",
+      ar: 'لم نتمكن من العثور على أي شركات تطابق الفلاتر الحالية أو استعلام البحث. حاول توسيع نطاق بحثك.',
+      ku: 'نەمانتوانی هیچ کارێک بدۆزینەوە کە لەگەڵ فلتەرەکانت یان گەڕانەکەتدا بگونجێت. هەوڵبدە گەڕانەکەت فراوانتر بکەیت.'
+    },
+    resetFilters: {
+      en: 'Reset Filters',
+      ar: 'إعادة ضبط الفلاتر',
+      ku: 'سڕینەوەی فلتەرەکان'
+    },
+    loadingMore: {
+      en: 'Loading more places...',
+      ar: 'جاري تحميل المزيد من الأماكن...',
+      ku: 'بارکردنی شوێنی زیاتر...'
+    },
+    loadMore: {
+      en: 'Load More Results',
+      ar: 'تحميل المزيد من النتائج',
+      ku: 'بارکردنی ئەنجامی زیاتر'
+    },
+    endOfDirectory: {
+      en: "You've reached the end of the directory",
+      ar: 'لقد وصلت إلى نهاية الدليل',
+      ku: 'گەیشتیتە کۆتایی دایرێکتۆرییەکە'
+    },
+    verified: {
+      en: 'Verified',
+      ar: 'موثق',
+      ku: 'پشتڕاستکراوە'
+    }
+  };
+
+  const getBusinessName = (biz: Business) => {
+    if (language === 'ar' && biz.nameAr) return biz.nameAr;
+    if (language === 'ku' && biz.nameKu) return biz.nameKu;
+    return biz.name;
+  };
+
+  const getCategoryName = (catId: string) => {
+    const cat = CATEGORIES.find(c => c.id === catId);
+    if (!cat) return catId.replace('_', ' ');
+    return cat.name[language as keyof typeof cat.name];
+  };
+
   // Initial loading state (skeleton)
   if (loading && businesses.length === 0) return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-4 mb-12">
@@ -46,15 +87,15 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
       <div className="w-24 h-24 bg-[#F5F7F9] rounded-full flex items-center justify-center mb-6">
         <SearchX className="w-10 h-10 text-[#6B7280]" />
       </div>
-      <h3 className="text-xl font-bold text-[#2B2F33] mb-3 poppins-bold">No results found</h3>
+      <h3 className="text-xl font-bold text-[#2B2F33] mb-3 poppins-bold">{translations.noResults[language]}</h3>
       <p className="text-sm text-[#6B7280] max-w-xs leading-relaxed">
-        We couldn't find any businesses matching your current filters or search query. Try broadening your search.
+        {translations.noResultsDesc[language]}
       </p>
       <button 
         onClick={() => window.location.reload()}
         className="mt-8 px-6 py-2.5 bg-[#2CA6A4] text-white font-bold rounded-full text-sm shadow-lg shadow-[#2CA6A4]/20 hover:bg-[#1e7a78] transition-all"
       >
-        Reset Filters
+        {translations.resetFilters[language]}
       </button>
     </div>
   );
@@ -88,12 +129,12 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
               {/* Badges */}
               <div className="absolute top-6 left-6 flex flex-col gap-2">
                 <span className="px-3 py-1.5 bg-[#2CA6A4] text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
-                  {biz.category.replace('_', ' ')}
+                  {getCategoryName(biz.category)}
                 </span>
                 {biz.isVerified && (
                   <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-xl border border-white/20 w-fit">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#2CA6A4]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Verified</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">{translations.verified[language]}</span>
                   </div>
                 )}
               </div>
@@ -106,7 +147,7 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
               </div>
 
               <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
-                {biz.name}
+                {getBusinessName(biz)}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
@@ -124,7 +165,7 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
           {loading ? (
             <div className="flex items-center gap-3 text-[#2CA6A4] font-bold text-sm animate-pulse">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading more places...</span>
+              <span>{translations.loadingMore[language]}</span>
             </div>
           ) : (
             <button
@@ -132,7 +173,7 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
               className="group relative px-10 py-4 bg-white border-2 border-[#E5E7EB] text-[#2CA6A4] font-black rounded-2xl hover:border-[#2CA6A4] hover:bg-[#2CA6A4] hover:text-white transition-all duration-500 shadow-xl shadow-black/5 flex items-center gap-3 overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-[#2CA6A4] to-[#1e7a78] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <span className="relative z-10 uppercase tracking-[0.2em] text-xs">Load More Results</span>
+              <span className="relative z-10 uppercase tracking-[0.2em] text-xs">{translations.loadMore[language]}</span>
               <div className="relative z-10 w-6 h-6 bg-[#F5F7F9] group-hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
                 <Loader2 className="w-3.5 h-3.5 group-hover:animate-spin" />
               </div>
@@ -141,7 +182,7 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
           
           {!hasMore && !loading && businesses.length > 0 && (
             <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mt-4">
-              You've reached the end of the directory
+              {translations.endOfDirectory[language]}
             </p>
           )}
         </div>

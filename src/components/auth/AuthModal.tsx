@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { useHomeStore } from '@/stores/homeStore';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +19,85 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [role, setRole] = useState<UserRole>('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { language } = useHomeStore();
+
+  const translations = {
+    welcome: {
+      en: 'Welcome Back',
+      ar: 'مرحباً بعودتك',
+      ku: 'بەخێربێیتەوە'
+    },
+    create: {
+      en: 'Create Account',
+      ar: 'إنشاء حساب',
+      ku: 'دروستکردنی هەژمار'
+    },
+    loginDesc: {
+      en: 'Log in to access your saved places and reviews.',
+      ar: 'سجل الدخول للوصول إلى الأماكن المحفوظة والمراجعات.',
+      ku: 'بچۆ ژوورەوە بۆ دەستگەیشتن بە شوێنە پاشەکەوتکراوەکان و پێداچوونەوەکان.'
+    },
+    signupDesc: {
+      en: 'Join Saku Maku to discover and share the best of Iraq.',
+      ar: 'انضم إلى شکو ماکو لاكتشاف ومشاركة الأفضل في العراق.',
+      ku: 'ببە بە ئەندام لە شکو ماکو بۆ دۆزینەوە و هاوبەشکردنی باشترینەکانی عێراق.'
+    },
+    fullName: {
+      en: 'Full Name',
+      ar: 'الاسم الكامل',
+      ku: 'ناوی تەواو'
+    },
+    email: {
+      en: 'Email Address',
+      ar: 'البريد الإلكتروني',
+      ku: 'ناونیشانی ئیمەیڵ'
+    },
+    password: {
+      en: 'Password',
+      ar: 'كلمة المرور',
+      ku: 'وشەی نهێنی'
+    },
+    normalUser: {
+      en: 'Normal User',
+      ar: 'مستخدم عادي',
+      ku: 'بەکارهێنەری ئاسایی'
+    },
+    businessOwner: {
+      en: 'Business Owner',
+      ar: 'صاحب عمل',
+      ku: 'خاوەن کار'
+    },
+    login: {
+      en: 'Log In',
+      ar: 'تسجيل الدخول',
+      ku: 'چوونەژوورەوە'
+    },
+    signup: {
+      en: 'Sign Up',
+      ar: 'إنشاء حساب',
+      ku: 'خۆت تۆمار بکە'
+    },
+    forgot: {
+      en: 'Forgot Password?',
+      ar: 'نسيت كلمة المرور؟',
+      ku: 'وشەی نهێنیت لەبیرچووە؟'
+    },
+    or: {
+      en: 'Or continue with',
+      ar: 'أو استمر بواسطة',
+      ku: 'یان بەردەوام بە لەڕێگەی'
+    },
+    noAccount: {
+      en: "Don't have an account?",
+      ar: 'ليس لديك حساب؟',
+      ku: 'هەژمارت نییە؟'
+    },
+    haveAccount: {
+      en: 'Already have an account?',
+      ar: 'لديك حساب بالفعل؟',
+      ku: 'پێشتر هەژمارت دروستکردووە؟'
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +105,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setError(null);
 
     try {
+      const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!isConfigured) {
+        throw new Error('Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.');
+      }
+
       if (isLogin) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -61,23 +146,49 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during authentication');
+      console.error('Auth error:', err);
+      let message = 'An error occurred during authentication';
+      if (err instanceof Error) {
+        message = err.message;
+        if (message.includes('Failed to fetch')) {
+          message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
+        }
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    setError(null);
     try {
+      const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!isConfigured) {
+        throw new Error('Supabase is not configured. Google login will not work.');
+      }
+
       const { error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       if (googleError) throw googleError;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
+      console.error('Google Auth error:', err);
+      let message = 'Failed to sign in with Google';
+      if (err instanceof Error) {
+        message = err.message;
+        if (message.includes('Failed to fetch')) {
+          message = 'Network error: Could not connect to Google authentication. This might be due to missing Supabase configuration or network restrictions.';
+        }
+      }
+      setError(message);
     }
   };
 
@@ -108,15 +219,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="p-8 sm:p-10">
+            <div className="p-8 sm:p-10" dir={language === 'en' ? 'ltr' : 'rtl'}>
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold mb-2">
-                  {isLogin ? 'Welcome Back' : 'Create Account'}
+                  {isLogin ? translations.welcome[language] : translations.create[language]}
                 </h2>
                 <p className="text-sm text-[#6B7280]">
                   {isLogin 
-                    ? 'Log in to access your saved places and reviews.' 
-                    : 'Join Shakou Marku to discover and share the best of Iraq.'}
+                    ? translations.loginDesc[language] 
+                    : translations.signupDesc[language]}
                 </p>
               </div>
 
@@ -126,19 +237,25 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </div>
               )}
 
+              {!import.meta.env.VITE_SUPABASE_URL && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-[10px] text-amber-700 font-bold uppercase tracking-widest leading-relaxed">
+                  ⚠️ Supabase Configuration Missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable authentication.
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                   <>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]">
+                      <div className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#6B7280]`}>
                         <User className="w-4 h-4" />
                       </div>
                       <input
                         type="text"
-                        placeholder="Full Name"
+                        placeholder={translations.fullName[language]}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm"
+                        className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
                         required={!isLogin}
                       />
                     </div>
@@ -155,7 +272,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         }`}
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        Normal User
+                        {translations.normalUser[language]}
                       </button>
                       <button
                         type="button"
@@ -167,44 +284,44 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         }`}
                       >
                         <Briefcase className="w-3.5 h-3.5" />
-                        Business Owner
+                        {translations.businessOwner[language]}
                       </button>
                     </div>
                   </>
                 )}
 
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]">
+                  <div className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#6B7280]`}>
                     <Mail className="w-4 h-4" />
                   </div>
                   <input
                     type="email"
-                    placeholder="Email Address"
+                    placeholder={translations.email[language]}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm"
+                    className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
                     required
                   />
                 </div>
 
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]">
+                  <div className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#6B7280]`}>
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
                     type="password"
-                    placeholder="Password"
+                    placeholder={translations.password[language]}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm"
+                    className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
                     required
                   />
                 </div>
 
                 {isLogin && (
-                  <div className="flex justify-end">
+                  <div className={`flex ${language === 'en' ? 'justify-end' : 'justify-start'}`}>
                     <button type="button" className="text-xs font-bold text-[#2CA6A4] hover:underline">
-                      Forgot Password?
+                      {translations.forgot[language]}
                     </button>
                   </div>
                 )}
@@ -218,8 +335,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      {isLogin ? 'Log In' : 'Sign Up'}
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      {isLogin ? translations.login[language] : translations.signup[language]}
+                      <ArrowRight className={`w-4 h-4 ${language === 'en' ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
                     </>
                   )}
                 </button>
@@ -227,7 +344,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <div className="my-8 flex items-center gap-4">
                 <div className="flex-1 h-px bg-[#E5E7EB]" />
-                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">Or continue with</span>
+                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">{translations.or[language]}</span>
                 <div className="flex-1 h-px bg-[#E5E7EB]" />
               </div>
 
@@ -260,12 +377,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <div className="mt-8 text-center">
                 <p className="text-sm text-[#6B7280]">
-                  {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
+                  {isLogin ? translations.noAccount[language] : translations.haveAccount[language]}{' '}
                   <button
                     onClick={() => setIsLogin(!isLogin)}
                     className="font-bold text-[#2CA6A4] hover:underline"
                   >
-                    {isLogin ? 'Sign Up' : 'Log In'}
+                    {isLogin ? translations.signup[language] : translations.login[language]}
                   </button>
                 </p>
               </div>

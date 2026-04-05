@@ -2,32 +2,54 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from "@/stores/homeStore";
 import { ChevronDown, MapPin, X } from 'lucide-react';
-
-const GOVERNORATES = [
-  { name: "Baghdad", nameAr: "بغداد" },
-  { name: "Erbil", nameAr: "أربيل" },
-  { name: "Basra", nameAr: "البصرة" },
-  { name: "Mosul", nameAr: "الموصل" },
-  { name: "Sulaymaniyah", nameAr: "السليمانية" },
-  { name: "Duhok", nameAr: "دهوك" },
-  { name: "Kirkuk", nameAr: "كركوك" },
-  { name: "Najaf", nameAr: "النجف" },
-  { name: "Karbala", nameAr: "كربلاء" },
-  { name: "Nasiriyah", nameAr: "الناصرية" },
-  { name: "Amarah", nameAr: "العمارة" },
-  { name: "Hilla", nameAr: "الحلة" },
-  { name: "Kut", nameAr: "الكوت" },
-  { name: "Diwaniyah", nameAr: "الديوانية" },
-  { name: "Ramadi", nameAr: "الرمادي" },
-  { name: "Baqubah", nameAr: "بعقوبة" },
-  { name: "Samawah", nameAr: "السماوة" },
-  { name: "Tikrit", nameAr: "تكريت" },
-  { name: "Halabja", nameAr: "حلبجة" },
-];
+import { useMetadata } from '@/hooks/useMetadata';
 
 export default function LocationFilter() {
-  const { selectedGovernorate, setGovernorate, setCity } = useHomeStore();
+  const { selectedGovernorate, setGovernorate, setCity, language } = useHomeStore();
   const [isOpen, setIsOpen] = useState(false);
+  const { governorates, loading } = useMetadata();
+
+  const translations = {
+    active: {
+      en: "Location Active",
+      ar: "الموقع مفعل",
+      ku: "شوێن چالاکە"
+    },
+    start: {
+      en: "Getting Started",
+      ar: "ابدأ الآن",
+      ku: "دەستپێکردن"
+    },
+    exploring: {
+      en: "Exploring",
+      ar: "استكشاف",
+      ku: "گەڕان لە"
+    },
+    choose: {
+      en: "Please choose your governorate first",
+      ar: "يرجى اختيار محافظتك أولاً",
+      ku: "تکایە سەرەتا پارێزگاکەت هەڵبژێرە"
+    },
+    select: {
+      en: "Select Governorate",
+      ar: "اختر المحافظة",
+      ku: "پارێزگا هەڵبژێرە"
+    },
+    reset: {
+      en: "Reset Location",
+      ar: "إعادة ضبط الموقع",
+      ku: "سڕینەوەی شوێن"
+    }
+  };
+
+  const getGovName = (govName: string | null) => {
+    if (!govName) return null;
+    const gov = governorates.find(g => g.name_en === govName);
+    if (!gov) return govName;
+    if (language === 'ar') return gov.name_ar;
+    if (language === 'ku') return gov.name_ku;
+    return gov.name_en;
+  };
 
   return (
     <div className="w-full mb-16 px-4">
@@ -36,25 +58,26 @@ export default function LocationFilter() {
         <div className="flex items-center gap-2 text-[#2CA6A4] mb-4">
           <MapPin className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-[0.3em]">
-            {selectedGovernorate ? "Location Active" : "Getting Started"}
+            {selectedGovernorate ? translations.active[language] : translations.start[language]}
           </span>
         </div>
 
         <h2 className="text-3xl sm:text-4xl font-black text-[#2B2F33] poppins-bold mb-10 leading-tight tracking-tight">
           {selectedGovernorate 
-            ? `Exploring ${selectedGovernorate}` 
-            : "Please choose your governorate first"}
+            ? `${translations.exploring[language]} ${getGovName(selectedGovernorate)}` 
+            : translations.choose[language]}
         </h2>
 
         {/* Custom Dropdown */}
         <div className="relative w-full">
           <button
             onClick={() => setIsOpen(!isOpen)}
+            disabled={loading}
             className={`w-full flex items-center justify-between px-8 py-5 rounded-[24px] border-2 transition-all duration-300 shadow-xl ${
               isOpen 
                 ? "border-[#2CA6A4] bg-white ring-4 ring-[#2CA6A4]/10" 
                 : "border-[#E5E7EB] bg-white hover:border-[#2CA6A4]/30"
-            }`}
+            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center gap-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
@@ -65,7 +88,7 @@ export default function LocationFilter() {
               <span className={`text-lg font-bold poppins-bold ${
                 selectedGovernorate ? "text-[#2B2F33]" : "text-[#9CA3AF]"
               }`}>
-                {selectedGovernorate || "Select Governorate"}
+                {loading ? 'Loading...' : (getGovName(selectedGovernorate) || translations.select[language])}
               </span>
             </div>
             <ChevronDown className={`w-6 h-6 text-[#6B7280] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
@@ -80,29 +103,31 @@ export default function LocationFilter() {
                 className="absolute z-50 left-0 right-0 mt-4 bg-white rounded-[32px] border border-[#E5E7EB] shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar p-4"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {GOVERNORATES.map((gov) => (
+                  {governorates.map((gov) => (
                     <button
-                      key={gov.name}
+                      key={gov.id}
                       onClick={() => {
-                        setGovernorate(gov.name);
+                        setGovernorate(gov.name_en);
                         setCity(null);
                         setIsOpen(false);
                       }}
                       className={`flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-200 group ${
-                        selectedGovernorate === gov.name
+                        selectedGovernorate === gov.name_en
                           ? "bg-[#2CA6A4] text-white"
                           : "hover:bg-[#F5F7F9] text-[#2B2F33]"
                       }`}
                     >
                       <div className="flex flex-col items-start">
-                        <span className="text-sm font-bold uppercase tracking-widest">{gov.name}</span>
+                        <span className="text-sm font-bold uppercase tracking-widest">
+                          {language === 'ar' ? gov.name_ar : language === 'ku' ? gov.name_ku : gov.name_en}
+                        </span>
                         <span className={`text-[10px] font-medium opacity-60 ${
-                          selectedGovernorate === gov.name ? "text-white" : "text-[#6B7280]"
+                          selectedGovernorate === gov.name_en ? "text-white" : "text-[#6B7280]"
                         }`}>
-                          {gov.nameAr}
+                          {language === 'en' ? gov.name_ar : gov.name_en}
                         </span>
                       </div>
-                      {selectedGovernorate === gov.name && (
+                      {selectedGovernorate === gov.name_en && (
                         <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                           <X className="w-3 h-3 text-white" />
                         </div>
@@ -126,7 +151,7 @@ export default function LocationFilter() {
             }}
             className="mt-6 text-[10px] font-black text-[#6B7280] uppercase tracking-[0.2em] hover:text-[#2CA6A4] transition-colors flex items-center gap-2"
           >
-            <X className="w-3 h-3" /> Reset Location
+            <X className="w-3 h-3" /> {translations.reset[language]}
           </motion.button>
         )}
       </div>

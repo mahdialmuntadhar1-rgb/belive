@@ -4,7 +4,21 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-poppins: "Poppins", sans-serif;
+  
+  /* Saku Maku COLOR PALETTE */
+  --color-primary: #2CA6A4;
+  --color-secondary: #E87A41;
+  --color-bg-dark: #1a1f24;
+  --color-text-dark: #2B2F33;
 }
+
+/* 
+  PRIVATE COLOR PALETTE REFERENCE:
+  Primary (Teal): #2CA6A4
+  Secondary (Orange): #E87A41
+  Background (Dark): #1a1f24
+  Text (Dark): #2B2F33
+*/
 
 .poppins-bold {
   font-family: "Poppins", sans-serif;

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle } from 'lucide-react';
 import { Business } from '@/lib/supabase';
+import { useHomeStore } from '@/stores/homeStore';
 
 interface BusinessDetailModalProps {
   business: Business | null;
@@ -9,14 +10,105 @@ interface BusinessDetailModalProps {
 }
 
 export default function BusinessDetailModal({ business, onClose }: BusinessDetailModalProps) {
+  const { language } = useHomeStore();
   if (!business) return null;
+
+  const translations = {
+    verified: {
+      en: 'Verified Business',
+      ar: 'عمل تجاري موثق',
+      ku: 'کارێکی پشتڕاستکراوە'
+    },
+    about: {
+      en: 'About this Business',
+      ar: 'عن هذا العمل',
+      ku: 'دەربارەی ئەم کارە'
+    },
+    openingHours: {
+      en: 'Opening Hours',
+      ar: 'ساعات العمل',
+      ku: 'کاتژمێرەکانی کارکردن'
+    },
+    contact: {
+      en: 'Contact Number',
+      ar: 'رقم الاتصال',
+      ku: 'ژمارەی پەیوەندی'
+    },
+    connect: {
+      en: 'Connect with us',
+      ar: 'تواصل معنا',
+      ku: 'پەیوەندیمان پێوە بکە'
+    },
+    quickActions: {
+      en: 'Quick Actions',
+      ar: 'إجراءات سريعة',
+      ku: 'کردارە خێراکان'
+    },
+    call: {
+      en: 'Call Business',
+      ar: 'اتصال بالعمل',
+      ku: 'پەیوەندی بکە'
+    },
+    website: {
+      en: 'Visit Website',
+      ar: 'زيارة الموقع',
+      ku: 'سەردانی ماڵپەڕ'
+    },
+    share: {
+      en: 'Share',
+      ar: 'مشاركة',
+      ku: 'هاوبەشکردن'
+    },
+    save: {
+      en: 'Save',
+      ar: 'حفظ',
+      ku: 'پاشەکەوتکردن'
+    },
+    location: {
+      en: 'Location',
+      ar: 'الموقع',
+      ku: 'شوێن'
+    },
+    reviews: {
+      en: 'Customer Reviews',
+      ar: 'آراء العملاء',
+      ku: 'پێداچوونەوەی کڕیاران'
+    },
+    reviewsDesc: {
+      en: 'What people are saying about this place',
+      ar: 'ماذا يقول الناس عن هذا المكان',
+      ku: 'خەڵک چی دەڵێن دەربارەی ئەم شوێنە'
+    },
+    writeReview: {
+      en: 'Write Review',
+      ar: 'كتابة مراجعة',
+      ku: 'نووسینی پێداچوونەوە'
+    },
+    shareText: {
+      en: `Check out ${business.name} on Saku Maku Iraqi Directory!`,
+      ar: `اكتشف ${business.name} على دليل شكو ماكو العراقي!`,
+      ku: `سەیری ${business.name} بکە لە دایرێکتۆری شکو ماکۆی عێراقی!`
+    }
+  };
+
+  const getBusinessName = () => {
+    if (language === 'ar' && business.nameAr) return business.nameAr;
+    if (language === 'ku' && business.nameKu) return business.nameKu;
+    return business.name;
+  };
+
+  const getBusinessDescription = () => {
+    if (language === 'ar' && business.descriptionAr) return business.descriptionAr;
+    // Note: descriptionKu is not in the interface but we could add it if needed
+    return business.description || (language === 'ar' ? `مرحباً بك في ${getBusinessName()}...` : `Welcome to ${getBusinessName()}...`);
+  };
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: business.name,
-          text: `Check out ${business.name} on BELIVE Iraqi Directory!`,
+          title: getBusinessName(),
+          text: translations.shareText[language],
           url: window.location.href,
         });
       } catch (err) {
@@ -44,6 +136,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            dir={language === 'en' ? 'ltr' : 'rtl'}
             className="relative w-full max-w-3xl h-full sm:h-auto sm:max-h-[95vh] bg-white sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Close Button (Mobile) */}
@@ -80,7 +173,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                   {business.isVerified && (
                     <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/30">
                       <CheckCircle2 className="w-4 h-4 text-[#2CA6A4] fill-white" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Verified Business</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{translations.verified[language]}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
@@ -89,7 +182,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                     <span className="text-[10px] text-white/60 font-bold ml-1">({business.reviewCount || 0})</span>
                   </div>
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-bold poppins-bold leading-tight tracking-tight drop-shadow-2xl">{business.name}</h2>
+                <h2 className="text-4xl sm:text-5xl font-bold poppins-bold leading-tight tracking-tight drop-shadow-2xl">{getBusinessName()}</h2>
                 <div className="flex items-center gap-2 mt-3 text-white/80 font-medium">
                   <MapPin className="w-4 h-4 text-[#2CA6A4]" />
                   <span className="text-sm">{business.address}</span>
@@ -105,10 +198,10 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                   <section>
                     <h3 className="text-xl font-bold text-[#2B2F33] mb-4 poppins-bold flex items-center gap-2">
                       <div className="w-1.5 h-6 bg-[#2CA6A4] rounded-full" />
-                      About this Business
+                      {translations.about[language]}
                     </h3>
                     <p className="text-[#6B7280] leading-relaxed text-base">
-                      {business.description || `Welcome to ${business.name}, a premier destination for ${business.category.replace('_', ' ')} in ${business.city}. We pride ourselves on delivering exceptional quality and authentic Iraqi hospitality to all our visitors.`}
+                      {getBusinessDescription()}
                     </p>
                   </section>
 
@@ -118,7 +211,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                         <Clock className="w-6 h-6 text-[#2CA6A4]" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest mb-0.5">Opening Hours</p>
+                        <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest mb-0.5">{translations.openingHours[language]}</p>
                         <p className="text-sm font-bold text-[#2B2F33]">{business.openingHours || '9:00 AM - 10:00 PM'}</p>
                       </div>
                     </div>
@@ -127,7 +220,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                         <Phone className="w-6 h-6 text-[#2CA6A4]" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest mb-0.5">Contact Number</p>
+                        <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest mb-0.5">{translations.contact[language]}</p>
                         <p className="text-sm font-bold text-[#2B2F33]">{business.phone}</p>
                       </div>
                     </div>
@@ -135,7 +228,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
 
                   {/* Social Links */}
                   <section>
-                    <h3 className="text-lg font-bold text-[#2B2F33] mb-6 poppins-bold">Connect with us</h3>
+                    <h3 className="text-lg font-bold text-[#2B2F33] mb-6 poppins-bold">{translations.connect[language]}</h3>
                     <div className="flex flex-wrap gap-4">
                       {business.socialLinks?.facebook && (
                         <a href={business.socialLinks.facebook} target="_blank" rel="noreferrer" className="w-12 h-12 bg-white rounded-2xl border border-[#E5E7EB] flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all shadow-sm">
@@ -164,13 +257,13 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                 {/* Right Column: Actions */}
                 <div className="space-y-6">
                   <div className="p-8 bg-white rounded-[32px] border border-[#E5E7EB] shadow-xl space-y-4">
-                    <h4 className="text-sm font-black text-[#2B2F33] uppercase tracking-widest mb-4">Quick Actions</h4>
+                    <h4 className="text-sm font-black text-[#2B2F33] uppercase tracking-widest mb-4">{translations.quickActions[language]}</h4>
                     <a 
                       href={`tel:${business.phone}`}
                       className="w-full py-4 bg-[#2CA6A4] text-white font-black rounded-2xl shadow-xl shadow-[#2CA6A4]/20 hover:bg-[#1e7a78] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                     >
                       <Phone className="w-4 h-4" />
-                      Call Business
+                      {translations.call[language]}
                     </a>
                     {business.website && (
                       <a 
@@ -180,7 +273,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                         className="w-full py-4 border-2 border-[#E5E7EB] text-[#2B2F33] font-black rounded-2xl hover:border-[#2CA6A4] hover:text-[#2CA6A4] transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                       >
                         <Globe className="w-4 h-4" />
-                        Visit Website
+                        {translations.website[language]}
                       </a>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -189,17 +282,17 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                         className="py-4 border border-[#E5E7EB] text-[#2B2F33] font-bold rounded-2xl hover:bg-[#F5F7F9] transition-all flex items-center justify-center gap-2 text-xs"
                       >
                         <Share2 className="w-4 h-4" />
-                        Share
+                        {translations.share[language]}
                       </button>
                       <button className="py-4 border border-[#E5E7EB] text-[#2B2F33] font-bold rounded-2xl hover:bg-[#F5F7F9] transition-all flex items-center justify-center gap-2 text-xs">
                         <Heart className="w-4 h-4" />
-                        Save
+                        {translations.save[language]}
                       </button>
                     </div>
                   </div>
 
                   <div className="p-6 bg-[#2CA6A4]/5 rounded-[24px] border border-[#2CA6A4]/10">
-                    <p className="text-[10px] font-black text-[#2CA6A4] uppercase tracking-widest mb-2">Location</p>
+                    <p className="text-[10px] font-black text-[#2CA6A4] uppercase tracking-widest mb-2">{translations.location[language]}</p>
                     <p className="text-xs font-bold text-[#2B2F33] leading-relaxed">
                       {business.address}, {business.city}, {business.governorate}, Iraq
                     </p>
@@ -211,11 +304,11 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
               <div className="mt-16 pt-16 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h3 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">Customer Reviews</h3>
-                    <p className="text-sm text-[#6B7280]">What people are saying about this place</p>
+                    <h3 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">{translations.reviews[language]}</h3>
+                    <p className="text-sm text-[#6B7280]">{translations.reviewsDesc[language]}</p>
                   </div>
                   <button className="px-6 py-2.5 bg-white border-2 border-[#2CA6A4] text-[#2CA6A4] text-xs font-black rounded-xl hover:bg-[#2CA6A4] hover:text-white transition-all uppercase tracking-widest">
-                    Write Review
+                    {translations.writeReview[language]}
                   </button>
                 </div>
                 
