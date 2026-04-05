@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
+import { supabase } from '@/lib/supabaseClient';
 
 interface UseBusinessesResult {
   businesses: Business[];
@@ -11,7 +12,7 @@ interface UseBusinessesResult {
   refresh: () => void;
 }
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 12;
 
 export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -29,55 +30,68 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
     const currentPage = isRefresh ? 1 : page;
     
     try {
-      // In a real app, you would fetch from Supabase here:
-      /*
       let query = supabase
         .from('businesses')
         .select('*', { count: 'exact' })
         .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-      if (selectedGovernorate) query = query.eq('governorate', selectedGovernorate);
-      if (selectedCity) query = query.eq('city', selectedCity);
-      if (selectedCategory) query = query.eq('category', selectedCategory);
-      if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
-
-      const { data, count, error } = await query;
-      if (error) throw error;
-      
-      const newBusinesses = data as Business[];
-      setBusinesses(prev => isRefresh ? newBusinesses : [...prev, ...newBusinesses]);
-      setHasMore(count ? (isRefresh ? newBusinesses.length : businesses.length + newBusinesses.length) < count : false);
-      */
-
-      // Mock implementation for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const allMockData = generateMockBusinesses();
-      
-      let filtered = allMockData;
-      if (selectedGovernorate) filtered = filtered.filter(b => b.governorate === selectedGovernorate);
-      if (selectedCity) filtered = filtered.filter(b => b.city === selectedCity);
-      if (selectedCategory) filtered = filtered.filter(b => b.category === selectedCategory);
+      if (selectedGovernorate) {
+        query = query.eq('governorate', selectedGovernorate);
+      }
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
+      }
+      if (selectedCategory) {
+        // Map frontend categories to database values if needed
+        query = query.eq('category', selectedCategory);
+      }
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(b => 
-          b.name.toLowerCase().includes(q) || 
-          b.category.toLowerCase().includes(q)
-        );
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
 
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE;
-      const paginated = filtered.slice(start, end);
-
-      setBusinesses(prev => isRefresh ? paginated : [...prev, ...paginated]);
-      setHasMore(end < filtered.length);
+      const { data, count, error: fetchError } = await query;
       
+      if (fetchError) throw fetchError;
+      
+      if (data) {
+        // Map database columns to frontend interface if they differ
+        const mappedBusinesses: Business[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          nameAr: item.name_ar,
+          nameKu: item.name_ku,
+          category: item.category,
+          governorate: item.governorate,
+          city: item.city,
+          address: item.address,
+          phone: item.phone,
+          rating: item.rating || 0,
+          reviewCount: item.review_count || 0,
+          isFeatured: item.is_featured || false,
+          isVerified: item.is_verified || false,
+          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+          website: item.website,
+          socialLinks: item.social_links || {},
+          description: item.description,
+          descriptionAr: item.description_ar,
+          openingHours: item.opening_hours,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at || item.created_at)
+        }));
+
+        setBusinesses(prev => isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses]);
+        
+        const totalCount = count || 0;
+        const currentTotal = isRefresh ? mappedBusinesses.length : businesses.length + mappedBusinesses.length;
+        setHasMore(currentTotal < totalCount);
+      }
     } catch (err) {
+      console.error('Error fetching businesses:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
     } finally {
       setLoading(false);
     }
-  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
+  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery, businesses.length]);
 
   useEffect(() => {
     setPage(1);
@@ -102,52 +116,4 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
   };
 
   return { businesses, loading, error, hasMore, loadMore, refresh };
-}
-
-// Mock data generator (moved from HomePage)
-function generateMockBusinesses(): Business[] {
-  const categories = [
-    'dining', 'cafe', 'hotels', 'shopping', 'banks', 
-    'education', 'entertainment', 'tourism', 'doctors', 'lawyers',
-    'hospitals', 'clinics', 'realestate', 'events', 'others',
-    'pharmacy', 'gym', 'beauty', 'supermarkets', 'furniture'
-  ];
-  
-  const governorates = ["Baghdad", "Erbil", "Basra", "Mosul", "Sulaymaniyah"];
-  const cities: Record<string, string[]> = {
-    Baghdad: ["Central", "Kadhimiya", "Adhamiyah"],
-    Erbil: ["Erbil Center", "Ankawa", "Shaqlawa"],
-    Basra: ["Basra City", "Zubair"],
-    Mosul: ["Mosul Center", "Hamdaniya"],
-    Sulaymaniyah: ["Suli Center", "Halabja"]
-  };
-
-  return Array.from({ length: 48 }, (_, i) => {
-    const gov = governorates[i % governorates.length];
-    const cityList = cities[gov];
-    const city = cityList[i % cityList.length];
-    
-    return {
-      id: `biz-${i}`,
-      name: `${['Al-Mansour', 'Babylon', 'Tigris', 'Euphrates', 'Mesopotamia'][i % 5]} ${['Plaza', 'Garden', 'Center', 'Hub', 'Lounge'][i % 5]}`,
-      category: categories[i % categories.length],
-      rating: 4 + (i % 10) / 10,
-      reviewCount: 10 + i * 5,
-      governorate: gov,
-      city: city,
-      address: `${city}, Iraq`,
-      image: `https://picsum.photos/seed/biz${i}/600/400`,
-      isFeatured: i < 8,
-      isVerified: i % 3 === 0,
-      phone: "+964 770 123 4567",
-      description: "A premier destination for quality service and authentic Iraqi hospitality. Experience the best of local culture and modern convenience.",
-      socialLinks: {
-        facebook: "https://facebook.com",
-        instagram: "https://instagram.com",
-        whatsapp: "+9647701234567"
-      },
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-  });
 }

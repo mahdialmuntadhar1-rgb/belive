@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, User, PlusCircle, MapPin, LayoutGrid, Sparkles, Compass } from "lucide-react";
+import { Search, User, PlusCircle, MapPin, LayoutGrid, Sparkles, Compass, LogOut, Settings } from "lucide-react";
 import HeroSection from "@/components/home/HeroSection";
 import LocationFilter from "@/components/home/LocationFilter";
 import StoryRow from "@/components/home/StoryRow";
@@ -9,16 +9,19 @@ import BusinessGrid from "@/components/home/BusinessGrid";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
 import { useBusinesses } from "@/hooks/useBusinesses";
+import { useAuthStore } from "@/stores/authStore";
 import type { Business } from "@/lib/supabase";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
+  const { user, profile, signOut, loading: authLoading } = useAuthStore();
   const { 
     businesses, 
-    loading, 
+    loading: businessesLoading, 
     error, 
     hasMore, 
     loadMore 
@@ -64,25 +67,118 @@ export default function HomePage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            <button 
-              onClick={() => setIsAuthModalOpen(true)}
-              className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-[#2CA6A4] text-white text-xs font-black rounded-xl shadow-lg shadow-[#2CA6A4]/20 hover:bg-[#1e7a78] hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
-            >
-              <PlusCircle className="w-4 h-4" />
-              List Business
-            </button>
-            <button 
-              onClick={() => setIsAuthModalOpen(true)}
-              className="w-11 h-11 rounded-xl bg-white border-2 border-[#E5E7EB] flex items-center justify-center transition-all hover:border-[#2CA6A4] hover:text-[#2CA6A4] shadow-sm"
-            >
-              <User className="w-5 h-5" />
-            </button>
+            {authLoading ? (
+              <div className="w-11 h-11 rounded-xl bg-[#F5F7F9] animate-pulse" />
+            ) : (
+              <>
+                {profile?.role === 'business_owner' && (
+                  <button 
+                    className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-[#E87A41] text-white text-xs font-black rounded-xl shadow-lg shadow-[#E87A41]/20 hover:bg-[#d16a35] hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Manage Business
+                  </button>
+                )}
+                
+                {!user ? (
+                  <button 
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="w-11 h-11 rounded-xl bg-white border-2 border-[#E5E7EB] flex items-center justify-center transition-all hover:border-[#2CA6A4] hover:text-[#2CA6A4] shadow-sm"
+                  >
+                    <User className="w-5 h-5" />
+                  </button>
+                ) : (
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border-2 border-[#E5E7EB] hover:border-[#2CA6A4] transition-all shadow-sm"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#2CA6A4] flex items-center justify-center text-white text-[10px] font-black">
+                        {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="hidden sm:block text-left">
+                        <p className="text-[10px] font-black text-[#2B2F33] leading-none truncate max-w-[80px]">
+                          {profile?.full_name || 'User'}
+                        </p>
+                        <p className="text-[8px] font-bold text-[#6B7280] uppercase tracking-tighter mt-0.5">
+                          {profile?.role === 'business_owner' ? 'Owner' : 'Member'}
+                        </p>
+                      </div>
+                    </button>
+
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-[#E5E7EB] py-2 z-[70]">
+                        <div className="px-4 py-2 border-b border-[#E5E7EB] mb-2">
+                          <p className="text-[10px] font-black text-[#2B2F33] truncate">{user.email}</p>
+                        </div>
+                        <button className="w-full px-4 py-2 text-left text-xs font-bold text-[#6B7280] hover:bg-[#F5F7F9] hover:text-[#2CA6A4] flex items-center gap-2 transition-colors">
+                          <Settings className="w-4 h-4" /> Settings
+                        </button>
+                        <button 
+                          onClick={() => {
+                            signOut();
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" /> Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <main className="pb-24">
-        {/* 1. HERO / FEATURED SECTION */}
+        {/* 1. IX BRAND SECTION */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 mb-12">
+          <div className="relative w-full aspect-[21/9] sm:aspect-[3/1] rounded-[48px] overflow-hidden group shadow-2xl shadow-black/10">
+            <img 
+              src="https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=2000&auto=format&fit=crop" 
+              alt="Iraq Heritage"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#2B2F33] via-[#2B2F33]/60 to-transparent" />
+            
+            <div className="absolute inset-0 p-8 sm:p-16 flex flex-col justify-center items-start max-w-2xl">
+              <div className="w-20 h-20 bg-[#2CA6A4] rounded-[24px] flex items-center justify-center mb-8 shadow-2xl shadow-[#2CA6A4]/40">
+                <span className="text-white font-black text-4xl poppins-bold">IX</span>
+              </div>
+              <h2 className="text-4xl sm:text-6xl font-black text-white poppins-bold leading-tight mb-6 tracking-tighter">
+                The Iraq <span className="text-[#2CA6A4]">Experience</span>
+              </h2>
+              <p className="text-lg sm:text-xl text-white/70 font-medium leading-relaxed mb-10">
+                Discover the soul of Iraq through our curated directory of businesses, heritage sites, and local favorites. Only IX brings you the true local perspective.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <button className="px-8 py-4 bg-white text-[#2B2F33] font-black rounded-2xl hover:bg-[#2CA6A4] hover:text-white transition-all duration-500 uppercase tracking-widest text-sm shadow-xl">
+                  Explore IX Collection
+                </button>
+                <button className="px-8 py-4 bg-transparent border-2 border-white/20 text-white font-black rounded-2xl hover:bg-white/10 transition-all duration-500 uppercase tracking-widest text-sm backdrop-blur-md">
+                  Learn More
+                </button>
+              </div>
+            </div>
+
+            {/* Decorative IX Pattern */}
+            <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none hidden lg:block">
+              <div className="grid grid-cols-4 gap-4">
+                {[...Array(16)].map((_, i) => (
+                  <div key={i} className="w-12 h-12 border-2 border-white rounded-xl flex items-center justify-center">
+                    <span className="text-xs font-black text-white">IX</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. HERO / FEATURED SECTION */}
         <HeroSection 
           businesses={featuredBusinesses} 
           onBusinessClick={setSelectedBusiness}
@@ -98,23 +194,23 @@ export default function HomePage() {
           <LocationFilter />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          {/* 4. CATEGORY GRID */}
-          <div className="mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+          {/* 4. CATEGORY GRID SECTION */}
+          <section className="bg-[#0f172a] rounded-[48px] p-4 sm:p-8 shadow-2xl shadow-black/20 border border-white/5">
             <CategoryGrid />
-          </div>
+          </section>
 
-          {/* 5. TRENDING / FEATURED BUSINESSES */}
-          <div className="mt-16">
+          {/* 5. TRENDING SECTION */}
+          <section className="bg-[#F5F7F9] rounded-[48px] p-8 sm:p-12 border border-[#E5E7EB]">
             <TrendingSection 
               businesses={businesses} 
-              loading={loading} 
+              loading={businessesLoading} 
               onBusinessClick={setSelectedBusiness}
             />
-          </div>
+          </section>
 
           {/* 6. MAIN EXPLORE SECTION */}
-          <div className="mt-20">
+          <section className="bg-white rounded-[48px] p-8 sm:p-12 shadow-xl shadow-black/5 border border-[#E5E7EB]">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
               <div>
                 <div className="flex items-center gap-2 text-[#2CA6A4] mb-2">
@@ -125,9 +221,9 @@ export default function HomePage() {
                 <p className="text-base text-[#6B7280] mt-1">Discover the best local services across Iraq</p>
               </div>
               
-              <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-[#E5E7EB] shadow-sm">
+              <div className="flex items-center gap-2 bg-[#F5F7F9] p-1.5 rounded-xl border border-[#E5E7EB]">
                 <button className="px-4 py-2 bg-[#2CA6A4] text-white text-[10px] font-black rounded-lg uppercase tracking-widest shadow-md">Grid</button>
-                <button className="px-4 py-2 text-[#6B7280] text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-[#F5F7F9]">Map</button>
+                <button className="px-4 py-2 text-[#6B7280] text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-white">Map</button>
               </div>
             </div>
             
@@ -145,12 +241,12 @@ export default function HomePage() {
 
             <BusinessGrid 
               businesses={businesses} 
-              loading={loading} 
+              loading={businessesLoading} 
               hasMore={hasMore}
               onLoadMore={loadMore}
               onBusinessClick={setSelectedBusiness}
             />
-          </div>
+          </section>
         </div>
       </main>
 
@@ -221,10 +317,13 @@ export default function HomePage() {
           
           <div className="border-t border-white/5 mt-24 pt-12 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">
             <p>&copy; {new Date().getFullYear()} BELIVE IRAQ. ALL RIGHTS RESERVED.</p>
-            <div className="flex gap-12">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+            <div className="flex items-center gap-4">
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/20 font-black text-[10px]">IX</div>
+              <div className="flex gap-12">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+              </div>
             </div>
           </div>
         </div>

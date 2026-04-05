@@ -48,71 +48,64 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
 
   return (
     <div id="explore-section" className="px-4 mb-20">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {businesses.map((biz) => (
           <motion.div
             key={biz.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover={{ y: -5 }}
+            whileHover={{ y: -8 }}
             onClick={() => onBusinessClick?.(biz)}
-            className="bg-white rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-[#E5E7EB] flex flex-col group cursor-pointer transition-all duration-300 hover:shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
+            className="group relative aspect-square rounded-[40px] overflow-hidden transition-all duration-500 border-4 border-transparent hover:border-[#2CA6A4] shadow-xl shadow-black/5 cursor-pointer"
           >
-            {/* Image Section */}
-            <div className="relative aspect-[4/3] overflow-hidden">
+            {/* Background Image */}
+            <div className="absolute inset-0">
               <img 
                 src={biz.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800&auto=format&fit=crop'} 
                 alt={biz.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
-              
-              {/* Category Badge */}
-              <div className="absolute top-3 left-3">
-                <span className="px-3 py-1 bg-[#2CA6A4]/90 backdrop-blur-md text-white text-[9px] font-black rounded-lg shadow-lg uppercase tracking-widest border border-white/20">
-                  {biz.category.replace('_', ' ')}
-                </span>
-              </div>
-
-              {/* Verification Badge */}
-              {biz.isVerified && (
-                <div className="absolute bottom-3 left-3">
-                  <div className="flex items-center gap-1 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-md border border-[#2CA6A4]/20">
-                    <CheckCircle2 className="w-3 h-3 text-[#2CA6A4] fill-[#2CA6A4]/10" />
-                    <span className="text-[8px] font-black text-[#2CA6A4] uppercase tracking-tighter">Verified</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Rating Badge */}
-              <div className="absolute top-3 right-3">
-                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-2 py-1 rounded-lg shadow-lg border border-[#E5E7EB]">
-                  <Star className="w-3 h-3 text-[#E87A41] fill-[#E87A41]" />
-                  <span className="text-[10px] font-black text-[#2B2F33]">{biz.rating?.toFixed(1) || 'N/A'}</span>
-                </div>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 group-hover:from-black/95" />
             </div>
 
-            {/* Info Section */}
-            <div className="p-4 flex flex-col justify-between flex-1">
-              <div>
-                <h3 className="text-sm font-bold text-[#2B2F33] mb-1.5 line-clamp-1 poppins-bold group-hover:text-[#2CA6A4] transition-colors">
-                  {biz.name}
-                </h3>
-                <div className="flex items-center gap-1.5 text-[#6B7280] text-[11px] font-medium">
-                  <MapPin className="w-3 h-3 text-[#2CA6A4]" />
-                  <span className="line-clamp-1">{biz.city}, {biz.governorate}</span>
+            {/* Content */}
+            <div className="absolute inset-0 p-8 flex flex-col justify-end items-start text-left">
+              {/* Badges */}
+              <div className="absolute top-6 left-6 flex flex-col gap-2">
+                <span className="px-3 py-1.5 bg-[#2CA6A4] text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
+                  {biz.category.replace('_', ' ')}
+                </span>
+                {biz.isVerified && (
+                  <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-xl border border-white/20 w-fit">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#2CA6A4]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Verified</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="absolute top-6 right-6">
+                <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-xl border border-white/20">
+                  <Star className="w-3.5 h-3.5 text-[#E87A41] fill-[#E87A41]" />
+                  <span className="text-[11px] font-black text-white">{biz.rating?.toFixed(1) || 'N/A'}</span>
                 </div>
               </div>
+
+              <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
+                {biz.name}
+              </h3>
               
-              <div className="mt-4 pt-3 border-t border-[#F5F7F9] flex items-center justify-between">
-                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest">
-                  {biz.reviewCount || 0} Reviews
-                </span>
-                <span className="text-[10px] font-black text-[#2CA6A4] uppercase tracking-tighter group-hover:translate-x-1 transition-transform">
-                  View Details →
-                </span>
+              <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
+                <MapPin className="w-4 h-4 text-[#2CA6A4]" />
+                <span className="line-clamp-1">{biz.city}, {biz.governorate}</span>
+              </div>
+
+              {/* Bottom IX Badge */}
+              <div className="absolute bottom-6 right-6">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md transition-all duration-500 group-hover:bg-[#2CA6A4] group-hover:border-[#2CA6A4]">
+                  <span className="text-[10px] font-black text-white tracking-tighter">IX</span>
+                </div>
               </div>
             </div>
           </motion.div>

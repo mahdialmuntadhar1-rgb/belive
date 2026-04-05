@@ -15,7 +15,7 @@ const CATEGORIES = [
   { id: 'banks', name: 'BANKS & FINANCE', icon: Landmark, types: 3 },
   { id: 'education', name: 'EDUCATION', icon: GraduationCap, types: 3 },
   { id: 'entertainment', name: 'ENTERTAINMENT', icon: Clapperboard, types: 3 },
-  { id: 'tourism', name: 'TOURISM & TRAVEL', icon: Plane, types: 3, hasDot: true },
+  { id: 'tourism', name: 'TOURISM & TRAVEL', icon: Plane, types: 3 },
   { id: 'doctors', name: 'DOCTORS & PHYSICIANS', icon: Stethoscope, types: 6 },
   { id: 'lawyers', name: 'LAWYERS & LEGAL', icon: Scale, types: 3 },
   { id: 'hospitals', name: 'HOSPITALS & CLINICS', icon: Hospital, types: 4 },
@@ -34,15 +34,15 @@ export default function CategoryGrid() {
   const { selectedCategory, setCategory } = useHomeStore();
 
   return (
-    <div className="w-full bg-white p-6 sm:p-8 rounded-[32px] mb-12 shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-[#E5E7EB]">
-      <div className="flex items-center gap-3 mb-10">
-        <Tag className="w-6 h-6 text-[#2CA6A4] fill-[#2CA6A4]/10" />
-        <h2 className="text-[#2B2F33] font-bold text-xl poppins-bold">
+    <div className="w-full">
+      <div className="flex items-center gap-3 mb-10 px-2">
+        <Tag className="w-5 h-5 text-[#f59e0b]" />
+        <h2 className="text-white font-bold text-xl poppins-bold">
           Categories ({selectedCategory ? '1' : '0'} selected)
         </h2>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat.id;
           const Icon = cat.icon;
@@ -50,43 +50,40 @@ export default function CategoryGrid() {
           return (
             <motion.button
               key={cat.id}
-              whileHover={{ scale: 1.03, backgroundColor: isActive ? '#242F3E' : '#F9FAFB' }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setCategory(isActive ? null : cat.id)}
-              className={`relative flex flex-col items-center justify-center p-6 rounded-[24px] transition-all duration-300 border-2 aspect-[1.4/1] ${
+              className={`relative flex flex-col items-center justify-center p-6 rounded-[24px] transition-all duration-300 border-2 aspect-[1.3/1] ${
                 isActive
-                  ? "bg-[#2B2F33] border-[#2CA6A4] shadow-[0_10px_25px_rgba(44,166,164,0.2)]"
-                  : "bg-[#F5F7F9] border-transparent hover:border-[#2CA6A4]/30"
+                  ? "bg-[#2d3748] border-[#f59e0b] shadow-[0_0_30px_rgba(245,158,11,0.25)]"
+                  : "bg-[#242f3e] border-transparent hover:border-[#f59e0b]/30"
               }`}
             >
               {/* Hot Badge */}
               {cat.isHot && (
-                <div className="absolute -top-2.5 -left-1 bg-[#E87A41] text-white text-[9px] font-black px-2.5 py-1 rounded-lg z-10 shadow-lg uppercase tracking-tighter">
+                <div className="absolute -top-1 left-4 bg-[#f59e0b] text-[#1e293b] text-[8px] font-black px-2 py-0.5 rounded-md z-10 uppercase shadow-lg">
                   HOT
                 </div>
               )}
 
-              {/* Red Dot */}
-              {cat.hasDot && (
-                <div className="absolute top-5 right-5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.4)]" />
-              )}
-
               {/* Selected Checkmark */}
               {isActive && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-[#2CA6A4] rounded-full flex items-center justify-center shadow-lg border-2 border-[#2B2F33]">
-                  <Check className="w-3.5 h-3.5 text-white stroke-[4]" />
+                <div className="absolute top-3 right-3 w-5 h-5 bg-[#f59e0b] rounded-full flex items-center justify-center shadow-lg">
+                  <Check className="w-3 h-3 text-[#1e293b] stroke-[4]" />
                 </div>
               )}
 
-              <div className={`mb-4 p-3.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-[#2CA6A4] shadow-[0_0_15px_rgba(44,166,164,0.4)]' : 'bg-white shadow-sm'}`}>
-                <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-[#2CA6A4]'}`} />
+              <div className={`mb-4 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                isActive ? 'bg-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-[#1e293b]'
+              }`}>
+                <Icon className={`w-7 h-7 ${isActive ? 'text-[#1e293b]' : 'text-[#f59e0b]'}`} />
               </div>
 
               <div className="text-center">
-                <h3 className={`text-[10px] font-black tracking-widest mb-1.5 uppercase leading-tight ${isActive ? 'text-white' : 'text-[#2B2F33]'}`}>
+                <h3 className="text-[11px] font-black tracking-wider mb-1 uppercase leading-tight text-white poppins-bold">
                   {cat.name}
                 </h3>
-                <p className={`text-[8px] font-bold uppercase tracking-[0.2em] ${isActive ? 'text-gray-400' : 'text-gray-500'}`}>
+                <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-gray-400">
                   {cat.types} TYPES
                 </p>
               </div>
