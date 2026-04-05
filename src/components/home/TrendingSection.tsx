@@ -100,14 +100,7 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
               </div>
 
               <div className="flex items-center justify-between w-full pt-4 border-t border-white/10">
-                <div className="flex -space-x-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-[#2B2F33] bg-gray-100 overflow-hidden">
-                      <img src={`https://i.pravatar.cc/100?u=${biz.id}${i}`} alt="User" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-                <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-[#2CA6A4] group-hover:border-[#2CA6A4] transition-all duration-500">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-[#2CA6A4] group-hover:border-[#2CA6A4] transition-all duration-500 ml-auto">
                   <ArrowRight className="w-5 h-5" />
                 </div>
               </div>

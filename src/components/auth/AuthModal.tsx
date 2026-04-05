@@ -116,7 +116,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <p className="text-sm text-[#6B7280]">
                   {isLogin 
                     ? 'Log in to access your saved places and reviews.' 
-                    : 'Join BELIVE to discover and share the best of Iraq.'}
+                    : 'Join Shakou Marku to discover and share the best of Iraq.'}
                 </p>
               </div>
 

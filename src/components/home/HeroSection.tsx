@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Star, MapPin, Sparkles, TrendingUp, Users, ShieldCheck } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 
@@ -12,46 +12,43 @@ const SLOGANS = [
   {
     en: "Discover Iraq's hidden gems",
     ar: "اكتشف جواهر العراق الخفية",
-    so: "گەوهەرە شاراوەکانی عێراق بدۆزەرەوە",
-    ku: "Cewherên veşartî yên Iraqê kifş bikin",
+    ku: "گەوهەرە شاراوەکانی عێراق بدۆزەرەوە",
     icon: Sparkles,
     color: "#2CA6A4"
   },
   {
-    en: "Grow your business with BELIVE",
-    ar: "نمِّ عملك التجاري مع BELIVE",
-    so: "کارەکەت لەگەڵ BELIVE گەشە پێ بدە",
-    ku: "Karsaziya xwe bi BELIVE re mezin bikin",
+    en: "Grow your business with Shakou Marku",
+    ar: "نمِّ عملك التجاري مع Shakou Marku",
+    ku: "کارەکەت لەگەڵ Shakou Marku گەشە پێ بدە",
     icon: TrendingUp,
     color: "#E87A41"
   },
   {
     en: "Verified reviews you can trust",
     ar: "مراجعات موثوقة يمكنك الاعتماد عليها",
-    so: "پێداچوونەوەی ڕاست و باوەڕپێکراو",
-    ku: "Nirxandinên rast ên ku hûn dikarin pê bawer bin",
+    ku: "پێداچوونەوەی ڕاست و باوەڕپێکراو",
     icon: ShieldCheck,
     color: "#2CA6A4"
-  },
-  {
-    en: "Reach thousands of new customers",
-    ar: "تواصل مع آلاف العملاء الجدد",
-    so: "بگە بە هەزاران کڕیاری نوێ",
-    ku: "Bigihîjin bi hezaran xerîdarên nû",
-    icon: Users,
-    color: "#E87A41"
   }
 ];
 
 export default function HeroSection({ businesses, onBusinessClick }: HeroSectionProps) {
   const featured = businesses.filter(b => b.isFeatured).slice(0, 5);
+  const [currentSlogan, setCurrentSlogan] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlogan((prev) => (prev + 1) % SLOGANS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
   
   return (
     <section className="w-full mb-12">
       {/* Unified Big Rectangle Hero */}
-      <div className="relative w-full h-[500px] sm:h-[600px] bg-[#2B2F33] overflow-hidden">
+      <div className="relative w-full h-[400px] sm:h-[500px] bg-[#2B2F33] overflow-hidden flex flex-col items-center justify-center text-center px-6">
         {featured.length > 0 ? (
-          <div className="flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
+          <div className="absolute inset-0 flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
             {featured.map((biz) => (
               <div 
                 key={biz.id} 
@@ -71,7 +68,7 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                 
                 {/* Content Container */}
-                <div className="absolute inset-0 max-w-7xl mx-auto px-6 sm:px-12 flex flex-col justify-center items-start text-white">
+                <div className="absolute inset-0 max-w-7xl mx-auto px-6 sm:px-12 flex flex-col justify-center items-start text-white text-left">
                   <motion.div 
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -119,44 +116,52 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
             ))}
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/20 font-black text-4xl">
-            BELIVE IRAQ
+          <div className="relative z-10 flex flex-col items-center">
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl sm:text-6xl font-black text-white mb-8 tracking-tighter poppins-bold"
+            >
+              SHAKOU MARKU
+            </motion.h1>
+            
+            <div className="h-24 flex flex-col items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlogan}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-2"
+                >
+                  <p className="text-xl sm:text-2xl font-bold text-[#2CA6A4]">{SLOGANS[currentSlogan].en}</p>
+                  <p className="text-lg sm:text-xl text-white/80 font-medium">{SLOGANS[currentSlogan].ar}</p>
+                  <p className="text-lg sm:text-xl text-white/60 font-medium">{SLOGANS[currentSlogan].ku}</p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
-        {/* Floating Value Proposition Marquee */}
-        <div className="absolute top-0 left-0 right-0 z-20 bg-black/20 backdrop-blur-md border-b border-white/10 py-3 overflow-hidden">
-          <motion.div 
-            animate={{ x: [0, -2000] }}
-            transition={{ 
-              duration: 40, 
-              repeat: Infinity, 
-              ease: "linear" 
-            }}
-            className="flex items-center gap-16 whitespace-nowrap px-4"
-          >
-            {[...SLOGANS, ...SLOGANS, ...SLOGANS].map((slogan, idx) => (
-              <div key={idx} className="flex items-center gap-4">
-                <slogan.icon className="w-4 h-4" style={{ color: slogan.color }} />
-                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{slogan.en}</span>
-                <span className="text-[10px] font-bold text-white/60 dir-rtl">{slogan.ar}</span>
-                <div className="w-1 h-1 rounded-full bg-white/20" />
-              </div>
-            ))}
-          </motion.div>
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#2CA6A4] rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#E87A41] rounded-full blur-[120px]" />
         </div>
 
-        {/* Bottom Scroll Indicators */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-          {featured.map((_, idx) => (
-            <div 
-              key={idx}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                idx === 0 ? 'w-12 bg-[#2CA6A4]' : 'w-3 bg-white/30'
-              }`}
-            />
-          ))}
-        </div>
+        {/* Bottom Scroll Indicators (only if featured) */}
+        {featured.length > 0 && (
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+            {featured.map((_, idx) => (
+              <div 
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  idx === 0 ? 'w-12 bg-[#2CA6A4]' : 'w-3 bg-white/30'
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
