@@ -1,0 +1,51 @@
+-- Migration 006: RLS policies reference
+-- Documents all RLS policies as they exist on the live DB.
+-- On a fresh instance, policies are created by their respective migration files
+-- (001–005). This file serves as the authoritative reference for audit purposes.
+--
+-- DO NOT run this file on the live DB — policies already exist.
+-- Run on fresh instance ONLY if the table-specific migrations were not applied.
+
+-- ─────────────────────────────────────────────
+-- SUMMARY TABLE
+-- ─────────────────────────────────────────────
+--
+-- Table                   | Who         | Operation | Rule
+-- ─────────────────────── | ─────────── | ───────── | ───────────────────────────
+-- businesses              | public      | SELECT    | allow all (directory is public)
+-- businesses              | auth        | UPDATE    | owner of approved claim only
+-- profiles                | auth        | SELECT    | own row only (auth.uid() = id)
+-- profiles                | auth        | INSERT    | own row only
+-- profiles                | auth        | UPDATE    | own row only
+-- posts                   | anon        | SELECT    | allow all
+-- posts                   | auth        | INSERT    | approved business owner only
+-- stories                 | anon        | SELECT    | allow all
+-- events                  | anon        | SELECT    | allow all
+-- deals                   | anon        | SELECT    | allow all
+-- business_postcards      | anon        | SELECT    | allow all
+-- business_claims         | auth        | INSERT    | own user_id only
+-- business_claims         | auth        | SELECT    | own user_id only
+-- business_claims         | auth (admin)| ALL       | email = mahdialmuntadhar1@...
+-- reviews                 | anon        | SELECT    | allow all
+-- reviews                 | auth        | INSERT    | own user_id only
+-- reviews                 | auth        | UPDATE    | own user_id only
+-- reviews                 | auth        | DELETE    | own user_id only
+-- categories              | anon        | SELECT    | allow all
+-- governorates            | anon        | SELECT    | allow all
+-- cities                  | anon        | SELECT    | allow all
+--
+-- Scraper/pipeline tables (agent_logs, agent_tasks, agents,
+-- raw_businesses, verified_businesses, csv_uploaded_businesses,
+-- businesses_cleaned_master): allow all (public) — scraper system only.
+
+-- ─────────────────────────────────────────────
+-- GLOBAL RLS AUTO-ENABLE
+-- The live DB has an event trigger that automatically enables RLS
+-- on every new table created in the public schema.
+-- ─────────────────────────────────────────────
+-- create event trigger rls_auto_enable on ddl_command_end
+--   when tag in ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+--   execute function public.rls_auto_enable();
+--
+-- NOTE: This is an event trigger already active on the live DB.
+-- Uncomment and run only on fresh instances.
