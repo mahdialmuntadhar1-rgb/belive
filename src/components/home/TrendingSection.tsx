@@ -76,12 +76,12 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
     <div className="w-full mb-16">
       <div className="flex items-center justify-between px-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">{translations.featured[language]}</h2>
-          <p className="text-sm text-[#6B7280]">{translations.featuredDesc[language]}</p>
+          <h2 className="text-2xl font-bold text-text-main poppins-bold tracking-tight">{translations.featured[language]}</h2>
+          <p className="text-sm text-text-muted">{translations.featuredDesc[language]}</p>
         </div>
         <button 
           onClick={() => document.getElementById('explore-section')?.scrollIntoView({ behavior: 'smooth' })}
-          className="group flex items-center gap-2 px-4 py-2 bg-[#2CA6A4]/10 text-[#2CA6A4] text-xs font-black rounded-full hover:bg-[#2CA6A4] hover:text-white transition-all duration-500 uppercase tracking-widest"
+          className="group flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary text-xs font-black rounded-full hover:bg-primary hover:text-white transition-all duration-500 uppercase tracking-widest"
         >
           {translations.seeAll[language]} <ArrowRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${language === 'en' ? '' : 'rotate-180'}`} />
         </button>
@@ -93,7 +93,7 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
             key={biz.id}
             whileHover={{ y: -8 }}
             onClick={() => onBusinessClick?.(biz)}
-            className="flex-shrink-0 w-[300px] aspect-square bg-[#2B2F33] rounded-[40px] overflow-hidden shadow-2xl shadow-black/5 flex flex-col group cursor-pointer transition-all duration-500 snap-start border-4 border-transparent hover:border-[#2CA6A4]"
+            className="flex-shrink-0 w-[300px] aspect-square bg-bg-dark rounded-[40px] overflow-hidden shadow-2xl shadow-black/5 flex flex-col group cursor-pointer transition-all duration-500 snap-start border-4 border-transparent hover:border-primary"
           >
             {/* Background Image */}
             <div className="absolute inset-0">
@@ -110,12 +110,12 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
             <div className="relative h-full p-8 flex flex-col justify-end items-start text-left">
               {/* Badges */}
               <div className="absolute top-6 left-6 flex flex-col gap-2">
-                <span className="px-3 py-1.5 bg-[#2CA6A4] text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
+                <span className="px-3 py-1.5 bg-primary text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
                   {getCategoryName(biz.category)}
                 </span>
                 {biz.isVerified && (
                   <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-xl border border-white/20 w-fit">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#2CA6A4]" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-widest">{translations.verified[language]}</span>
                   </div>
                 )}
@@ -123,22 +123,22 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
 
               <div className="absolute top-6 right-6">
                 <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-xl border border-white/20">
-                  <Star className="w-3.5 h-3.5 text-[#E87A41] fill-[#E87A41]" />
+                  <Star className="w-3.5 h-3.5 text-secondary fill-secondary" />
                   <span className="text-[11px] font-black text-white">{biz.rating?.toFixed(1) || 'N/A'}</span>
                 </div>
               </div>
 
-              <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
+              <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
                 {getBusinessName(biz)}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium mb-6">
-                <MapPin className="w-4 h-4 text-[#2CA6A4]" />
+                <MapPin className="w-4 h-4 text-primary" />
                 <span className="line-clamp-1">{biz.city}, {biz.governorate}</span>
               </div>
 
               <div className="flex items-center justify-between w-full pt-4 border-t border-white/10">
-                <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-[#2CA6A4] group-hover:border-[#2CA6A4] transition-all duration-500 ml-auto">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-primary group-hover:border-primary transition-all duration-500 ml-auto">
                   <ArrowRight className="w-5 h-5" />
                 </div>
               </div>

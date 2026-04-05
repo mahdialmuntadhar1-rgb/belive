@@ -23,6 +23,18 @@ export interface Business {
   description?: string;
   descriptionAr?: string;
   openingHours?: string;
+  ownerId?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Post {
+  id: string;
+  businessId: string;
+  content: string;
+  image?: string;
+  likes: number;
+  createdAt: Date;
+  authorName?: string;
+  authorAvatar?: string;
 }

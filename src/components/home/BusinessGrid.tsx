@@ -70,11 +70,11 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
   if (loading && businesses.length === 0) return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-4 mb-12">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden shadow-sm">
-          <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+        <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="aspect-[4/3] bg-slate-100 animate-pulse" />
           <div className="p-4 space-y-3">
-            <div className="h-4 bg-gray-100 animate-pulse rounded w-3/4" />
-            <div className="h-3 bg-gray-100 animate-pulse rounded w-1/2" />
+            <div className="h-4 bg-slate-100 animate-pulse rounded w-3/4" />
+            <div className="h-3 bg-slate-100 animate-pulse rounded w-1/2" />
           </div>
         </div>
       ))}
@@ -84,16 +84,16 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
   // Empty state
   if (!loading && businesses.length === 0) return (
     <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-      <div className="w-24 h-24 bg-[#F5F7F9] rounded-full flex items-center justify-center mb-6">
-        <SearchX className="w-10 h-10 text-[#6B7280]" />
+      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+        <SearchX className="w-10 h-10 text-text-muted" />
       </div>
-      <h3 className="text-xl font-bold text-[#2B2F33] mb-3 poppins-bold">{translations.noResults[language]}</h3>
-      <p className="text-sm text-[#6B7280] max-w-xs leading-relaxed">
+      <h3 className="text-xl font-bold text-text-main mb-3 poppins-bold">{translations.noResults[language]}</h3>
+      <p className="text-sm text-text-muted max-w-xs leading-relaxed">
         {translations.noResultsDesc[language]}
       </p>
       <button 
         onClick={() => window.location.reload()}
-        className="mt-8 px-6 py-2.5 bg-[#2CA6A4] text-white font-bold rounded-full text-sm shadow-lg shadow-[#2CA6A4]/20 hover:bg-[#1e7a78] transition-all"
+        className="mt-8 px-6 py-2.5 bg-primary text-white font-bold rounded-full text-sm shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
       >
         {translations.resetFilters[language]}
       </button>
@@ -111,7 +111,7 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
             viewport={{ once: true }}
             whileHover={{ y: -8 }}
             onClick={() => onBusinessClick?.(biz)}
-            className="group relative aspect-square rounded-[40px] overflow-hidden transition-all duration-500 border-4 border-transparent hover:border-[#2CA6A4] shadow-xl shadow-black/5 cursor-pointer"
+            className="group relative aspect-square rounded-[40px] overflow-hidden transition-all duration-500 border-4 border-transparent hover:border-primary shadow-xl shadow-black/5 cursor-pointer"
           >
             {/* Background Image */}
             <div className="absolute inset-0">
@@ -128,12 +128,12 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
             <div className="absolute inset-0 p-8 flex flex-col justify-end items-start text-left">
               {/* Badges */}
               <div className="absolute top-6 left-6 flex flex-col gap-2">
-                <span className="px-3 py-1.5 bg-[#2CA6A4] text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
+                <span className="px-3 py-1.5 bg-primary text-white text-[10px] font-black rounded-xl shadow-xl uppercase tracking-widest border border-white/20">
                   {getCategoryName(biz.category)}
                 </span>
                 {biz.isVerified && (
                   <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-xl shadow-xl border border-white/20 w-fit">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#2CA6A4]" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-widest">{translations.verified[language]}</span>
                   </div>
                 )}
@@ -141,17 +141,17 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
 
               <div className="absolute top-6 right-6">
                 <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-xl border border-white/20">
-                  <Star className="w-3.5 h-3.5 text-[#E87A41] fill-[#E87A41]" />
+                  <Star className="w-3.5 h-3.5 text-secondary fill-secondary" />
                   <span className="text-[11px] font-black text-white">{biz.rating?.toFixed(1) || 'N/A'}</span>
                 </div>
               </div>
 
-              <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
+              <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
                 {getBusinessName(biz)}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
-                <MapPin className="w-4 h-4 text-[#2CA6A4]" />
+                <MapPin className="w-4 h-4 text-primary" />
                 <span className="line-clamp-1">{biz.city}, {biz.governorate}</span>
               </div>
             </div>
@@ -163,25 +163,25 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
       {(hasMore || loading) && (
         <div className="mt-16 flex flex-col items-center gap-4">
           {loading ? (
-            <div className="flex items-center gap-3 text-[#2CA6A4] font-bold text-sm animate-pulse">
+            <div className="flex items-center gap-3 text-primary font-bold text-sm animate-pulse">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>{translations.loadingMore[language]}</span>
             </div>
           ) : (
             <button
               onClick={onLoadMore}
-              className="group relative px-10 py-4 bg-white border-2 border-[#E5E7EB] text-[#2CA6A4] font-black rounded-2xl hover:border-[#2CA6A4] hover:bg-[#2CA6A4] hover:text-white transition-all duration-500 shadow-xl shadow-black/5 flex items-center gap-3 overflow-hidden"
+              className="group relative px-10 py-4 bg-white border-2 border-slate-200 text-primary font-black rounded-2xl hover:border-primary hover:bg-primary hover:text-white transition-all duration-500 shadow-xl shadow-black/5 flex items-center gap-3 overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#2CA6A4] to-[#1e7a78] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary-dark opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="relative z-10 uppercase tracking-[0.2em] text-xs">{translations.loadMore[language]}</span>
-              <div className="relative z-10 w-6 h-6 bg-[#F5F7F9] group-hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
+              <div className="relative z-10 w-6 h-6 bg-slate-50 group-hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
                 <Loader2 className="w-3.5 h-3.5 group-hover:animate-spin" />
               </div>
             </button>
           )}
           
           {!hasMore && !loading && businesses.length > 0 && (
-            <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mt-4">
+            <p className="text-xs font-bold text-text-muted uppercase tracking-widest mt-4">
               {translations.endOfDirectory[language]}
             </p>
           )}

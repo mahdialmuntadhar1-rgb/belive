@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, MapPin, Sparkles, TrendingUp, Users, ShieldCheck } from 'lucide-react';
+import { Star, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
+import { useAuthStore } from '@/stores/authStore';
 
 interface HeroSectionProps {
   businesses: Business[];
@@ -31,11 +33,20 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
   const featured = businesses.filter(b => b.isFeatured).slice(0, 5);
   const [currentSlogan, setCurrentSlogan] = React.useState(0);
   const { language } = useHomeStore();
+  const { profile } = useAuthStore();
 
   const branding = {
     en: "Saku Maku",
-    ar: "شکو ماکو؟",
+    ar: "شکو ماكو؟",
     ku: "چی هەیە؟" // Sorani Kurdish equivalent of "Shaku Maku"
+  };
+
+  const translations = {
+    dashboard: {
+      en: "Business Dashboard",
+      ar: "لوحة تحكم الأعمال",
+      ku: "داشبۆردی بازرگانی"
+    }
   };
 
   React.useEffect(() => {
@@ -48,7 +59,7 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
   return (
     <section className="w-full max-w-7xl mx-auto px-4 mb-12">
       {/* Thinner Rounded Rectangle Hero */}
-      <div className="relative w-full h-[320px] sm:h-[450px] bg-[#1a1f24] rounded-[40px] overflow-hidden flex flex-col items-center justify-center text-center px-8 sm:px-12 shadow-2xl border border-white/5">
+      <div className="relative w-full h-[320px] sm:h-[450px] bg-bg-dark rounded-[40px] overflow-hidden flex flex-col items-center justify-center text-center px-8 sm:px-12 shadow-2xl border border-white/5">
         
         {/* Background Image with Overlay */}
         <div className="absolute inset-0">
@@ -58,15 +69,15 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
             className="w-full h-full object-cover opacity-40"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f24]/80 via-[#1a1f24]/60 to-[#1a1f24]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#2CA6A4]/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg-dark/80 via-bg-dark/60 to-bg-dark" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent" />
         </div>
 
         {/* Background Pattern/Glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(44,166,164,0.12),transparent_70%)]" />
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#2CA6A4] rounded-full blur-[120px] opacity-20" />
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#E87A41] rounded-full blur-[120px] opacity-15" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(0,191,165,0.12),transparent_70%)]" />
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary rounded-full blur-[120px] opacity-20" />
+          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary rounded-full blur-[120px] opacity-15" />
           
           {/* Subtle Grid Pattern */}
           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -84,8 +95,8 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
           </motion.div>
         </div>
 
-        {/* Top Right Branding */}
-        <div className="absolute top-10 right-10 sm:right-14">
+        {/* Top Right Branding & Dashboard Link */}
+        <div className="absolute top-10 right-10 sm:right-14 flex flex-col items-end gap-4">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -95,6 +106,23 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
               {language === 'en' ? branding.en : branding.en}
             </h1>
           </motion.div>
+
+          {profile?.role === 'business_owner' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link 
+                to="/dashboard"
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-xl shadow-primary/20 border border-white/10 hover:bg-primary-dark transition-all"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                {translations.dashboard[language]}
+              </Link>
+            </motion.div>
+          )}
         </div>
 
         <div className="relative z-10 flex flex-col items-center w-full max-w-4xl">

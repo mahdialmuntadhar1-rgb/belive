@@ -42,13 +42,13 @@ export default function CategoryGrid() {
   return (
     <div className="w-full">
       <div className="flex items-center gap-3 mb-10 px-2">
-        <Tag className="w-5 h-5 text-[#f59e0b]" />
+        <Tag className="w-5 h-5 text-secondary" />
         <h2 className="text-white font-bold text-xl poppins-bold">
           {translations.categories[language]} ({selectedCategory ? '1' : '0'} {translations.selected[language]})
         </h2>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
         {categories.map((cat) => {
           const isActive = selectedCategory === cat.id;
           const Icon = cat.icon || (cat.icon_name ? ICON_MAP[cat.icon_name] : Utensils) || Utensils;
@@ -59,34 +59,34 @@ export default function CategoryGrid() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setCategory(isActive ? null : cat.id)}
-              className={`relative flex flex-col items-center justify-center p-6 rounded-[24px] transition-all duration-300 border-2 aspect-[1.3/1] ${
+              className={`relative flex flex-col items-center justify-center p-3 sm:p-6 rounded-xl sm:rounded-[24px] transition-all duration-300 border-2 aspect-square sm:aspect-[1.3/1] ${
                 isActive
-                  ? "bg-[#2d3748] border-[#f59e0b] shadow-[0_0_30px_rgba(245,158,11,0.25)]"
-                  : "bg-[#242f3e] border-transparent hover:border-[#f59e0b]/30"
+                  ? "bg-slate-800 border-primary shadow-[0_0_30px_rgba(0,191,165,0.25)]"
+                  : "bg-slate-900 border-transparent hover:border-primary/30"
               }`}
             >
               {/* Hot Badge */}
               {cat.isHot && (
-                <div className="absolute -top-1 left-4 bg-[#f59e0b] text-[#1e293b] text-[8px] font-black px-2 py-0.5 rounded-md z-10 uppercase shadow-lg">
+                <div className="absolute -top-1 left-2 sm:left-4 bg-secondary text-white text-[7px] sm:text-[8px] font-black px-1.5 sm:px-2 py-0.5 rounded-md z-10 uppercase shadow-lg">
                   {translations.hot[language]}
                 </div>
               )}
 
               {/* Selected Checkmark */}
               {isActive && (
-                <div className="absolute top-3 right-3 w-5 h-5 bg-[#f59e0b] rounded-full flex items-center justify-center shadow-lg">
-                  <Check className="w-3 h-3 text-[#1e293b] stroke-[4]" />
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 w-4 h-4 sm:w-5 sm:h-5 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <Check className="w-2.5 h-2.5 sm:w-3 h-3 text-white stroke-[4]" />
                 </div>
               )}
 
-              <div className={`mb-4 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                isActive ? 'bg-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-[#1e293b]'
+              <div className={`mb-2 sm:mb-4 w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                isActive ? 'bg-primary shadow-[0_0_15px_rgba(0,191,165,0.4)]' : 'bg-slate-800'
               }`}>
-                <Icon className={`w-7 h-7 ${isActive ? 'text-[#1e293b]' : 'text-[#f59e0b]'}`} />
+                <Icon className={`w-5 h-5 sm:w-7 sm:h-7 ${isActive ? 'text-white' : 'text-primary'}`} />
               </div>
 
               <div className="text-center">
-                <h3 className="text-[11px] font-black tracking-wider mb-1 uppercase leading-tight text-white poppins-bold">
+                <h3 className="text-[8px] sm:text-[11px] font-black tracking-wider mb-0.5 sm:mb-1 uppercase leading-tight text-white poppins-bold">
                   {cat.name[language]}
                 </h3>
               </div>

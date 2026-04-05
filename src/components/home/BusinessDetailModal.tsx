@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle } from 'lucide-react';
+import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2 } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useBusinessManagement } from '@/hooks/useBusinessManagement';
 
 interface BusinessDetailModalProps {
   business: Business | null;
@@ -11,6 +13,11 @@ interface BusinessDetailModalProps {
 
 export default function BusinessDetailModal({ business, onClose }: BusinessDetailModalProps) {
   const { language } = useHomeStore();
+  const { user, profile } = useAuthStore();
+  const { claimBusiness, loading: claimLoading } = useBusinessManagement();
+  const [claimSuccess, setClaimSuccess] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+
   if (!business) return null;
 
   const translations = {
@@ -88,6 +95,21 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
       en: `Check out ${business.name} on Saku Maku Iraqi Directory!`,
       ar: `اكتشف ${business.name} على دليل شكو ماكو العراقي!`,
       ku: `سەیری ${business.name} بکە لە دایرێکتۆری شکو ماکۆی عێراقی!`
+    },
+    claim: {
+      en: 'Claim this Business',
+      ar: 'المطالبة بهذا العمل',
+      ku: 'داوای ئەم کارە بکە'
+    },
+    claimDesc: {
+      en: 'Are you the owner? Claim this page to manage your profile and post updates.',
+      ar: 'هل أنت المالك؟ طالب بهذه الصفحة لإدارة ملفك الشخصي ونشر التحديثات.',
+      ku: 'ئایا تۆ خاوەنەکەی؟ داوای ئەم لاپەڕەیە بکە بۆ بەڕێوەبردنی پرۆفایلەکەت و بڵاوکردنەوەی نوێکارییەکان.'
+    },
+    claimSuccess: {
+      en: 'Business claimed successfully!',
+      ar: 'تمت المطالبة بالعمل بنجاح!',
+      ku: 'بە سەرکەوتوویی داوای کارەکە کرا!'
     }
   };
 
@@ -99,7 +121,6 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
 
   const getBusinessDescription = () => {
     if (language === 'ar' && business.descriptionAr) return business.descriptionAr;
-    // Note: descriptionKu is not in the interface but we could add it if needed
     return business.description || (language === 'ar' ? `مرحباً بك في ${getBusinessName()}...` : `Welcome to ${getBusinessName()}...`);
   };
 
@@ -116,6 +137,18 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
       }
     }
   };
+
+  const handleClaim = async () => {
+    if (!user) return;
+    try {
+      await claimBusiness(business.id);
+      setClaimSuccess(true);
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : 'Failed to claim business');
+    }
+  };
+
+  const canClaim = !business.ownerId && profile?.role === 'business_owner';
 
   return (
     <AnimatePresence>
@@ -195,6 +228,39 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                 {/* Left Column: Info */}
                 <div className="lg:col-span-2 space-y-10">
+                  {/* Claim Banner */}
+                  {canClaim && !claimSuccess && (
+                    <div className="p-6 bg-[#E87A41]/5 border border-[#E87A41]/20 rounded-[32px] flex flex-col sm:flex-row items-center gap-6">
+                      <div className="w-16 h-16 bg-[#E87A41]/10 rounded-2xl flex items-center justify-center text-[#E87A41] shrink-0">
+                        <ShieldAlert className="w-8 h-8" />
+                      </div>
+                      <div className="flex-1 text-center sm:text-left">
+                        <h4 className="text-lg font-bold text-[#2B2F33] mb-1">{translations.claim[language]}</h4>
+                        <p className="text-sm text-[#6B7280] leading-relaxed">{translations.claimDesc[language]}</p>
+                      </div>
+                      <button 
+                        onClick={handleClaim}
+                        disabled={claimLoading}
+                        className="px-8 py-3 bg-[#E87A41] text-white font-black rounded-2xl shadow-lg shadow-[#E87A41]/20 hover:bg-[#d16a35] transition-all uppercase tracking-widest text-xs disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : translations.claim[language]}
+                      </button>
+                    </div>
+                  )}
+
+                  {claimSuccess && (
+                    <div className="p-6 bg-[#2CA6A4]/5 border border-[#2CA6A4]/20 rounded-[32px] flex items-center gap-4">
+                      <CheckCircle2 className="w-6 h-6 text-[#2CA6A4]" />
+                      <p className="text-sm font-bold text-[#2CA6A4]">{translations.claimSuccess[language]}</p>
+                    </div>
+                  )}
+
+                  {claimError && (
+                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold">
+                      {claimError}
+                    </div>
+                  )}
+
                   <section>
                     <h3 className="text-xl font-bold text-[#2B2F33] mb-4 poppins-bold flex items-center gap-2">
                       <div className="w-1.5 h-6 bg-[#2CA6A4] rounded-full" />

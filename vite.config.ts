@@ -12,22 +12,30 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icon.svg'],
         manifest: {
-          name: 'HUMUS Iraqi Directory',
-          short_name: 'HUMUS',
+          name: 'Saku Maku Iraqi Directory',
+          short_name: 'Saku Maku',
           description: 'The premier Iraqi business directory',
-          theme_color: '#8B1A1A',
+          theme_color: '#00BFA5',
+          background_color: '#F8FAFC',
+          display: 'standalone',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml'
+            },
+            {
+              src: 'icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
             }
           ]
         }
