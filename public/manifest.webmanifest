@@ -1,0 +1,40 @@
+{
+  "name": "BELIVE Iraqi Business Directory",
+  "short_name": "BELIVE",
+  "description": "The premier Iraqi business directory connecting you to 1,800+ verified businesses across Iraq",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#00BFA5",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "directory", "local"],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
