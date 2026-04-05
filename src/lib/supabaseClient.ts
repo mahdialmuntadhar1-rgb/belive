@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseConfig } from '@/config/supabase-config';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const config = getSupabaseConfig();
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!config.url || !config.anonKey) {
   console.warn('Supabase credentials are missing. Using mock data mode.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(config.url, config.anonKey);

@@ -93,7 +93,14 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
               </div>
 
               <h3 className="text-2xl font-black text-white mb-2 poppins-bold leading-tight tracking-tight group-hover:text-[#2CA6A4] transition-colors">
-                {biz.name}
+                {biz.nameAr ? (
+                  <div className="space-y-1">
+                    <div className="text-lg">{biz.name}</div>
+                    <div className="text-sm text-white/80 font-normal">{biz.nameAr}</div>
+                  </div>
+                ) : (
+                  biz.name
+                )}
               </h3>
               
               <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
