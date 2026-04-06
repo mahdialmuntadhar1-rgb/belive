@@ -8,7 +8,7 @@ export function useBusinessManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const claimBusiness = async (businessId: string) => {
+  const claimBusiness = async (businessId: string, note?: string) => {
     if (!user || profile?.role !== 'business_owner') {
       throw new Error('Only business owners can claim businesses.');
     }
@@ -16,18 +16,22 @@ export function useBusinessManagement() {
     setLoading(true);
     setError(null);
     try {
-      const { error: updateError } = await supabase
-        .from('businesses')
-        .update({ ownerId: user.id })
-        .eq('id', businessId)
-        .is('ownerId', null); // Only allow claiming if it has no owner
+      // Insert into business_claims as pending — admin approves and sets ownerId separately
+      const { error: claimError } = await supabase
+        .from('business_claims')
+        .insert({
+          business_id: businessId,
+          user_id: user.id,
+          status: 'pending',
+          note: note || null,
+        });
 
-      if (updateError) throw updateError;
-      
+      if (claimError) throw claimError;
+
       return true;
     } catch (err) {
       console.error('Error claiming business:', err);
-      setError(err instanceof Error ? err.message : 'Failed to claim business');
+      setError(err instanceof Error ? err.message : 'Failed to submit claim');
       throw err;
     } finally {
       setLoading(false);
@@ -75,10 +79,11 @@ export function useBusinessManagement() {
     
     setLoading(true);
     try {
+      // businesses table uses camelCase ownerId column
       const { data, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
-        .eq('owner_id', user.id);
+        .eq('ownerId', user.id);
 
       if (fetchError) throw fetchError;
       

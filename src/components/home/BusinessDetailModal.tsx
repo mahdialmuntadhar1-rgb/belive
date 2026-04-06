@@ -107,9 +107,9 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
       ku: 'ئایا تۆ خاوەنەکەی؟ داوای ئەم لاپەڕەیە بکە بۆ بەڕێوەبردنی پرۆفایلەکەت و بڵاوکردنەوەی نوێکارییەکان.'
     },
     claimSuccess: {
-      en: 'Business claimed successfully!',
-      ar: 'تمت المطالبة بالعمل بنجاح!',
-      ku: 'بە سەرکەوتوویی داوای کارەکە کرا!'
+      en: 'Claim submitted! Our team will review and approve it shortly.',
+      ar: 'تم إرسال طلب المطالبة! سيقوم فريقنا بمراجعته والموافقة عليه قريبًا.',
+      ku: 'داواکارییەکە نێردرا! تیمەکەمان دەیبینێتەوە و بە زووی پەسەندی دەکات.'
     }
   };
 

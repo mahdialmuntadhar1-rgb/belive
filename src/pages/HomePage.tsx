@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, User, PlusCircle, MapPin, LayoutGrid, Sparkles, Compass, LogOut, Settings } from "lucide-react";
+import { Link } from 'react-router-dom';
 import HeroSection from "@/components/home/HeroSection";
 import LocationFilter from "@/components/home/LocationFilter";
 import StoryRow from "@/components/home/StoryRow";
@@ -173,12 +174,13 @@ export default function HomePage() {
             ) : (
               <>
                 {profile?.role === 'business_owner' && (
-                  <button 
+                  <Link
+                    to="/dashboard"
                     className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-secondary text-white text-xs font-black rounded-xl shadow-lg shadow-secondary/20 hover:bg-secondary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
                   >
                     <PlusCircle className="w-4 h-4" />
                     {translations.manage[language]}
-                  </button>
+                  </Link>
                 )}
                 
                 {!user ? (
