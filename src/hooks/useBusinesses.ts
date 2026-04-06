@@ -1,145 +1,124 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase, Business } from "@/lib/supabase";
+import { useState, useEffect, useCallback } from 'react';
+import type { Business } from '@/lib/supabase';
+import { useHomeStore } from '@/stores/homeStore';
+import { supabase } from '@/lib/supabaseClient';
 
-interface UseBusinessesOptions {
-  governorate?: string | null;
-  city?: string | null;
-  category?: string | null;
-  searchQuery?: string;
-}
-
-interface UseBusinessesReturn {
+interface UseBusinessesResult {
   businesses: Business[];
-  totalCount: number;
-  loadedCount: number;
   loading: boolean;
   error: string | null;
   hasMore: boolean;
+  totalCount: number;
   loadMore: () => void;
   refresh: () => void;
 }
 
-const PAGE_SIZE = 100;
+const ITEMS_PER_PAGE = 24;
 
-export function useBusinesses(options: UseBusinessesOptions = {}): UseBusinessesReturn {
-  const { governorate, city, category, searchQuery } = options;
-
+export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Track current filter state to detect changes
-  const filterRef = useRef({ governorate, city, category, searchQuery });
+  const { selectedGovernorate, selectedCategory, selectedCity } = useHomeStore();
 
-  // Reset when filters change
-  useEffect(() => {
-    const prevFilters = filterRef.current;
-    const filtersChanged =
-      prevFilters.governorate !== governorate ||
-      prevFilters.city !== city ||
-      prevFilters.category !== category ||
-      prevFilters.searchQuery !== searchQuery;
-
-    if (filtersChanged) {
-      filterRef.current = { governorate, city, category, searchQuery };
-      setBusinesses([]);
-      setPage(0);
-      setHasMore(true);
-      setError(null);
-    }
-  }, [governorate, city, category, searchQuery]);
-
-  const fetchBusinesses = useCallback(async (pageNum: number, isReset: boolean = false) => {
-    if (loading) return;
-
+  const fetchBusinesses = useCallback(async (isRefresh = false) => {
     setLoading(true);
     setError(null);
-
+    
+    const currentPage = isRefresh ? 1 : page;
+    
     try {
       let query = supabase
-        .from("businesses")
-        .select("*", { count: "exact" })
-        .order("id", { ascending: true })
-        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        .from('businesses')
+        .select('*', { count: 'exact' })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-      // Apply filters
-      if (governorate) {
-        query = query.eq("governorate", governorate);
+      if (selectedGovernorate) {
+        query = query.eq('governorate', selectedGovernorate);
       }
-      if (city) {
-        query = query.eq("city", city);
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
       }
-      if (category) {
-        query = query.eq("category", category);
+      if (selectedCategory) {
+        // Map frontend categories to database values if needed
+        query = query.eq('category', selectedCategory);
       }
       if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%`);
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
 
-      const { data, error: supabaseError, count } = await query;
+      const { data, count, error: fetchError } = await query;
+      
+      if (fetchError) throw fetchError;
+      
+      if (data) {
+        // Map database columns to frontend interface if they differ
+        const mappedBusinesses: Business[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          nameAr: item.name_ar,
+          nameKu: item.name_ku,
+          category: item.category,
+          governorate: item.governorate,
+          city: item.city,
+          address: item.address,
+          phone: item.phone,
+          rating: item.rating || 0,
+          reviewCount: item.review_count || 0,
+          isFeatured: item.is_featured || false,
+          isVerified: item.is_verified || false,
+          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+          website: item.website,
+          socialLinks: item.social_links || {},
+          description: item.description,
+          descriptionAr: item.description_ar,
+          openingHours: item.opening_hours,
+          ownerId: item.owner_id,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at || item.created_at)
+        }));
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-
-      const newBusinesses = (data as Business[]) || [];
-      const exactCount = count || 0;
-
-      setTotalCount(exactCount);
-
-      setBusinesses((prev) => {
-        if (isReset) {
+        setBusinesses(prev => {
+          const newBusinesses = isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses];
+          const countVal = count || 0;
+          setTotalCount(countVal);
+          setHasMore(newBusinesses.length < countVal);
           return newBusinesses;
-        }
-        // Deduplicate by id when appending
-        const existingIds = new Set(prev.map((b) => b.id));
-        const uniqueNew = newBusinesses.filter((b) => !existingIds.has(b.id));
-        return [...prev, ...uniqueNew];
-      });
-
-      const newLoadedCount = isReset
-        ? newBusinesses.length
-        : businesses.length + newBusinesses.length;
-
-      setHasMore(newLoadedCount < exactCount);
+        });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch businesses");
+      console.error('Error fetching businesses:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
     } finally {
       setLoading(false);
     }
-  }, [governorate, city, category, searchQuery, loading, businesses.length]);
+  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
-  // Initial fetch and filter reset fetch
   useEffect(() => {
-    fetchBusinesses(0, true);
-  }, [governorate, city, category, searchQuery]);
+    setPage(1);
+    fetchBusinesses(true);
+  }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
-  const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchBusinesses(nextPage, false);
+  useEffect(() => {
+    if (page > 1) {
+      fetchBusinesses(false);
     }
-  }, [loading, hasMore, page, fetchBusinesses]);
+  }, [page]);
 
-  const refresh = useCallback(() => {
-    setBusinesses([]);
-    setPage(0);
-    setHasMore(true);
-    fetchBusinesses(0, true);
-  }, [fetchBusinesses]);
-
-  return {
-    businesses,
-    totalCount,
-    loadedCount: businesses.length,
-    loading,
-    error,
-    hasMore,
-    loadMore,
-    refresh,
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+    }
   };
+
+  const refresh = () => {
+    setPage(1);
+    fetchBusinesses(true);
+  };
+
+  return { businesses, loading, error, hasMore, totalCount, loadMore, refresh };
 }

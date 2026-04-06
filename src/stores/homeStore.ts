@@ -7,6 +7,7 @@ interface HomeState {
   selectedCategory: string | null;
   searchQuery: string;
   sortBy: "trending" | "recent" | "rating";
+  language: "en" | "ar" | "ku";
 
   // Actions
   setGovernorate: (governorate: string) => void;
@@ -14,6 +15,7 @@ interface HomeState {
   setCategory: (category: string | null) => void;
   setSearchQuery: (query: string) => void;
   setSortBy: (sort: "trending" | "recent" | "rating") => void;
+  setLanguage: (lang: "en" | "ar" | "ku") => void;
   reset: () => void;
 }
 
@@ -27,6 +29,7 @@ export const useHomeStore = create<HomeState>()(
       selectedCategory: null,
       searchQuery: "",
       sortBy: "trending",
+      language: "en",
 
       setGovernorate: (governorate) =>
         set({ selectedGovernorate: governorate, selectedCity: null }),
@@ -43,6 +46,9 @@ export const useHomeStore = create<HomeState>()(
       setSortBy: (sort) =>
         set({ sortBy: sort }),
 
+      setLanguage: (lang) =>
+        set({ language: lang }),
+
       reset: () =>
         set({
           selectedGovernorate: DEFAULT_GOVERNORATE,
@@ -50,6 +56,7 @@ export const useHomeStore = create<HomeState>()(
           selectedCategory: null,
           searchQuery: "",
           sortBy: "trending",
+          language: "en",
         }),
     }),
     {

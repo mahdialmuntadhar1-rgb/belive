@@ -1,54 +1,23 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Clock } from "lucide-react";
-import type { Business } from "@/lib/supabase";
+import { Heart, MessageCircle, Share2, Clock, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import type { Business, Post } from "@/lib/supabase";
+import { usePosts } from "@/hooks/usePosts";
+import { useAuthStore } from "@/stores/authStore";
 
 interface FeedComponentProps {
   businesses: Business[];
   loading: boolean;
 }
 
-interface FeedPost {
-  id: string;
-  type: "announcement" | "listing";
-  business: Business;
-  content?: string;
-  timestamp?: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  isLiked?: boolean;
-}
-
-export default function FeedComponent({ businesses, loading }: FeedComponentProps) {
-  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+export default function FeedComponent({ businesses, loading: businessesLoading }: FeedComponentProps) {
+  const { posts, loading: postsLoading, likePost } = usePosts();
+  const { user } = useAuthStore();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    // Generate feed posts from businesses (alternating between announcements and listings)
-    const posts: FeedPost[] = [];
-
-    businesses.forEach((business, index) => {
-      const postType = index % 2 === 0 ? "announcement" : "listing";
-
-      posts.push({
-        id: `${business.id}-${postType}`,
-        type: postType,
-        business,
-        content:
-          postType === "announcement"
-            ? `Check out our latest updates! Visit ${business.name} today.`
-            : undefined,
-        timestamp: `${Math.floor(Math.random() * 24)} hours ago`,
-        likes: Math.floor(Math.random() * 500),
-        comments: Math.floor(Math.random() * 50),
-        shares: Math.floor(Math.random() * 100),
-      });
-    });
-
-    setFeedPosts(posts);
-  }, [businesses]);
-
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
+    if (!user) return;
+    
     setLikedPosts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -58,17 +27,23 @@ export default function FeedComponent({ businesses, loading }: FeedComponentProp
       }
       return newSet;
     });
+
+    try {
+      await likePost(postId);
+    } catch (err) {
+      console.error('Failed to like post:', err);
+    }
   };
 
-  if (loading) {
+  if (businessesLoading || postsLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-              <div className="h-12 bg-gray-200 rounded-full w-32 mb-4" />
-              <div className="h-24 bg-gray-200 rounded mb-4" />
-              <div className="h-8 bg-gray-200 rounded w-48" />
+            <div key={i} className="bg-white rounded-lg border border-slate-200 p-4 animate-pulse">
+              <div className="h-12 bg-slate-100 rounded-full w-32 mb-4" />
+              <div className="h-24 bg-slate-100 rounded mb-4" />
+              <div className="h-8 bg-slate-100 rounded w-48" />
             </div>
           ))}
         </div>
@@ -76,180 +51,168 @@ export default function FeedComponent({ businesses, loading }: FeedComponentProp
     );
   }
 
+  const formatTimestamp = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours} hours ago`;
+    return date.toLocaleDateString();
+  };
+
+  const mockPosts: Post[] = [
+    {
+      id: "mock-1",
+      businessId: businesses[0]?.id || "b1",
+      authorName: "Al-Mansour Mall",
+      authorAvatar: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&q=80&w=200",
+      content: "Exciting news! Our new spring collection has just arrived. Visit us today for exclusive discounts and a first look at the latest trends in fashion. 🛍️✨",
+      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
+      likes: 124,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
+    },
+    {
+      id: "mock-2",
+      businessId: businesses[1]?.id || "b2",
+      authorName: "Saj Al-Reef",
+      authorAvatar: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=200",
+      content: "Craving something delicious? Our signature Shawarma is ready! Made with fresh ingredients and our secret spice blend. Come and taste the difference. 🌯🔥",
+      image: "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&q=80&w=800",
+      likes: 89,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
+    },
+    {
+      id: "mock-3",
+      businessId: businesses[2]?.id || "b3",
+      authorName: "Grand Millenium Hotel",
+      authorAvatar: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=200",
+      content: "Experience luxury like never before. Book your stay this weekend and enjoy a complimentary spa session. Your perfect getaway awaits. 🏨💎",
+      image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
+      likes: 256,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
+    }
+  ];
+
+  const displayPosts = posts.length > 0 ? posts : mockPosts;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 pb-20">
-      {feedPosts.length === 0 ? (
-        <div className="bg-white rounded-3xl border-2 border-dashed border-[#cbd5e1] p-16 text-center shadow-inner">
-          <div className="w-20 h-20 bg-[#F5F7F9] rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🔍</div>
-          <p className="text-[#2B2F33] font-bold text-lg mb-2 poppins-bold">No businesses found</p>
-          <p className="text-sm text-[#64748b] max-w-xs mx-auto">
-            Try selecting a different location or category to discover local gems.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {feedPosts.map((post) => (
-            <div
-              key={post.id}
-              className="bg-white rounded-[24px] border border-[#e2e8f0] shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden group"
-            >
-              {/* Post Header */}
-              <div className="p-5 border-b border-[#f1f5f9] flex items-center justify-between bg-gradient-to-r from-white to-[#FDECEC]/10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#8B1A1A]/10 flex items-center justify-center text-[#8B1A1A] font-bold border border-[#8B1A1A]/5 shadow-inner overflow-hidden">
-                    {post.business.image ? (
-                      <img
-                        src={post.business.image}
-                        alt={post.business.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span className="text-xl">{post.business.name.charAt(0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#2B2F33] text-base poppins-semibold group-hover:text-[#8B1A1A] transition-colors">
-                      {post.business.name}
-                    </h3>
-                    <p className="text-[10px] text-[#8B1A1A]/60 flex items-center gap-1.5 mt-0.5 font-bold uppercase tracking-widest">
-                      <Clock size={12} className="text-[#8B1A1A]" /> {post.timestamp}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-[10px] font-bold px-4 py-1.5 rounded-xl uppercase tracking-widest shadow-sm ${
-                  post.type === "announcement" 
-                    ? "bg-[#8B1A1A] text-white" 
-                    : "bg-[#8B1A1A] text-white"
-                }`}>
-                  {post.type === "announcement" ? "📢 Update" : "📍 Listing"}
-                </span>
-              </div>
+      <div className="space-y-12">
+        {displayPosts.map((post) => {
+          const business = businesses.find(b => b.id === post.businessId);
+          const category = business?.category || "Featured";
+          const phone = business?.phone;
 
-              {/* Post Content */}
-              {post.type === "announcement" && post.content && (
-                <div className="px-6 pt-6">
-                  <p className="text-[#2B2F33] text-sm leading-relaxed mb-4 font-medium">
-                    {post.content}
-                  </p>
-                </div>
-              )}
-
-              {/* Image Section with Depth */}
-              <div className="px-6 pt-4">
-                <div className="w-full h-80 bg-gray-100 rounded-2xl overflow-hidden relative shadow-inner group/img">
-                  <img
-                    src={
-                      post.business.image ||
-                      "https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop"
-                    }
-                    alt={post.business.name}
-                    className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-1000"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-300" />
-                </div>
-              </div>
-
-              {/* Post Info - Listings */}
-              {post.type === "listing" && (
-                <div className="px-6 pt-6">
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-[#FDECEC]/30 p-3 rounded-2xl border border-[#8B1A1A]/10">
-                      <p className="text-[9px] text-[#8B1A1A]/60 font-bold uppercase tracking-widest mb-1">Category</p>
-                      <p className="text-xs font-bold text-[#8B1A1A] uppercase">
-                        {post.business.category.replace('_', ' ')}
-                      </p>
+            return (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-white rounded-[32px] border border-slate-200 shadow-social hover:shadow-2xl transition-all duration-700 overflow-hidden group flex flex-col md:flex-row"
+              >
+                {/* Piece 1: Image */}
+                {post.image && (
+                  <div className="w-full md:w-1/2 h-[250px] md:h-auto relative overflow-hidden group/img">
+                    <img
+                      src={post.image}
+                      alt=""
+                      className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-1000"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-500" />
+                    
+                    {/* Floating Badge on Image */}
+                    <div className="absolute bottom-4 left-4 glass-dark px-3 py-1.5 rounded-lg border border-white/20">
+                      <span className="text-[8px] font-black text-white uppercase tracking-widest">
+                        {category}
+                      </span>
                     </div>
-                    <div className="bg-[#FDECEC]/30 p-3 rounded-2xl border border-[#8B1A1A]/10">
-                      <p className="text-[9px] text-[#8B1A1A]/60 font-bold uppercase tracking-widest mb-1">Rating</p>
-                      <p className="text-xs font-bold text-[#8B1A1A] flex items-center gap-1">
-                        ⭐ {post.business.rating?.toFixed(1) || "N/A"}
-                        <span className="text-[#8B1A1A]/60 text-[10px] font-medium">
-                          ({post.business.reviewCount} reviews)
-                        </span>
-                      </p>
-                    </div>
-                    <div className="col-span-2 bg-[#FDECEC]/30 p-3 rounded-2xl border border-[#8B1A1A]/10 flex items-center justify-between">
+                  </div>
+                )}
+
+                {/* Piece 2: Information */}
+                <div className={`flex-1 flex flex-col ${!post.image ? 'w-full' : ''}`}>
+                  {/* Post Header */}
+                  <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl p-[1px] bg-gradient-to-tr from-primary via-secondary to-accent">
+                        <div className="w-full h-full rounded-xl bg-white flex items-center justify-center text-primary font-bold border border-white shadow-inner overflow-hidden">
+                          {post.authorAvatar ? (
+                            <img
+                              src={post.authorAvatar}
+                              alt={post.authorName}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span className="text-lg font-black">{post.authorName?.charAt(0)}</span>
+                          )}
+                        </div>
+                      </div>
                       <div>
-                        <p className="text-[9px] text-[#8B1A1A]/60 font-bold uppercase tracking-widest mb-1">Location</p>
-                        <p className="text-xs font-bold text-[#2B2F33]">
-                          📍 {post.business.governorate}
+                        <h3 className="font-black text-text-main text-sm poppins-bold group-hover:text-primary transition-colors tracking-tight">
+                          {post.authorName}
+                        </h3>
+                        <p className="text-[8px] text-text-muted flex items-center gap-1 mt-0.5 font-black uppercase tracking-widest">
+                          <Clock size={10} className="text-primary" /> {formatTimestamp(post.createdAt)}
                         </p>
                       </div>
-                      <button className="text-[10px] font-bold text-[#8B1A1A] hover:underline uppercase tracking-widest">View Map</button>
                     </div>
                   </div>
+
+                  {/* Post Content */}
+                  <div className="p-6 flex-1">
+                    <p className="text-text-main text-sm leading-relaxed font-medium line-clamp-4">
+                      {post.content}
+                    </p>
+                  </div>
+
+                  {/* Engagement & Contact */}
+                  <div className="p-4 bg-slate-50/50 mt-auto border-t border-slate-100 space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-[9px] transition-all duration-300 uppercase tracking-widest ${
+                          likedPosts.has(post.id)
+                            ? "bg-primary text-white shadow-neon"
+                            : "bg-white text-text-muted border border-slate-200 hover:border-primary/20"
+                        }`}
+                      >
+                        <Heart
+                          size={14}
+                          className={likedPosts.has(post.id) ? "fill-current" : ""}
+                        />
+                        {post.likes + (likedPosts.has(post.id) ? 1 : 0)}
+                      </button>
+
+                      <button className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-200 text-text-muted rounded-xl font-black text-[9px] transition-all duration-300 uppercase tracking-widest">
+                        <MessageCircle size={14} />
+                        Chat
+                      </button>
+                    </div>
+
+                    {phone && (
+                      <a
+                        href={`tel:${phone}`}
+                        className="block w-full py-2.5 bg-bg-dark hover:bg-primary text-white hover:text-bg-dark text-[9px] font-black rounded-xl transition-all duration-300 text-center uppercase tracking-widest"
+                      >
+                        Call Now
+                      </a>
+                    )}
+                  </div>
                 </div>
-              )}
-
-              {/* Engagement Section */}
-              <div className="px-6 py-5 bg-[#F5F7F9]/30 border-t border-[#f1f5f9]">
-                {/* Stats */}
-                <div className="flex justify-between text-[10px] text-[#64748b] font-bold uppercase tracking-widest mb-5 pb-5 border-b border-[#f1f5f9]">
-                  <span className="flex items-center gap-2 hover:text-[#E87A41] cursor-pointer transition-colors">❤️ {post.likes} <span className="hidden sm:inline">Likes</span></span>
-                  <span className="flex items-center gap-2 hover:text-[#2CA6A4] cursor-pointer transition-colors">💬 {post.comments} <span className="hidden sm:inline">Comments</span></span>
-                  <span className="flex items-center gap-2 hover:text-[#2CA6A4] cursor-pointer transition-colors">📤 {post.shares} <span className="hidden sm:inline">Shares</span></span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all duration-300 ${
-                      likedPosts.has(post.id)
-                        ? "bg-[#8B1A1A] text-white shadow-lg shadow-[#8B1A1A]/20"
-                        : "bg-white text-[#64748b] border border-[#f5dada] hover:bg-[#8B1A1A]/5 hover:text-[#8B1A1A] hover:border-[#8B1A1A]/20"
-                    }`}
-                  >
-                    <Heart
-                      size={16}
-                      className={likedPosts.has(post.id) ? "fill-current" : ""}
-                    />
-                    Like
-                  </button>
-
-                  <button className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-[#f5dada] hover:bg-[#8B1A1A]/5 hover:text-[#8B1A1A] hover:border-[#8B1A1A]/20 text-[#64748b] rounded-xl font-bold text-xs transition-all duration-300">
-                    <MessageCircle size={16} />
-                    Comment
-                  </button>
-
-                  <button className="w-12 flex items-center justify-center bg-white border border-[#f5dada] hover:bg-[#8B1A1A] hover:text-white text-[#64748b] rounded-xl transition-all duration-300">
-                    <Share2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Contact Bar */}
-              {post.type === "listing" && (
-                <div className="px-6 py-4 bg-[#2B2F33] flex gap-3">
-                  {post.business.phone && (
-                    <a
-                      href={`tel:${post.business.phone}`}
-                      className="flex-1 py-2.5 bg-[#8B1A1A] hover:bg-[#6b1414] text-white text-[10px] font-bold rounded-xl transition-all duration-300 text-center shadow-lg uppercase tracking-widest"
-                    >
-                      Call Now
-                    </a>
-                  )}
-                  <button className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold rounded-xl transition-all duration-300 uppercase tracking-widest border border-white/10">
-                    WhatsApp
-                  </button>
-                  <button className="flex-1 py-2.5 bg-[#8B1A1A]/80 hover:bg-[#8B1A1A] text-white text-[10px] font-bold rounded-xl transition-all duration-300 uppercase tracking-widest shadow-lg">
-                    Profile
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+              </motion.div>
+            );
+          })}
 
           {/* Load More Button */}
           <div className="text-center pt-10">
-            <button className="btn-premium bg-[#8B1A1A] px-16 py-4 rounded-2xl shadow-xl hover:shadow-[#8B1A1A]/30 text-sm uppercase tracking-widest">
-              Load More Businesses
+            <button className="px-16 py-5 bg-bg-dark text-white rounded-[24px] shadow-social hover:shadow-2xl text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 border border-white/10">
+              Load More Updates
             </button>
           </div>
         </div>
-      )}
     </div>
   );
 }

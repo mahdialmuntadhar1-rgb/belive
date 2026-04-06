@@ -1,101 +1,140 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from "@/stores/homeStore";
-
-const GOVERNORATES = [
-  { name: "Baghdad", nameAr: "بغداد" },
-  { name: "Erbil", nameAr: "أربيل" },
-  { name: "Basra", nameAr: "البصرة" },
-  { name: "Mosul", nameAr: "الموصل" },
-  { name: "Sulaymaniyah", nameAr: "السليمانية" },
-  { name: "Duhok", nameAr: "دهوك" },
-  { name: "Kirkuk", nameAr: "كركوك" },
-  { name: "Najaf", nameAr: "النجف" },
-  { name: "Karbala", nameAr: "كربلاء" },
-  { name: "Nasiriyah", nameAr: "الناصرية" },
-  { name: "Amarah", nameAr: "العمارة" },
-  { name: "Hilla", nameAr: "الحلة" },
-  { name: "Kut", nameAr: "الكوت" },
-  { name: "Diwaniyah", nameAr: "الديوانية" },
-  { name: "Ramadi", nameAr: "الرمادي" },
-  { name: "Baqubah", nameAr: "بعقوبة" },
-  { name: "Samawah", nameAr: "السماوة" },
-  { name: "Tikrit", nameAr: "تكريت" },
-];
-
-const CITIES_BY_GOVERNORATE: Record<string, string[]> = {
-  Baghdad: ["Central", "Kadhimiya", "Adhamiyah", "Mansour", "Karada", "Sadr City"],
-  Erbil: ["Erbil Center", "Ankawa", "Shaqlawa", "Soran"],
-  Basra: ["Basra City", "Zubair", "Qurna", "Fao"],
-  Mosul: ["Mosul Center", "Hamdaniya", "Tel Kaif"],
-  Sulaymaniyah: ["Suli Center", "Halabja", "Ranya", "Chamchamal"],
-  Duhok: ["Duhok Center", "Zakho", "Amedi"],
-  Kirkuk: ["Kirkuk Center", "Hawija", "Daquq"],
-  Najaf: ["Najaf Center", "Kufa", "Manathera"],
-  Karbala: ["Karbala Center", "Hindiya", "Ain al-Tamur"],
-  Nasiriyah: ["Nasiriyah Center", "Shatra", "Rifa'i"],
-  Amarah: ["Amarah Center", "Maimouna", "Qalat Saleh"],
-  Hilla: ["Hilla Center", "Mahawil", "Musayib"],
-  Kut: ["Kut Center", "Suwaira", "Aziziya"],
-  Diwaniyah: ["Diwaniyah Center", "Afak", "Shamiya"],
-  Ramadi: ["Ramadi Center", "Fallujah", "Hit", "Haditha"],
-  Baqubah: ["Baqubah Center", "Muqdadiya", "Khanaqin"],
-  Samawah: ["Samawah Center", "Rumaitha", "Khidhir"],
-  Tikrit: ["Tikrit Center", "Samarra", "Balad", "Dujail"],
-};
+import { ChevronDown, MapPin, LayoutGrid, X, Check } from 'lucide-react';
+import { useMetadata } from '@/hooks/useMetadata';
 
 export default function LocationFilter() {
-  const { selectedGovernorate, setGovernorate, selectedCity, setCity } = useHomeStore();
+  const { selectedGovernorate, setGovernorate, selectedCategory, setCategory, language } = useHomeStore();
+  const [activeDropdown, setActiveDropdown] = useState<'gov' | 'cat' | null>(null);
+  const { governorates, categories, loading } = useMetadata();
 
-  const cities = CITIES_BY_GOVERNORATE[selectedGovernorate] || [];
+  const translations = {
+    selectGov: { en: "Governorate", ar: "المحافظة", ku: "پارێزگا" },
+    selectCat: { en: "Category", ar: "التصنيف", ku: "پۆلێن" },
+    allGovs: { en: "All Iraq", ar: "كل العراق", ku: "هەموو عێراق" },
+    allCats: { en: "All Categories", ar: "كل التصنيفات", ku: "هەموو پۆلەکان" }
+  };
+
+  const getGovName = (govName: string | null) => {
+    if (!govName) return translations.allGovs[language];
+    const gov = governorates.find(g => g.name_en === govName);
+    if (!gov) return govName;
+    return language === 'ar' ? gov.name_ar : language === 'ku' ? gov.name_ku : gov.name_en;
+  };
+
+  const getCatName = (catId: string | null) => {
+    if (!catId) return translations.allCats[language];
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return catId;
+    return cat.name[language];
+  };
 
   return (
-    <div className="space-y-4 mb-6">
-      {/* Governorate Filter (Horizontal Scroll) */}
-      <div className="w-full overflow-hidden">
-        <div className="flex gap-2 overflow-x-auto px-4 no-scrollbar pb-2">
-          {GOVERNORATES.map((gov) => (
-            <button
-              key={gov.name}
-              onClick={() => setGovernorate(gov.name)}
-              className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all border-2 ${
-                selectedGovernorate === gov.name
-                  ? "bg-[#2CA6A4] text-white border-[#2CA6A4] shadow-md"
-                  : "bg-white text-[#2B2F33] border-[#E5E7EB] hover:border-[#2CA6A4]/30"
-              }`}
-            >
-              {gov.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* City Filter (Chips) */}
-      <div className="w-full overflow-hidden">
-        <div className="flex gap-2 overflow-x-auto px-4 no-scrollbar pb-2">
+    <div className="w-full px-4 mb-8">
+      <div className="flex gap-3 max-w-2xl mx-auto">
+        {/* Governorate Dropdown */}
+        <div className="relative flex-1">
+          <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 px-1">
+            {translations.selectGov[language]}
+          </label>
           <button
-            onClick={() => setCity(null)}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-              selectedCity === null
-                ? "bg-[#E87A41] text-white border-[#E87A41]"
-                : "bg-white text-[#6B7280] border-[#E5E7EB]"
+            onClick={() => setActiveDropdown(activeDropdown === 'gov' ? null : 'gov')}
+            className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-300 shadow-sm ${
+              activeDropdown === 'gov' ? "border-primary bg-white ring-4 ring-primary/10" : "border-slate-200 bg-white"
             }`}
           >
-            All Cities
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin className={`w-4 h-4 flex-shrink-0 ${selectedGovernorate ? 'text-primary' : 'text-slate-400'}`} />
+              <span className={`text-xs font-bold truncate ${selectedGovernorate ? 'text-text-main' : 'text-slate-400'}`}>
+                {getGovName(selectedGovernorate)}
+              </span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${activeDropdown === 'gov' ? "rotate-180" : ""}`} />
           </button>
-          {cities.map((city) => (
-            <button
-              key={city}
-              onClick={() => setCity(city)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                selectedCity === city
-                  ? "bg-[#E87A41] text-white border-[#E87A41]"
-                  : "bg-white text-[#6B7280] border-[#E5E7EB]"
-              }`}
-            >
-              {city}
-            </button>
-          ))}
+
+          <AnimatePresence>
+            {activeDropdown === 'gov' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute z-50 left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden max-h-[300px] overflow-y-auto no-scrollbar p-2"
+              >
+                <button
+                  onClick={() => { setGovernorate(null); setActiveDropdown(null); }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold hover:bg-slate-50"
+                >
+                  {translations.allGovs[language]}
+                  {!selectedGovernorate && <Check className="w-3 h-3 text-primary" />}
+                </button>
+                {governorates.map((gov) => (
+                  <button
+                    key={gov.id}
+                    onClick={() => { setGovernorate(gov.name_en); setActiveDropdown(null); }}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-colors ${
+                      selectedGovernorate === gov.name_en ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-text-main"
+                    }`}
+                  >
+                    {language === 'ar' ? gov.name_ar : language === 'ku' ? gov.name_ku : gov.name_en}
+                    {selectedGovernorate === gov.name_en && <Check className="w-3 h-3 text-primary" />}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Category Dropdown */}
+        <div className="relative flex-1">
+          <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 px-1">
+            {translations.selectCat[language]}
+          </label>
+          <button
+            onClick={() => setActiveDropdown(activeDropdown === 'cat' ? null : 'cat')}
+            className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-300 shadow-sm ${
+              activeDropdown === 'cat' ? "border-primary bg-white ring-4 ring-primary/10" : "border-slate-200 bg-white"
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <LayoutGrid className={`w-4 h-4 flex-shrink-0 ${selectedCategory ? 'text-primary' : 'text-slate-400'}`} />
+              <span className={`text-xs font-bold truncate ${selectedCategory ? 'text-text-main' : 'text-slate-400'}`}>
+                {getCatName(selectedCategory)}
+              </span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${activeDropdown === 'cat' ? "rotate-180" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {activeDropdown === 'cat' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute z-50 left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden max-h-[300px] overflow-y-auto no-scrollbar p-2"
+              >
+                <button
+                  onClick={() => { setCategory(null); setActiveDropdown(null); }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold hover:bg-slate-50"
+                >
+                  {translations.allCats[language]}
+                  {!selectedCategory && <Check className="w-3 h-3 text-primary" />}
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setCategory(cat.id); setActiveDropdown(null); }}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-colors ${
+                      selectedCategory === cat.id ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-text-main"
+                    }`}
+                  >
+                    {cat.name[language]}
+                    {selectedCategory === cat.id && <Check className="w-3 h-3 text-primary" />}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
