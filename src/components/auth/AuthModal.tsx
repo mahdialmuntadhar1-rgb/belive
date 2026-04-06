@@ -148,7 +148,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
+  const isGoogleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
   const handleGoogleLogin = async () => {
+    if (!isGoogleConfigured) {
+      setError('Google login is not configured for this deployment.');
+      return;
+    }
     setError(null);
     try {
       const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -337,9 +343,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                <button 
+                <button
                   onClick={handleGoogleLogin}
-                  className="flex items-center justify-center gap-3 py-3 border border-[#E5E7EB] rounded-2xl hover:bg-[#F5F7F9] transition-all text-sm font-bold text-[#2B2F33]"
+                  disabled={!isGoogleConfigured}
+                  title={!isGoogleConfigured ? 'Google login is not configured for this deployment' : undefined}
+                  className="flex items-center justify-center gap-3 py-3 border border-[#E5E7EB] rounded-2xl hover:bg-[#F5F7F9] transition-all text-sm font-bold text-[#2B2F33] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path

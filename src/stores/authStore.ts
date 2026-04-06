@@ -2,12 +2,14 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
+// Matches the actual `profiles` table schema: id, full_name, phone, city, role, created_at
 interface Profile {
   id: string;
-  email: string;
   full_name?: string;
+  phone?: string;
+  city?: string;
   role: 'user' | 'business_owner';
-  avatar_url?: string;
+  created_at?: string;
 }
 
 interface AuthState {
