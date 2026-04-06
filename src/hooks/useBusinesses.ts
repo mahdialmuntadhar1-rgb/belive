@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/services/supabase';
 
 interface UseBusinessesResult {
   businesses: Business[];
@@ -15,6 +15,9 @@ interface UseBusinessesResult {
 
 const ITEMS_PER_PAGE = 24;
 
+// LAUNCH MODE: Category filtering disabled - visual only
+// All businesses shown by default, governorate-only filtering
+
 export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,7 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
-  const { selectedGovernorate, selectedCategory, selectedCity } = useHomeStore();
+  const { selectedGovernorate, selectedCity } = useHomeStore();
 
   const fetchBusinesses = useCallback(async (isRefresh = false) => {
     setLoading(true);
@@ -32,21 +35,22 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
     const currentPage = isRefresh ? 1 : page;
     
     try {
+      if (!supabase) {
+        throw new Error('Supabase client is not initialized. Please check your environment variables.');
+      }
+      
       let query = supabase
         .from('businesses')
         .select('*', { count: 'exact' })
         .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-      if (selectedGovernorate) {
+      if (selectedGovernorate && selectedGovernorate !== 'all') {
         query = query.eq('governorate', selectedGovernorate);
       }
       if (selectedCity) {
         query = query.eq('city', selectedCity);
       }
-      if (selectedCategory) {
-        // Map frontend categories to database values if needed
-        query = query.eq('category', selectedCategory);
-      }
+      // LAUNCH MODE: Category filtering disabled - visual only
       if (searchQuery) {
         query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
@@ -97,12 +101,12 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
+  }, [page, selectedGovernorate, selectedCity, searchQuery]);
 
   useEffect(() => {
     setPage(1);
     fetchBusinesses(true);
-  }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
+  }, [selectedGovernorate, selectedCity, searchQuery]);
 
   useEffect(() => {
     if (page > 1) {
