@@ -50,15 +50,16 @@ export default function CategoryGrid() {
 
       <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
         {categories.map((cat) => {
-          const isActive = selectedCategory === cat.id;
+          const filterValue = cat.name?.en || cat.name?.['en'] || cat.id;
+          const isActive = selectedCategory === filterValue;
           const Icon = cat.icon || (cat.icon_name ? ICON_MAP[cat.icon_name] : Utensils) || Utensils;
-          
+
           return (
             <motion.button
               key={cat.id}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setCategory(isActive ? null : cat.id)}
+              onClick={() => setCategory(isActive ? null : filterValue)}
               className={`relative flex flex-col items-center justify-center p-3 sm:p-6 rounded-xl sm:rounded-[24px] transition-all duration-300 border-2 aspect-square sm:aspect-[1.3/1] ${
                 isActive
                   ? "bg-slate-800 border-primary shadow-[0_0_30px_rgba(0,191,165,0.25)]"

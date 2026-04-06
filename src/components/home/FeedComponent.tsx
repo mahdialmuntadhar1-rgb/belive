@@ -72,8 +72,9 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
       ) : (
         <div className="space-y-10">
           {posts.map((post) => {
+            // Use post's own authorName/authorAvatar (from businessName/businessAvatar columns)
+            // Business lookup is only used for the phone/contact bar at the bottom
             const business = businesses.find(b => b.id === post.businessId);
-            if (!business) return null;
 
             return (
               <div

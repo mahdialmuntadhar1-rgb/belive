@@ -35,7 +35,11 @@ export default function BusinessDashboard() {
   // Post Form State
   const [postContent, setPostContent] = useState('');
   const [postImage, setPostImage] = useState('');
-  const { posts, createPost, loading: postsLoading } = usePosts(selectedBusiness?.id);
+  const { posts, createPost, loading: postsLoading } = usePosts(
+    selectedBusiness?.id,
+    selectedBusiness?.name,
+    selectedBusiness?.image
+  );
   const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
 

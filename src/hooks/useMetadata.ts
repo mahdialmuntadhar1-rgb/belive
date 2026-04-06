@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { CATEGORIES as FALLBACK_CATEGORIES } from '@/constants';
+
+// NOTE: The old FALLBACK_CATEGORIES from constants.ts had wrong category IDs
+// ('dining', 'cafe', etc.) that don't match businesses.category values
+// ('Restaurants & Dining', 'Cafés & Coffee', etc.).
+// The categories/governorates/cities tables are now live in the DB (Phase 1).
+// No fallback needed — an empty list is safer than wrong filter options.
 
 export interface Category {
   id: string;
@@ -36,7 +41,7 @@ export function useMetadata() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch categories
+        // Fetch categories — name_en matches businesses.category exactly
         const { data: catData, error: catError } = await supabase
           .from('categories')
           .select('*')
@@ -48,16 +53,17 @@ export function useMetadata() {
             name: {
               en: cat.name_en,
               ar: cat.name_ar,
-              ku: cat.name_ku
+              ku: cat.name_ku,
             },
             icon_name: cat.icon_name,
-            isHot: cat.is_hot
+            isHot: cat.is_hot,
           })));
         } else {
-          setCategories(FALLBACK_CATEGORIES);
+          // Return empty — wrong fallback names break category filtering
+          setCategories([]);
         }
 
-        // Fetch governorates
+        // Fetch governorates — name_en matches businesses.governorate exactly
         const { data: govData, error: govError } = await supabase
           .from('governorates')
           .select('*')
@@ -78,7 +84,7 @@ export function useMetadata() {
         }
       } catch (err) {
         console.error('Error fetching metadata:', err);
-        setCategories(FALLBACK_CATEGORIES);
+        // Leave categories/governorates as empty arrays — do not use wrong constants
       } finally {
         setLoading(false);
       }

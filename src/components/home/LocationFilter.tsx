@@ -10,6 +10,11 @@ export default function LocationFilter() {
   const { governorates, loading } = useMetadata();
 
   const translations = {
+    all: {
+      en: "All Governorates",
+      ar: "جميع المحافظات",
+      ku: "هەموو پارێزگاکان"
+    },
     active: {
       en: "Location Active",
       ar: "الموقع مفعل",
@@ -63,9 +68,9 @@ export default function LocationFilter() {
         </div>
 
         <h2 className="text-3xl sm:text-4xl font-black text-[#2B2F33] poppins-bold mb-10 leading-tight tracking-tight">
-          {selectedGovernorate 
-            ? `${translations.exploring[language]} ${getGovName(selectedGovernorate)}` 
-            : translations.choose[language]}
+          {selectedGovernorate
+            ? `${translations.exploring[language]} ${getGovName(selectedGovernorate)}`
+            : translations.all[language]}
         </h2>
 
         {/* Custom Dropdown */}
@@ -103,6 +108,22 @@ export default function LocationFilter() {
                 className="absolute z-50 left-0 right-0 mt-4 bg-white rounded-[32px] border border-[#E5E7EB] shadow-2xl overflow-hidden max-h-[400px] overflow-y-auto no-scrollbar p-4"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setGovernorate(null);
+                      setCity(null);
+                      setIsOpen(false);
+                    }}
+                    className={`flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-200 sm:col-span-2 ${
+                      !selectedGovernorate
+                        ? "bg-[#2CA6A4] text-white"
+                        : "hover:bg-[#F5F7F9] text-[#2B2F33]"
+                    }`}
+                  >
+                    <span className="text-sm font-bold uppercase tracking-widest">
+                      {translations.all[language]}
+                    </span>
+                  </button>
                   {governorates.map((gov) => (
                     <button
                       key={gov.id}

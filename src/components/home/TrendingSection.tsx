@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Star, MapPin, ArrowRight, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { CATEGORIES } from '@/constants';
+import { useMetadata } from '@/hooks/useMetadata';
 
 interface TrendingSectionProps {
   businesses: Business[];
@@ -14,6 +14,7 @@ interface TrendingSectionProps {
 export default function TrendingSection({ businesses, loading, onBusinessClick }: TrendingSectionProps) {
   const featured = businesses.filter(b => b.isFeatured).slice(0, 6);
   const { language } = useHomeStore();
+  const { categories } = useMetadata();
 
   const translations = {
     featured: {
@@ -44,10 +45,12 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
     return biz.name;
   };
 
-  const getCategoryName = (catId: string) => {
-    const cat = CATEGORIES.find(c => c.id === catId);
-    if (!cat) return catId.replace('_', ' ');
-    return cat.name[language as keyof typeof cat.name];
+  const getCategoryName = (catValue: string) => {
+    // DB stores full English name e.g. "Restaurants & Dining"
+    // Match against live categories by English name
+    const cat = categories.find(c => c.name?.en === catValue);
+    if (cat) return cat.name[language] || catValue;
+    return catValue;
   };
 
   if (loading && businesses.length === 0) return (

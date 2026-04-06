@@ -1,59 +1,49 @@
-import React from 'react';
 import { motion } from 'motion/react';
-
-const STORIES = [
-  { id: 1, name: 'Offers', image: 'https://picsum.photos/seed/offer/200/200', color: '#2CA6A4' },
-  { id: 2, name: 'Events', image: 'https://picsum.photos/seed/event/200/200', color: '#E87A41' },
-  { id: 3, name: 'New Jobs', image: 'https://picsum.photos/seed/job/200/200', color: '#2B2F33' },
-  { id: 4, name: 'Trending', image: 'https://picsum.photos/seed/trend/200/200', color: '#2CA6A4' },
-  { id: 5, name: 'Top Rated', image: 'https://picsum.photos/seed/rate/200/200', color: '#E87A41' },
-  { id: 6, name: 'Food', image: 'https://picsum.photos/seed/food/200/200', color: '#2CA6A4' },
-  { id: 7, name: 'Fashion', image: 'https://picsum.photos/seed/fashion/200/200', color: '#E87A41' },
-  { id: 8, name: 'Tech', image: 'https://picsum.photos/seed/tech/200/200', color: '#2B2F33' },
-];
+import { useHomeStore } from '@/stores/homeStore';
+import { useMetadata } from '@/hooks/useMetadata';
+import { ICON_MAP } from '@/constants';
+import { Utensils } from 'lucide-react';
 
 export default function StoryRow() {
-  const handleStoryClick = (name: string) => {
-    // For now, just scroll to the explore section
-    const element = document.getElementById('explore-section');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const { selectedCategory, setCategory, language } = useHomeStore();
+  const { categories, loading } = useMetadata();
+
+  if (loading && categories.length === 0) return null;
 
   return (
     <div className="w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar">
-          {STORIES.map((story) => (
-            <motion.div
-              key={story.id}
-              whileHover={{ scale: 1.05, y: -4 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleStoryClick(story.name)}
-              className="flex flex-col items-center gap-3 flex-shrink-0 cursor-pointer group"
-            >
-              <div className="relative p-1 rounded-[24px] bg-gradient-to-tr from-[#2CA6A4] to-[#E87A41] shadow-lg shadow-[#2CA6A4]/10 group-hover:shadow-[#2CA6A4]/20 transition-all duration-500">
-                <div className="w-20 h-20 rounded-[20px] overflow-hidden border-[3px] border-white bg-white">
-                  <img 
-                    src={story.image} 
-                    alt={story.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                  />
+        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+          {categories.map((cat) => {
+            const filterValue = cat.name?.en || cat.id;
+            const isActive = selectedCategory === filterValue;
+            const Icon = cat.icon || (cat.icon_name ? ICON_MAP[cat.icon_name] : Utensils) || Utensils;
+
+            return (
+              <motion.div
+                key={cat.id}
+                whileHover={{ scale: 1.05, y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCategory(isActive ? null : filterValue)}
+                className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
+              >
+                <div className={`relative p-1 rounded-[20px] shadow-lg transition-all duration-300 ${
+                  isActive
+                    ? 'bg-gradient-to-tr from-[#2CA6A4] to-[#E87A41] shadow-[#2CA6A4]/20'
+                    : 'bg-gradient-to-tr from-slate-200 to-slate-300 shadow-slate-200/50 group-hover:from-[#2CA6A4]/60 group-hover:to-[#E87A41]/60'
+                }`}>
+                  <div className="w-16 h-16 rounded-[16px] overflow-hidden border-[3px] border-white bg-slate-800 flex items-center justify-center">
+                    <Icon className={`w-7 h-7 transition-colors ${isActive ? 'text-white' : 'text-[#2CA6A4]'}`} />
+                  </div>
                 </div>
-                <div 
-                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full border-[3px] border-white flex items-center justify-center text-[12px] text-white font-black shadow-md"
-                  style={{ backgroundColor: story.color }}
-                >
-                  +
-                </div>
-              </div>
-              <span className="text-[11px] font-black text-[#2B2F33] uppercase tracking-[0.2em] group-hover:text-[#2CA6A4] transition-colors">
-                {story.name}
-              </span>
-            </motion.div>
-          ))}
+                <span className={`text-[10px] font-black uppercase tracking-[0.15em] transition-colors text-center max-w-[70px] leading-tight ${
+                  isActive ? 'text-[#2CA6A4]' : 'text-[#2B2F33] group-hover:text-[#2CA6A4]'
+                }`}>
+                  {cat.name[language]}
+                </span>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>

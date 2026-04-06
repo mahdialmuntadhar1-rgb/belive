@@ -60,26 +60,26 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
         const mappedBusinesses: Business[] = data.map((item: any) => ({
           id: item.id,
           name: item.name,
-          nameAr: item.name_ar,
-          nameKu: item.name_ku,
+          nameAr: item.nameAr || item.name_ar,
+          nameKu: item.nameKu || item.name_ku,
           category: item.category,
           governorate: item.governorate,
           city: item.city,
           address: item.address,
           phone: item.phone,
           rating: item.rating || 0,
-          reviewCount: item.review_count || 0,
-          isFeatured: item.is_featured || false,
-          isVerified: item.is_verified || false,
-          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+          reviewCount: item.reviewCount || item.review_count || 0,
+          isFeatured: item.isFeatured ?? item.is_featured ?? false,
+          isVerified: item.isVerified ?? item.is_verified ?? false,
+          image: item.imageUrl || item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
           website: item.website,
-          socialLinks: item.social_links || {},
+          socialLinks: item.socialLinks || item.social_links || {},
           description: item.description,
-          descriptionAr: item.description_ar,
-          openingHours: item.opening_hours,
-          ownerId: item.owner_id,
-          createdAt: new Date(item.created_at),
-          updatedAt: new Date(item.updated_at || item.created_at)
+          descriptionAr: item.descriptionAr || item.description_ar,
+          openingHours: item.openingHours || item.opening_hours,
+          ownerId: item.ownerId || item.owner_id,
+          createdAt: new Date(item.createdAt || item.created_at),
+          updatedAt: new Date(item.updatedAt || item.updated_at || item.createdAt || item.created_at)
         }));
 
         setBusinesses(prev => {

@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "verify": "node scripts/verify-setup.js",
+    "build:master-import": "node scripts/import/build-master-table.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

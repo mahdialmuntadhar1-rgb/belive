@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface HomeState {
-  selectedGovernorate: string;
+  selectedGovernorate: string | null;
   selectedCity: string | null;
   selectedCategory: string | null;
   searchQuery: string;
@@ -10,7 +10,7 @@ interface HomeState {
   language: "en" | "ar" | "ku";
 
   // Actions
-  setGovernorate: (governorate: string) => void;
+  setGovernorate: (governorate: string | null) => void;
   setCity: (city: string | null) => void;
   setCategory: (category: string | null) => void;
   setSearchQuery: (query: string) => void;
@@ -19,12 +19,10 @@ interface HomeState {
   reset: () => void;
 }
 
-const DEFAULT_GOVERNORATE = "Baghdad";
-
 export const useHomeStore = create<HomeState>()(
   persist(
     (set) => ({
-      selectedGovernorate: DEFAULT_GOVERNORATE,
+      selectedGovernorate: null,
       selectedCity: null,
       selectedCategory: null,
       searchQuery: "",
@@ -32,7 +30,7 @@ export const useHomeStore = create<HomeState>()(
       language: "en",
 
       setGovernorate: (governorate) =>
-        set({ selectedGovernorate: governorate, selectedCity: null }),
+        set({ selectedGovernorate: governorate, selectedCity: null, selectedCategory: null }),
 
       setCity: (city) =>
         set({ selectedCity: city }),
@@ -51,7 +49,7 @@ export const useHomeStore = create<HomeState>()(
 
       reset: () =>
         set({
-          selectedGovernorate: DEFAULT_GOVERNORATE,
+          selectedGovernorate: null,
           selectedCity: null,
           selectedCategory: null,
           searchQuery: "",

@@ -1,0 +1,19 @@
+{
+  "batchId": "batch_2026-04-06T07-38-33-896Z",
+  "inspectedDirectories": [
+    "data/import/raw",
+    "data/import/samples",
+    "scripts/legacy",
+    "docs/import-notes"
+  ],
+  "inspectedFiles": [],
+  "sourceHeadersByFile": {},
+  "headerMappingByFile": {},
+  "unmappedSourceColumnsByFile": {},
+  "unsupportedFiles": {},
+  "rowCounts": {
+    "totalImported": 0,
+    "totalMapped": 0,
+    "totalMissingMinimumRequiredFields": 0
+  }
+}
