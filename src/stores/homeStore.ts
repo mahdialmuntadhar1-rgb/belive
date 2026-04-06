@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface HomeState {
-  selectedGovernorate: string | null;
+  selectedGovernorate: string;
   selectedCity: string | null;
   selectedCategory: string | null;
   searchQuery: string;
@@ -10,7 +10,7 @@ interface HomeState {
   language: "en" | "ar" | "ku";
 
   // Actions
-  setGovernorate: (governorate: string | null) => void;
+  setGovernorate: (governorate: string) => void;
   setCity: (city: string | null) => void;
   setCategory: (category: string | null) => void;
   setSearchQuery: (query: string) => void;

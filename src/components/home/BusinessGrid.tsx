@@ -1,30 +1,26 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, MapPin, Loader2, SearchX, CheckCircle2, Phone, Grid3X3 } from 'lucide-react';
+import { Star, MapPin, Loader2, SearchX, CheckCircle2, Phone, ArrowRight } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { CATEGORIES } from '@/constants';
 
 interface BusinessGridProps {
   businesses: Business[];
   loading?: boolean;
   hasMore?: boolean;
+  totalCount?: number;
   onLoadMore?: () => void;
   onBusinessClick?: (business: Business) => void;
 }
 
-const CATEGORY_FALLBACK_IMAGE: Record<string, string> = {
-  dining: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=400&auto=format&fit=crop',
-  cafe: 'https://images.unsplash.com/photo-1501339819398-ed495197ff21?q=80&w=400&auto=format&fit=crop',
-  doctors: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=400&auto=format&fit=crop',
-  hospitals: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=400&auto=format&fit=crop',
-  medical: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=400&auto=format&fit=crop',
-  gym: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=400&auto=format&fit=crop',
-  furniture: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=400&auto=format&fit=crop',
-  general: 'https://images.unsplash.com/photo-1529074963764-98f45c47344b?q=80&w=400&auto=format&fit=crop',
-};
-
-export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore, onBusinessClick }: BusinessGridProps) {
+export default function BusinessGrid({ 
+  businesses, 
+  loading, 
+  hasMore, 
+  totalCount = 0,
+  onLoadMore, 
+  onBusinessClick 
+}: BusinessGridProps) {
   const { language } = useHomeStore();
 
   const translations = {
@@ -34,9 +30,10 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
       ar: 'لم نتمكن من العثور على أي شركات تطابق الفلاتر الحالية. حاول توسيع نطاق بحثك.',
       ku: 'نەمانتوانی هیچ کارێک بدۆزینەوە کە لەگەڵ فلتەرەکانتدا بگونجێت.'
     },
-    loadMore: { en: 'Load More', ar: 'تحميل المزيد', ku: 'زیاتر باربکە' },
-    loading: { en: 'Loading...', ar: 'جارٍ التحميل...', ku: 'بارکردن...' },
-    verified: { en: 'Verified', ar: 'موثق', ku: 'پشتڕاستکراوە' }
+    loadMore: { en: 'Load More', ar: 'تحميل المزيد', ku: 'بارکردنی زیاتر' },
+    loading: { en: 'Loading...', ar: 'جاري التحميل...', ku: 'بارکردن...' },
+    verified: { en: 'Verified', ar: 'موثق', ku: 'پشتڕاستکراوە' },
+    call: { en: 'Call', ar: 'اتصال', ku: 'پەیوەندی' }
   };
 
   const getBusinessName = (biz: Business) => {
@@ -45,107 +42,169 @@ export default function BusinessGrid({ businesses, loading, hasMore, onLoadMore,
     return biz.name;
   };
 
-  const getCategoryLabel = (categoryId: string) => {
-    const found = CATEGORIES.find((cat) => cat.id === categoryId);
-    return found ? found.name[language] : categoryId;
-  };
-
   const getBusinessImage = (biz: Business) => {
     if (biz.image) return biz.image;
-    return CATEGORY_FALLBACK_IMAGE[biz.category] || `https://picsum.photos/seed/${biz.id}/400/400`;
+    
+    const category = biz.category.toLowerCase();
+    if (category.includes('dining') || category.includes('restaurant') || category.includes('food')) {
+      return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=400&auto=format&fit=crop';
+    }
+    if (category.includes('furniture') || category.includes('home')) {
+      return 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=400&auto=format&fit=crop';
+    }
+    if (category.includes('doctor') || category.includes('medical') || category.includes('clinic')) {
+      return 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=400&auto=format&fit=crop';
+    }
+    if (category.includes('cafe') || category.includes('coffee')) {
+      return 'https://images.unsplash.com/photo-1501339819398-ed495197ff21?q=80&w=400&auto=format&fit=crop';
+    }
+    if (category.includes('gym') || category.includes('fitness')) {
+      return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=400&auto=format&fit=crop';
+    }
+    
+    return `https://picsum.photos/seed/${biz.id}/400/400`;
   };
 
   if (loading && businesses.length === 0) return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-1 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 px-4 mb-12">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="aspect-square bg-slate-100 animate-pulse rounded-[32px]" />
+        <div key={i} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-100 animate-pulse">
+          <div className="aspect-[4/3] bg-slate-100" />
+          <div className="p-5 space-y-3">
+            <div className="h-4 bg-slate-100 rounded w-3/4" />
+            <div className="h-3 bg-slate-100 rounded w-1/2" />
+            <div className="pt-4 flex gap-2">
+              <div className="h-8 bg-slate-100 rounded-xl flex-1" />
+              <div className="h-8 bg-slate-100 rounded-xl w-10" />
+            </div>
+          </div>
+        </div>
       ))}
     </div>
   );
 
   if (!loading && businesses.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <SearchX className="w-10 h-10 text-slate-300 mb-4" />
-      <h3 className="text-sm font-bold text-text-main mb-1 poppins-bold">{translations.noResults[language]}</h3>
-      <p className="text-[10px] text-text-muted max-w-[200px]">{translations.noResultsDesc[language]}</p>
+    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+        <SearchX className="w-10 h-10 text-slate-300" />
+      </div>
+      <h3 className="text-lg font-black text-text-main mb-2 poppins-bold">{translations.noResults[language]}</h3>
+      <p className="text-sm text-text-muted max-w-[280px] mb-8">{translations.noResultsDesc[language]}</p>
+      <button 
+        onClick={() => window.location.reload()}
+        className="px-6 py-3 bg-primary text-bg-dark text-xs font-black rounded-xl uppercase tracking-widest shadow-lg shadow-primary/20"
+      >
+        Reset Filters
+      </button>
     </div>
   );
 
   return (
     <div className="w-full mb-12">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-5 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 px-4">
         <AnimatePresence mode="popLayout">
           {businesses.map((biz) => (
             <motion.div
               key={biz.id}
               layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={() => onBusinessClick?.(biz)}
-              className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-social cursor-pointer border border-slate-100 transition-all duration-500 hover:shadow-2xl hover:border-primary/30"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-social border border-slate-100 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
             >
-              <div className="aspect-[4/3] w-full overflow-hidden relative">
-                <img
-                  src={getBusinessImage(biz)}
+              {/* Image Section */}
+              <div 
+                className="aspect-[4/3] w-full overflow-hidden relative cursor-pointer"
+                onClick={() => onBusinessClick?.(biz)}
+              >
+                <img 
+                  src={getBusinessImage(biz)} 
                   alt={biz.name}
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                  <div className="flex items-center gap-1 glass-dark px-2 py-1 rounded-lg border border-white/20">
-                    <Star className="w-2 h-2 text-secondary fill-secondary" />
-                    <span className="text-[8px] font-black text-white">{biz.rating?.toFixed(1) || '0.0'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 flex flex-col flex-1 bg-white gap-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-text-main poppins-bold leading-tight line-clamp-1 uppercase tracking-tight group-hover:text-primary transition-colors">
-                    {getBusinessName(biz)}
-                  </h3>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+                
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
                   {biz.isVerified && (
-                    <CheckCircle2 className="w-3 h-3 text-primary flex-shrink-0" aria-label={translations.verified[language]} />
+                    <div className="flex items-center gap-1.5 bg-primary px-2.5 py-1 rounded-full shadow-lg">
+                      <CheckCircle2 className="w-3 h-3 text-bg-dark" />
+                      <span className="text-[9px] font-black text-bg-dark uppercase tracking-wider">{translations.verified[language]}</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="text-[9px] font-bold uppercase tracking-wide text-primary line-clamp-1">
-                  {getCategoryLabel(biz.category)}
+                <div className="absolute top-4 right-4">
+                  <div className="flex items-center gap-1.5 glass-dark px-2.5 py-1 rounded-full border border-white/20 shadow-lg">
+                    <Star className="w-3 h-3 text-secondary fill-secondary" />
+                    <span className="text-[10px] font-black text-white">{biz.rating?.toFixed(1) || '5.0'}</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-text-muted text-[8px] font-black uppercase tracking-widest">
-                  <MapPin className="w-2.5 h-2.5 text-primary" />
-                  <span className="truncate">{biz.governorate}{biz.city ? ` • ${biz.city}` : ''}</span>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <span className="px-2 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg text-[8px] font-black text-white uppercase tracking-widest">
+                    {biz.category}
+                  </span>
                 </div>
-
-                <a
-                  href={`tel:${biz.phone}`}
-                  onClick={(event) => event.stopPropagation()}
-                  className="flex items-center gap-1 text-[9px] font-bold text-text-main hover:text-primary transition-colors truncate"
-                >
-                  <Phone className="w-3 h-3" />
-                  {biz.phone}
-                </a>
               </div>
-
-              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
+              {/* Info Section */}
+              <div className="p-5 flex flex-col flex-1">
+                <div className="mb-4">
+                  <h3 
+                    className="text-sm font-black text-text-main poppins-bold leading-tight mb-1 line-clamp-1 uppercase tracking-tight group-hover:text-primary transition-colors cursor-pointer"
+                    onClick={() => onBusinessClick?.(biz)}
+                  >
+                    {getBusinessName(biz)}
+                  </h3>
+                  <div className="flex items-center gap-1 text-text-muted text-[10px] font-bold">
+                    <MapPin className="w-3 h-3 text-primary" />
+                    <span className="truncate">{biz.governorate} • {biz.city}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-auto flex items-center gap-2">
+                  <a 
+                    href={`tel:${biz.phone}`}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-primary hover:text-bg-dark text-text-main rounded-xl transition-all duration-300 border border-slate-100 group/btn"
+                  >
+                    <Phone className="w-3.5 h-3.5 transition-transform group-hover/btn:rotate-12" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{translations.call[language]}</span>
+                  </a>
+                  <button 
+                    onClick={() => onBusinessClick?.(biz)}
+                    className="w-10 h-10 flex items-center justify-center bg-bg-dark text-white rounded-xl hover:bg-primary hover:text-bg-dark transition-all duration-300 shadow-md"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
       {hasMore && (
-        <div className="mt-10 flex justify-center">
+        <div className="mt-12 flex flex-col items-center gap-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            {businesses.length} / {totalCount} {language === 'ar' ? 'شركات' : language === 'ku' ? 'کارەکان' : 'Businesses'}
+          </p>
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="flex items-center gap-3 px-10 py-4 glass border border-slate-200 text-text-main text-[11px] font-black rounded-2xl hover:bg-bg-dark hover:text-white transition-all uppercase tracking-[0.2em] shadow-social active:scale-95 disabled:opacity-60"
+            className="flex items-center gap-3 px-12 py-4 bg-bg-dark text-white text-[11px] font-black rounded-2xl hover:bg-primary hover:text-bg-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-[0.2em] shadow-xl active:scale-95"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Grid3X3 className="w-4 h-4" />}
-            {loading ? translations.loading[language] : translations.loadMore[language]}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {translations.loading[language]}
+              </>
+            ) : (
+              <>
+                {translations.loadMore[language]}
+              </>
+            )}
           </button>
         </div>
       )}

@@ -57,59 +57,56 @@ export default function HeroSection({ businesses, onBusinessClick }: HeroSection
   }, []);
   
   return (
-    <section className="w-full mb-12">
+    <section className="w-full mb-8">
       {/* Immersive Hero - Rectangle */}
-      <div className="relative w-full h-[350px] sm:h-[450px] bg-bg-dark overflow-hidden flex flex-col items-center justify-center text-center px-8 sm:px-12 shadow-social border-b border-white/10">
+      <div className="relative w-full h-[280px] sm:h-[400px] bg-bg-dark overflow-hidden flex flex-col items-center justify-center text-center px-6 sm:px-12 border-b border-white/10">
         
         {/* Background Image with Dynamic Overlay */}
         <div className="absolute inset-0">
           <img 
             src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1920&auto=format&fit=crop" 
             alt="Iraq Business"
-            className="w-full h-full object-cover opacity-60"
+            className="w-full h-full object-cover opacity-40"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-bg-dark/90 via-bg-dark/40 to-bg-dark" />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg-dark/80 via-bg-dark/20 to-bg-dark" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center w-full max-w-4xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 px-4 py-1.5 glass rounded-full border border-white/20 flex items-center gap-2"
+            className="mb-4 px-3 py-1 glass rounded-full border border-white/10 flex items-center gap-2"
           >
-            <div className="flex -space-x-2">
+            <div className="flex -space-x-1.5">
               {[1, 2, 3].map(i => (
-                <div key={i} className="w-6 h-6 rounded-full border-2 border-bg-dark bg-slate-200 overflow-hidden">
+                <div key={i} className="w-5 h-5 rounded-full border border-bg-dark bg-slate-200 overflow-hidden">
                   <img src={`https://i.pravatar.cc/100?u=${i}`} alt="" />
                 </div>
               ))}
             </div>
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">
-              {language === 'ar' ? 'انضم إلى +١٠ آلاف مستخدم' : language === 'ku' ? 'بەشداری +١٠ هەزار بەکارهێنەر بکە' : 'Join 10k+ active users'}
+            <span className="text-[8px] font-black text-white uppercase tracking-widest">
+              {language === 'ar' ? '١٠ آلاف مستخدم' : language === 'ku' ? '١٠ هەزار بەکارهێنەر' : '10k+ active users'}
             </span>
           </motion.div>
 
-          <div className="h-32 flex flex-col items-center justify-center w-full">
+          <div className="h-24 flex flex-col items-center justify-center w-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSlogan}
-                initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+                initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                transition={{ duration: 0.8, ease: "circOut" }}
-                className="flex flex-col items-center gap-4 sm:gap-6"
+                exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="flex flex-col items-center"
               >
-                <h2 className="text-4xl sm:text-7xl font-black text-white tracking-tighter poppins-bold leading-[0.9] drop-shadow-2xl">
+                <h2 className="text-3xl sm:text-6xl font-black text-white tracking-tighter poppins-bold leading-[1.1] drop-shadow-xl max-w-[280px] sm:max-w-none">
                   {SLOGANS[currentSlogan][language]}
                 </h2>
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
-
-        {/* Decorative Elements */}
-        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-bg-dark to-transparent opacity-60" />
       </div>
     </section>
   );

@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { supabase } from '@/lib/supabaseClient';
-import { getCategoryFilterValues, normalizeBusiness, normalizeGovernorate } from '@/lib/businessNormalization';
 
 interface UseBusinessesResult {
   businesses: Business[];
@@ -14,7 +13,7 @@ interface UseBusinessesResult {
   refresh: () => void;
 }
 
-const ITEMS_PER_PAGE = 48;
+const ITEMS_PER_PAGE = 24;
 
 export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -23,92 +22,103 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const requestVersionRef = useRef(0);
 
   const { selectedGovernorate, selectedCategory, selectedCity } = useHomeStore();
 
-  const fetchBusinesses = useCallback(
-    async (targetPage: number, replaceData: boolean) => {
-      const requestVersion = ++requestVersionRef.current;
-      setLoading(true);
-      setError(null);
+  const fetchBusinesses = useCallback(async (isRefresh = false) => {
+    setLoading(true);
+    setError(null);
+    
+    const currentPage = isRefresh ? 1 : page;
+    
+    try {
+      let query = supabase
+        .from('businesses')
+        .select('*', { count: 'exact' })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-      try {
-        let query = supabase
-          .from('businesses')
-          .select('*', { count: 'exact' })
-          .order('id', { ascending: true })
-          .range((targetPage - 1) * ITEMS_PER_PAGE, targetPage * ITEMS_PER_PAGE - 1);
-
-        const normalizedGov = selectedGovernorate ? normalizeGovernorate(selectedGovernorate) : '';
-        if (normalizedGov) {
-          query = query.eq('governorate', normalizedGov);
-        }
-
-        if (selectedCity) {
-          query = query.eq('city', selectedCity);
-        }
-
-        const categoryFilterValues = getCategoryFilterValues(selectedCategory);
-        if (categoryFilterValues && categoryFilterValues.length > 0) {
-          query = query.in('category', categoryFilterValues);
-        }
-
-        if (searchQuery.trim()) {
-          const escaped = searchQuery.trim().replace(/[,%]/g, '');
-          query = query.or(`name.ilike.%${escaped}%,business_name.ilike.%${escaped}%,description.ilike.%${escaped}%`);
-        }
-
-        const { data, count, error: fetchError } = await query;
-
-        if (fetchError) throw fetchError;
-        if (requestVersion !== requestVersionRef.current) return;
-
-        const mappedBusinesses: Business[] = (data || []).map((item: any) => normalizeBusiness(item));
-
-        setBusinesses((prev) => {
-          const next = replaceData ? mappedBusinesses : [...prev, ...mappedBusinesses];
-          const deduped = Array.from(new Map(next.map((biz) => [biz.id, biz])).values());
-          const countVal = count ?? deduped.length;
-          setTotalCount(countVal);
-          setHasMore(deduped.length < countVal);
-          return deduped;
-        });
-      } catch (err) {
-        console.error('Error fetching businesses:', err);
-        if (requestVersion === requestVersionRef.current) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
-        }
-      } finally {
-        if (requestVersion === requestVersionRef.current) {
-          setLoading(false);
-        }
+      if (selectedGovernorate) {
+        query = query.eq('governorate', selectedGovernorate);
       }
-    },
-    [selectedGovernorate, selectedCity, selectedCategory, searchQuery]
-  );
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
+      }
+      if (selectedCategory) {
+        // Map frontend categories to database values if needed
+        query = query.eq('category', selectedCategory);
+      }
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+
+      const { data, count, error: fetchError } = await query;
+      
+      if (fetchError) throw fetchError;
+      
+      if (data) {
+        // Map database columns to frontend interface if they differ
+        const mappedBusinesses: Business[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          nameAr: item.name_ar,
+          nameKu: item.name_ku,
+          category: item.category,
+          governorate: item.governorate,
+          city: item.city,
+          address: item.address,
+          phone: item.phone,
+          rating: item.rating || 0,
+          reviewCount: item.review_count || 0,
+          isFeatured: item.is_featured || false,
+          isVerified: item.is_verified || false,
+          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+          website: item.website,
+          socialLinks: item.social_links || {},
+          description: item.description,
+          descriptionAr: item.description_ar,
+          openingHours: item.opening_hours,
+          ownerId: item.owner_id,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at || item.created_at)
+        }));
+
+        setBusinesses(prev => {
+          const newBusinesses = isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses];
+          const countVal = count || 0;
+          setTotalCount(countVal);
+          setHasMore(newBusinesses.length < countVal);
+          return newBusinesses;
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching businesses:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
   useEffect(() => {
     setPage(1);
-    void fetchBusinesses(1, true);
-  }, [fetchBusinesses]);
+    fetchBusinesses(true);
+  }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
   useEffect(() => {
     if (page > 1) {
-      void fetchBusinesses(page, false);
+      fetchBusinesses(false);
     }
-  }, [page, fetchBusinesses]);
+  }, [page]);
 
-  const loadMore = useCallback(() => {
+  const loadMore = () => {
     if (!loading && hasMore) {
-      setPage((prev) => prev + 1);
+      setPage(prev => prev + 1);
     }
-  }, [loading, hasMore]);
+  };
 
-  const refresh = useCallback(() => {
+  const refresh = () => {
     setPage(1);
-    void fetchBusinesses(1, true);
-  }, [fetchBusinesses]);
+    fetchBusinesses(true);
+  };
 
   return { businesses, loading, error, hasMore, totalCount, loadMore, refresh };
 }

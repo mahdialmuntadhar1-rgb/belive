@@ -7,12 +7,8 @@ import { ICON_MAP, CATEGORIES } from '@/constants';
 export default function CategoryGrid() {
   const { selectedCategory, setCategory, language } = useHomeStore();
   const [isExpanded, setIsExpanded] = useState(false);
-  const initialItems = 5; // Show 5 initially as in the image's top row
-  const visibleCategories = isExpanded ? CATEGORIES : CATEGORIES.slice(0, 10); // Show 10 (2 rows) initially? Or just follow the image.
-
-  // The image shows 20 categories in a 5x4 grid.
-  // Let's show 10 initially and then expand to 20.
-  const categoriesToDisplay = isExpanded ? CATEGORIES : CATEGORIES.slice(0, 10);
+  const initialItems = 6;
+  const categoriesToDisplay = isExpanded ? CATEGORIES : CATEGORIES.slice(0, initialItems);
 
   const handleCategoryClick = (catId: string) => {
     const isActive = selectedCategory === catId;
@@ -43,7 +39,7 @@ export default function CategoryGrid() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
         <AnimatePresence mode="popLayout">
           {categoriesToDisplay.map((cat) => {
             const isActive = selectedCategory === cat.id;
@@ -59,41 +55,44 @@ export default function CategoryGrid() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`group relative aspect-[4/3] flex flex-col items-center justify-center p-4 rounded-[20px] border-2 transition-all duration-500 ${
+                className={`group relative aspect-square flex flex-col items-center justify-center p-2 rounded-[24px] overflow-hidden border-2 transition-all duration-500 ${
                   isActive 
-                    ? 'bg-[#2D364D] border-primary shadow-[0_0_30px_rgba(255,159,28,0.3)] z-10' 
-                    : 'bg-[#1E293B] border-white/5 hover:border-white/20'
+                    ? 'border-primary shadow-[0_0_30px_rgba(255,159,28,0.3)] z-10' 
+                    : 'border-white/5 hover:border-white/20'
                 }`}
               >
-                {isActive && (
-                  <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                    <Check className="w-3 h-3 text-bg-dark stroke-[4]" />
-                  </div>
-                )}
-
-                {cat.isHot && (
-                  <div className="absolute top-2 left-2 bg-primary text-bg-dark text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">
-                    Hot
-                  </div>
-                )}
-
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all duration-500 ${
-                  isActive ? 'bg-primary text-bg-dark' : 'bg-primary/10 text-primary group-hover:scale-110'
-                }`}>
-                  <Icon className="w-6 h-6" strokeWidth={2.5} />
+                {/* Background Image (Blurred) */}
+                <div className="absolute inset-0 z-0">
+                  <img 
+                    src={(cat as any).image} 
+                    alt="" 
+                    className={`w-full h-full object-cover transition-all duration-700 ${
+                      isActive ? 'scale-110 blur-[2px]' : 'scale-100 blur-[4px] opacity-40 group-hover:opacity-60 group-hover:blur-[2px]'
+                    }`}
+                  />
+                  <div className={`absolute inset-0 transition-colors duration-500 ${
+                    isActive ? 'bg-bg-dark/40' : 'bg-bg-dark/60 group-hover:bg-bg-dark/40'
+                  }`} />
                 </div>
 
-                <div className="text-center w-full">
-                  <h3 className={`text-[10px] font-black uppercase tracking-widest mb-1 transition-colors duration-300 line-clamp-1 ${
-                    isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                <div className="relative z-10 flex flex-col items-center">
+                  {isActive && (
+                    <div className="absolute -top-8 right-0 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                      <Check className="w-3 h-3 text-bg-dark stroke-[4]" />
+                    </div>
+                  )}
+
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all duration-500 ${
+                    isActive ? 'bg-primary text-bg-dark' : 'bg-white/10 text-white group-hover:scale-110'
+                  }`}>
+                    <Icon className="w-5 h-5" strokeWidth={2.5} />
+                  </div>
+
+                  <h3 className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center px-1 transition-colors duration-300 line-clamp-2 ${
+                    isActive ? 'text-white' : 'text-white group-hover:text-primary'
                   }`}>
                     {cat.name[language]}
                   </h3>
-                  <p className={`text-[9px] font-bold uppercase tracking-tighter transition-colors duration-300 ${
-                    isActive ? 'text-primary' : 'text-primary/60'
-                  }`}>
-                    {cat.types} Types
-                  </p>
                 </div>
               </motion.button>
             );
@@ -101,7 +100,7 @@ export default function CategoryGrid() {
         </AnimatePresence>
       </div>
 
-      {CATEGORIES.length > 10 && (
+      {CATEGORIES.length > 6 && (
         <div className="mt-10 text-center">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
