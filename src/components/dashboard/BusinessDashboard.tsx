@@ -35,7 +35,7 @@ export default function BusinessDashboard() {
   // Post Form State
   const [postContent, setPostContent] = useState('');
   const [postImage, setPostImage] = useState('');
-  const { posts, createPost, loading: postsLoading } = usePosts(selectedBusiness?.id);
+  const { posts, createPost, loading: postsLoading, hasMore, loadMore } = usePosts(selectedBusiness?.id);
   const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
 
@@ -112,48 +112,58 @@ export default function BusinessDashboard() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex">
       {/* Sidebar */}
-      <div className="w-72 bg-white border-r border-[#E5E7EB] hidden lg:flex flex-col">
-        <div className="p-8">
-          <h1 className="text-2xl font-black text-[#2CA6A4] tracking-tighter poppins-bold">SHAKO MAKO</h1>
-          <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mt-1">Business Dashboard</p>
+      <div className="w-80 bg-white border-r border-[#E5E7EB] hidden lg:flex flex-col shadow-2xl shadow-slate-200/50 relative z-10">
+        <div className="p-10">
+          <Link to="/" className="group inline-block">
+            <h1 className="text-3xl font-black text-[#2CA6A4] tracking-tighter poppins-bold group-hover:scale-105 transition-transform">SHAKO MAKO</h1>
+            <div className="h-1 w-12 bg-secondary rounded-full mt-1 group-hover:w-full transition-all duration-500" />
+          </Link>
+          <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-[0.3em] mt-4 opacity-60">Control Panel</p>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-6 space-y-3">
           <Link 
             to="/"
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm text-[#6B7280] hover:bg-[#F5F7F9] transition-all mb-4"
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-[24px] font-black text-[11px] text-[#6B7280] hover:bg-slate-50 hover:text-bg-dark transition-all mb-8 uppercase tracking-widest border border-transparent hover:border-slate-100"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
-          <button 
-            onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'overview' ? 'bg-[#2CA6A4] text-white shadow-lg shadow-[#2CA6A4]/20' : 'text-[#6B7280] hover:bg-[#F5F7F9]'}`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            Overview
-          </button>
-          <button 
-            onClick={() => setActiveTab('posts')}
-            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'posts' ? 'bg-[#2CA6A4] text-white shadow-lg shadow-[#2CA6A4]/20' : 'text-[#6B7280] hover:bg-[#F5F7F9]'}`}
-          >
-            <PlusCircle className="w-5 h-5" />
-            Create Posts
-          </button>
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all ${activeTab === 'settings' ? 'bg-[#2CA6A4] text-white shadow-lg shadow-[#2CA6A4]/20' : 'text-[#6B7280] hover:bg-[#F5F7F9]'}`}
-          >
-            <Settings className="w-5 h-5" />
-            Profile Settings
-          </button>
+          
+          <div className="space-y-1">
+            <button 
+              onClick={() => setActiveTab('overview')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-[24px] font-black text-[11px] uppercase tracking-widest transition-all duration-300 ${activeTab === 'overview' ? 'bg-[#2CA6A4] text-white shadow-2xl shadow-[#2CA6A4]/30 scale-[1.02]' : 'text-[#6B7280] hover:bg-slate-50 hover:translate-x-1'}`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab('posts')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-[24px] font-black text-[11px] uppercase tracking-widest transition-all duration-300 ${activeTab === 'posts' ? 'bg-[#2CA6A4] text-white shadow-2xl shadow-[#2CA6A4]/30 scale-[1.02]' : 'text-[#6B7280] hover:bg-slate-50 hover:translate-x-1'}`}
+            >
+              <PlusCircle className="w-5 h-5" />
+              Create Posts
+            </button>
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-[24px] font-black text-[11px] uppercase tracking-widest transition-all duration-300 ${activeTab === 'settings' ? 'bg-[#2CA6A4] text-white shadow-2xl shadow-[#2CA6A4]/30 scale-[1.02]' : 'text-[#6B7280] hover:bg-slate-50 hover:translate-x-1'}`}
+            >
+              <Settings className="w-5 h-5" />
+              Profile Settings
+            </button>
+          </div>
         </nav>
 
-        <div className="p-6 mt-auto">
-          <div className="p-4 bg-[#F5F7F9] rounded-2xl">
-            <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest mb-2">Logged in as</p>
-            <p className="text-sm font-bold text-[#2B2F33] truncate">{profile.full_name}</p>
-            <p className="text-[10px] text-[#2CA6A4] font-bold uppercase tracking-widest mt-0.5">Business Owner</p>
+        <div className="p-8">
+          <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#2CA6A4]/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
+            <p className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-3 opacity-60">Verified Business Owner</p>
+            <p className="text-sm font-black text-[#2B2F33] truncate poppins-bold">{profile.full_name}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] text-[#2CA6A4] font-black uppercase tracking-widest">Active Session</span>
+            </div>
           </div>
         </div>
       </div>
@@ -316,6 +326,18 @@ export default function BusinessDashboard() {
                       </div>
                     ))}
                   </div>
+
+                  {hasMore && (
+                    <div className="mt-12 text-center">
+                      <button 
+                        onClick={loadMore}
+                        disabled={postsLoading}
+                        className="px-8 py-3 bg-white border-2 border-[#2CA6A4] text-[#2CA6A4] font-black rounded-2xl hover:bg-[#2CA6A4] hover:text-white transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
+                      >
+                        {postsLoading ? 'Loading...' : 'Load More Posts'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

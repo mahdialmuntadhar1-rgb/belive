@@ -115,5 +115,51 @@ export function useBusinessManagement() {
     }
   };
 
-  return { claimBusiness, updateBusinessProfile, getOwnedBusinesses, loading, error };
+  const createBusiness = async (businessData: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'rating' | 'reviewCount' | 'isFeatured' | 'isVerified'>) => {
+    if (!user) throw new Error('Not authenticated');
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: insertError } = await supabase
+        .from('businesses')
+        .insert([
+          {
+            name: businessData.name,
+            name_ar: businessData.nameAr,
+            name_ku: businessData.nameKu,
+            category: businessData.category,
+            governorate: businessData.governorate,
+            city: businessData.city,
+            address: businessData.address,
+            phone: businessData.phone,
+            website: businessData.website,
+            image_url: businessData.image,
+            social_links: businessData.socialLinks,
+            opening_hours: businessData.openingHours,
+            description: businessData.description,
+            description_ar: businessData.descriptionAr,
+            owner_id: user.id,
+            is_verified: false,
+            is_featured: false,
+            rating: 0,
+            review_count: 0
+          }
+        ])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      
+      return data;
+    } catch (err) {
+      console.error('Error creating business:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create business');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { claimBusiness, updateBusinessProfile, getOwnedBusinesses, createBusiness, loading, error };
 }

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2 } from 'lucide-react';
+import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
+import { useReviews } from '@/hooks/useReviews';
 
 interface BusinessDetailModalProps {
   business: Business | null;
@@ -15,6 +16,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
   const { language } = useHomeStore();
   const { user, profile } = useAuthStore();
   const { claimBusiness, loading: claimLoading } = useBusinessManagement();
+  const { reviews, loading: reviewsLoading, hasMore: reviewsHasMore, loadMore: reviewsLoadMore } = useReviews(business?.id);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
 
@@ -355,6 +357,23 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                         {translations.save[language]}
                       </button>
                     </div>
+
+                    {!business.ownerId && profile?.role === 'business_owner' && (
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await claimBusiness(business.id);
+                            setClaimSuccess(true);
+                          } catch (err: any) {
+                            setClaimError(err.message);
+                          }
+                        }}
+                        disabled={claimLoading}
+                        className="w-full py-4 bg-secondary text-white font-black rounded-2xl shadow-xl shadow-secondary/20 hover:bg-secondary/90 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs disabled:opacity-50"
+                      >
+                        {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ShieldCheck className="w-4 h-4" /> {translations.claim[language]}</>}
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-6 bg-[#2CA6A4]/5 rounded-[24px] border border-[#2CA6A4]/10">
@@ -379,30 +398,51 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="p-6 bg-white rounded-[28px] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="p-6 bg-white rounded-[28px] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#2CA6A4]/10 flex items-center justify-center text-[#2CA6A4] text-sm font-black">
-                            {['JD', 'AS'][i-1]}
+                          <div className="w-10 h-10 rounded-full bg-[#2CA6A4]/10 flex items-center justify-center text-[#2CA6A4] text-sm font-black overflow-hidden">
+                            {review.userAvatar ? (
+                              <img src={review.userAvatar} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              review.userName?.charAt(0) || 'U'
+                            )}
                           </div>
                           <div>
-                            <span className="text-sm font-bold text-[#2B2F33] block">{['John Doe', 'Ahmed S.'][i-1]}</span>
-                            <span className="text-[10px] text-[#6B7280] font-medium uppercase tracking-widest">2 days ago</span>
+                            <span className="text-sm font-bold text-[#2B2F33] block">{review.userName || 'Anonymous'}</span>
+                            <span className="text-[10px] text-[#6B7280] font-medium uppercase tracking-widest">{review.createdAt.toLocaleDateString()}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-0.5">
                           {[...Array(5)].map((_, j) => (
-                            <Star key={j} className={`w-3 h-3 ${j < 4 ? 'text-[#E87A41] fill-[#E87A41]' : 'text-gray-200'}`} />
+                            <Star key={j} className={`w-3 h-3 ${j < review.rating ? 'text-[#E87A41] fill-[#E87A41]' : 'text-gray-200'}`} />
                           ))}
                         </div>
                       </div>
                       <p className="text-sm text-[#6B7280] leading-relaxed italic">
-                        "Amazing experience! The service was top-notch and the atmosphere was very welcoming. Highly recommend visiting if you're in {business.city}."
+                        "{review.comment}"
                       </p>
                     </div>
                   ))}
+                  {reviews.length === 0 && !reviewsLoading && (
+                    <div className="md:col-span-2 py-12 text-center text-[#6B7280]">
+                      <p>No reviews yet. Be the first to share your experience!</p>
+                    </div>
+                  )}
                 </div>
+
+                {reviewsHasMore && (
+                  <div className="mt-10 text-center">
+                    <button 
+                      onClick={reviewsLoadMore}
+                      disabled={reviewsLoading}
+                      className="px-8 py-3 bg-white border-2 border-[#2CA6A4] text-[#2CA6A4] font-black rounded-2xl hover:bg-[#2CA6A4] hover:text-white transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
+                    >
+                      {reviewsLoading ? 'Loading...' : 'Load More Reviews'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

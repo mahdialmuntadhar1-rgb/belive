@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Plus, Phone, MapPin, Building2, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Store, MapPin, Phone, Globe, Image as ImageIcon, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
-import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/stores/authStore';
+import { useBusinessManagement } from '@/hooks/useBusinessManagement';
+import { GOVERNORATES, CITIES, CATEGORIES } from '@/constants';
 
 interface AddBusinessModalProps {
   isOpen: boolean;
@@ -10,367 +12,293 @@ interface AddBusinessModalProps {
   onSuccess?: () => void;
 }
 
-const GOVERNORATES = [
-  'Baghdad', 'Basra', 'Mosul', 'Erbil', 'Sulaymaniyah', 'Duhok',
-  'Kirkuk', 'Najaf', 'Karbala', 'Hilla', 'Diyala', 'Anbar',
-  'Salahuddin', 'Dhi Qar', 'Muthanna', 'Wasit', 'Babil', 'Qadisiyah'
-];
-
-const CATEGORIES = [
-  'Restaurant', 'Cafe', 'Hotel', 'Hospital', 'Clinic', 'Pharmacy',
-  'Supermarket', 'Shopping', 'Gym', 'Salon', 'Car Repair', 'Electronics',
-  'Education', 'Real Estate', 'Travel', 'Bank', 'Other'
-];
-
 export default function AddBusinessModal({ isOpen, onClose, onSuccess }: AddBusinessModalProps) {
   const { language } = useHomeStore();
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuthStore();
+  const { createBusiness, loading } = useBusinessManagement();
   
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
-    category: '',
-    governorate: '',
+    nameAr: '',
+    category: CATEGORIES[0].id,
+    governorate: GOVERNORATES[0].name.en,
     city: '',
     address: '',
-    description: ''
+    phone: '',
+    website: '',
+    image: '',
+    description: '',
+    descriptionAr: '',
+    openingHours: '9:00 AM - 10:00 PM'
   });
 
-  const translations = {
-    title: {
-      en: 'Add Your Business',
-      ar: 'أضف عملك التجاري',
-      ku: 'کارەکەت زیاد بکە'
-    },
-    subtitle: {
-      en: 'Join thousands of businesses on Saku Maku',
-      ar: 'انضم إلى آلاف الشركات على شكو ماكو',
-      ku: 'بەشداری هەزاران کار بکە لە سaku مaku'
-    },
-    name: {
-      en: 'Business Name',
-      ar: 'اسم العمل',
-      ku: 'ناوی کار'
-    },
-    phone: {
-      en: 'Phone Number',
-      ar: 'رقم الهاتف',
-      ku: 'ژمارەی مۆبایل'
-    },
-    category: {
-      en: 'Category',
-      ar: 'الفئة',
-      ku: 'پۆل'
-    },
-    governorate: {
-      en: 'Governorate',
-      ar: 'المحافظة',
-      ku: 'پارێزگا'
-    },
-    city: {
-      en: 'City',
-      ar: 'المدينة',
-      ku: 'شار'
-    },
-    address: {
-      en: 'Address',
-      ar: 'العنوان',
-      ku: 'ناونیشان'
-    },
-    description: {
-      en: 'Description (Optional)',
-      ar: 'الوصف (اختياري)',
-      ku: 'پێناسە (ئارەزوومەندانە)'
-    },
-    submit: {
-      en: 'Submit Business',
-      ar: 'إرسال العمل',
-      ku: 'ناردنی کار'
-    },
-    submitting: {
-      en: 'Submitting...',
-      ar: 'جاري الإرسال...',
-      ku: 'ناردن...'
-    },
-    success: {
-      en: 'Business Added Successfully!',
-      ar: 'تم إضافة العمل بنجاح!',
-      ku: 'کار بە سەرکەوتوویی زیاد کرا!'
-    },
-    successDesc: {
-      en: 'Your business will be reviewed and published soon.',
-      ar: 'سيتم مراجعة عملك ونشره قريباً.',
-      ku: 'کارەکەت لە کاتی نزیکدا پێداچوونەوەی بۆ دەکرێت و بڵاودەبرێتەوە.'
-    },
-    close: {
-      en: 'Close',
-      ar: 'إغلاق',
-      ku: 'داخستن'
-    },
-    required: {
-      en: 'This field is required',
-      ar: 'هذا الحقل مطلوب',
-      ku: 'ئەم خانەیە پێویستە'
-    }
-  };
-
-  const isRTL = language === 'ar' || language === 'ku';
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!user) {
+      setError('You must be logged in to add a business.');
+      return;
+    }
+
     setError(null);
-
     try {
-      const { error: supabaseError } = await supabase
-        .from('businesses')
-        .insert([{
-          name: formData.name,
-          phone: formData.phone,
-          category: formData.category,
-          governorate: formData.governorate,
-          city: formData.city,
-          address: formData.address || null,
-          description: formData.description || null,
-          is_featured: false,
-          is_verified: false,
-          rating: 0,
-          review_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
-
-      if (supabaseError) throw supabaseError;
-
+      await createBusiness({
+        ...formData,
+        socialLinks: {}
+      });
       setSuccess(true);
-      onSuccess?.();
+      setTimeout(() => {
+        setSuccess(false);
+        onSuccess?.();
+        onClose();
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add business');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    if (!loading) {
-      setSuccess(false);
-      setError(null);
-      setFormData({
-        name: '',
-        phone: '',
-        category: '',
-        governorate: '',
-        city: '',
-        address: '',
-        description: ''
-      });
-      onClose();
-    }
+  const translations = {
+    title: { en: 'Add Your Business', ar: 'أضف عملك التجاري', ku: 'کارەکەت زیاد بکە' },
+    subtitle: { en: 'Join Iraq\'s largest business directory', ar: 'انضم إلى أكبر دليل أعمال في العراق', ku: 'ببەرە بەشێک لە گەورەترین دایرێکتۆری کار لە عێراق' },
+    nameEn: { en: 'Business Name (English)', ar: 'اسم العمل (بالإنجليزي)', ku: 'ناوی کار (ئینگلیزی)' },
+    nameAr: { en: 'Business Name (Arabic)', ar: 'اسم العمل (بالعربي)', ku: 'ناوی کار (عەرەبی)' },
+    category: { en: 'Category', ar: 'التصنيف', ku: 'پۆلێن' },
+    governorate: { en: 'Governorate', ar: 'المحافظة', ku: 'پارێزگا' },
+    city: { en: 'City', ar: 'المدينة', ku: 'شار' },
+    address: { en: 'Address', ar: 'العنوان', ku: 'ناونیشان' },
+    phone: { en: 'Phone Number', ar: 'رقم الهاتف', ku: 'ژمارەی تەلەفۆن' },
+    website: { en: 'Website URL', ar: 'رابط الموقع', ku: 'لینکی ماڵپەڕ' },
+    image: { en: 'Image URL', ar: 'رابط الصورة', ku: 'لینکی وێنە' },
+    descriptionEn: { en: 'Description (English)', ar: 'الوصف (بالإنجليزي)', ku: 'وەسف (ئینگلیزی)' },
+    descriptionAr: { en: 'Description (Arabic)', ar: 'الوصف (بالعربي)', ku: 'وەسف (عەرەبی)' },
+    openingHours: { en: 'Opening Hours', ar: 'ساعات العمل', ku: 'کاتژمێرەکانی کارکردن' },
+    submit: { en: 'Register Business', ar: 'تسجيل العمل', ku: 'تۆمارکردنی کار' },
+    success: { en: 'Business registered successfully!', ar: 'تم تسجيل العمل بنجاح!', ku: 'کارەکە بە سەرکەوتوویی تۆمارکرا!' }
   };
 
-  if (!isOpen) return null;
+  const selectedGovId = GOVERNORATES.find(g => g.name.en === formData.governorate)?.id;
+  const availableCities = selectedGovId ? CITIES[selectedGovId] || [] : [];
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={handleClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl"
-          dir={isRTL ? 'rtl' : 'ltr'}
-        >
-          {/* Header */}
-          <div className="relative bg-gradient-to-br from-primary to-primary-dark p-8 text-white">
-            <button 
-              onClick={handleClose}
-              disabled={loading}
-              className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-all disabled:opacity-50"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
+          />
 
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Plus className="w-6 h-6" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            dir={language === 'en' ? 'ltr' : 'rtl'}
+          >
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-text-main poppins-bold uppercase tracking-tight">{translations.title[language]}</h2>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{translations.subtitle[language]}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-black poppins-bold">{translations.title[language]}</h2>
-              </div>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
             </div>
-            <p className="text-white/80 text-sm">{translations.subtitle[language]}</p>
-          </div>
 
-          {/* Content */}
-          <div className="p-6">
-            {success ? (
-              <div className="text-center py-8">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10 text-green-600" />
-                </div>
-                <h3 className="text-xl font-bold text-text-main mb-2">{translations.success[language]}</h3>
-                <p className="text-text-muted text-sm mb-6">{translations.successDesc[language]}</p>
-                <button 
-                  onClick={handleClose}
-                  className="px-8 py-3 bg-primary text-white font-black rounded-2xl hover:bg-primary-dark transition-all"
-                >
-                  {translations.close[language]}
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Business Name */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <Building2 className="w-4 h-4 text-primary" />
-                    {translations.name[language]} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold"
-                    placeholder={translations.name[language]}
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <Phone className="w-4 h-4 text-primary" />
-                    {translations.phone[language]} *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold"
-                    placeholder="+964 770 123 4567"
-                  />
-                </div>
-
-                {/* Category */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <Building2 className="w-4 h-4 text-primary" />
-                    {translations.category[language]} *
-                  </label>
-                  <select
-                    required
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold appearance-none cursor-pointer"
-                  >
-                    <option value="">{translations.category[language]}</option>
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Governorate */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    {translations.governorate[language]} *
-                  </label>
-                  <select
-                    required
-                    value={formData.governorate}
-                    onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold appearance-none cursor-pointer"
-                  >
-                    <option value="">{translations.governorate[language]}</option>
-                    {GOVERNORATES.map((gov) => (
-                      <option key={gov} value={gov}>{gov}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* City */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    {translations.city[language]} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold"
-                    placeholder={translations.city[language]}
-                  />
-                </div>
-
-                {/* Address */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    {translations.address[language]}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold"
-                    placeholder={translations.address[language]}
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-black text-text-muted uppercase tracking-widest mb-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    {translations.description[language]}
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-bold resize-none"
-                    placeholder={translations.description[language]}
-                  />
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm font-bold">
-                    {error}
+            <div className="flex-1 overflow-y-auto p-8">
+              {success ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-12">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-primary" />
                   </div>
-                )}
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 bg-primary text-white font-black rounded-2xl hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-widest text-sm shadow-lg shadow-primary/20"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {translations.submitting[language]}
-                    </>
-                  ) : (
-                    translations.submit[language]
+                  <h3 className="text-2xl font-black text-text-main mb-2 poppins-bold">{translations.success[language]}</h3>
+                  <p className="text-sm text-text-muted">Your business has been added to our directory.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {error && (
+                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
+                      <AlertCircle className="w-4 h-4" />
+                      {error}
+                    </div>
                   )}
-                </button>
-              </form>
-            )}
-          </div>
-        </motion.div>
-      </motion.div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.nameEn[language]}</label>
+                      <input 
+                        required
+                        type="text"
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                        placeholder="e.g. Al-Mansour Restaurant"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.nameAr[language]}</label>
+                      <input 
+                        required
+                        type="text"
+                        value={formData.nameAr}
+                        onChange={e => setFormData({...formData, nameAr: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                        placeholder="مثلاً: مطعم المنصور"
+                        dir="rtl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.category[language]}</label>
+                      <select 
+                        required
+                        value={formData.category}
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold appearance-none"
+                      >
+                        {CATEGORIES.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name[language]}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.governorate[language]}</label>
+                      <select 
+                        required
+                        value={formData.governorate}
+                        onChange={e => setFormData({...formData, governorate: e.target.value, city: ''})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold appearance-none"
+                      >
+                        {GOVERNORATES.map(gov => (
+                          <option key={gov.id} value={gov.name.en}>{language === 'ar' ? gov.name.ar : language === 'ku' ? gov.name.ku : gov.name.en}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.city[language]}</label>
+                      <input 
+                        required
+                        type="text"
+                        list="cities-list"
+                        value={formData.city}
+                        onChange={e => setFormData({...formData, city: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                        placeholder="e.g. Mansour"
+                      />
+                      <datalist id="cities-list">
+                        {availableCities.map(city => (
+                          <option key={city.id} value={city.name.en} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.phone[language]}</label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          required
+                          type="tel"
+                          value={formData.phone}
+                          onChange={e => setFormData({...formData, phone: e.target.value})}
+                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                          placeholder="+964 7XX XXX XXXX"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.address[language]}</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          required
+                          type="text"
+                          value={formData.address}
+                          onChange={e => setFormData({...formData, address: e.target.value})}
+                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                          placeholder="Street name, landmark..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.website[language]}</label>
+                      <div className="relative">
+                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="url"
+                          value={formData.website}
+                          onChange={e => setFormData({...formData, website: e.target.value})}
+                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.image[language]}</label>
+                      <div className="relative">
+                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="url"
+                          value={formData.image}
+                          onChange={e => setFormData({...formData, image: e.target.value})}
+                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
+                          placeholder="Image URL"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.descriptionEn[language]}</label>
+                      <textarea 
+                        required
+                        value={formData.description}
+                        onChange={e => setFormData({...formData, description: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold min-h-[100px]"
+                        placeholder="Tell us about your business..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.descriptionAr[language]}</label>
+                      <textarea 
+                        required
+                        value={formData.descriptionAr}
+                        onChange={e => setFormData({...formData, descriptionAr: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold min-h-[100px]"
+                        placeholder="أخبرنا عن عملك..."
+                        dir="rtl"
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-5 bg-bg-dark text-white font-black rounded-[24px] shadow-2xl hover:bg-primary hover:text-bg-dark transition-all flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-xs disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : translations.submit[language]}
+                  </button>
+                </form>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }

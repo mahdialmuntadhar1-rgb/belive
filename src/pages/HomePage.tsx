@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { User, PlusCircle, MapPin, LogOut, Settings, ChevronDown, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { User, PlusCircle, MapPin, LogOut, Settings, ChevronDown, Search, Briefcase, LayoutDashboard } from "lucide-react";
 import debounce from "lodash/debounce";
 import HeroSection from "@/components/home/HeroSection";
 import StorySection from "@/components/home/StorySection";
@@ -19,8 +20,9 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const { user, profile, signOut, loading: authLoading } = useAuthStore();
@@ -35,7 +37,8 @@ export default function HomePage() {
     error,
     hasMore,
     totalCount,
-    loadMore
+    loadMore,
+    refresh
   } = useBusinesses(debouncedQuery);
 
   // Debounce search query
@@ -97,6 +100,11 @@ export default function HomePage() {
       ar: 'إدارة الأعمال',
       ku: 'بەڕێوەبردنی کار'
     },
+    addBusiness: {
+      en: 'Add Business',
+      ar: 'أضف عملك',
+      ku: 'کارەکەت زیاد بکە'
+    },
     settings: {
       en: 'Settings',
       ar: 'الإعدادات',
@@ -106,6 +114,11 @@ export default function HomePage() {
       en: 'Sign Out',
       ar: 'تسجيل الخروج',
       ku: 'چوونەدەرەوە'
+    },
+    dashboard: {
+      en: 'Business Dashboard',
+      ar: 'لوحة تحكم الأعمال',
+      ku: 'داشبۆردی بازرگانی'
     },
     owner: {
       en: 'Owner',
@@ -121,9 +134,12 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-bg-light selection:bg-primary/30" dir={isRTL ? 'rtl' : 'ltr'}>
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        initialMode={authMode}
+      />
       <BusinessDetailModal business={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
-<<<<<<< HEAD
       {/* Header */}
       <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
@@ -139,16 +155,6 @@ export default function HomePage() {
               <h1 className="text-lg font-black text-text-main poppins-bold tracking-tight leading-none">Saku Maku</h1>
               <p className="text-[8px] text-primary font-black uppercase tracking-[0.2em] mt-0.5">Iraqi Directory</p>
             </div>
-=======
-      <AddBusinessModal isOpen={isAddBusinessModalOpen} onClose={() => setIsAddBusinessModalOpen(false)} />
-
-      {/* Top Bar (Languages & Branding) */}
-      <div className="bg-white/90 backdrop-blur-md py-2 border-b border-slate-200 shadow-sm relative z-[70]">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Top Left Branding - Hidden on very small mobile to save space */}
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-lg font-black text-primary poppins-bold">شكو ماكو؟</span>
->>>>>>> 182f5e4 (feat: Add business detail modal, add business form, trust signals, and loading states)
           </div>
 
           {/* Center: Search & Language */}
@@ -192,33 +198,58 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse" />
             ) : (
               <>
-<<<<<<< HEAD
-=======
-                <button 
-                  onClick={() => setIsAddBusinessModalOpen(true)}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-xs font-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  {language === 'ar' ? 'أضف عملك' : language === 'ku' ? 'کار زیاد بکە' : 'Add Business'}
-                </button>
-                {profile?.role === 'business_owner' && (
+                {user && (
                   <button 
-                    className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-secondary text-white text-xs font-black rounded-xl shadow-lg shadow-secondary/20 hover:bg-secondary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                    onClick={() => setIsAddBusinessModalOpen(true)}
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-text-main text-[10px] font-black rounded-xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    {translations.manage[language]}
+                    <span>{translations.addBusiness[language]}</span>
                   </button>
                 )}
-                
->>>>>>> 182f5e4 (feat: Add business detail modal, add business form, trust signals, and loading states)
-                {!user ? (
-                  <button 
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-bg-dark text-[10px] font-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+
+                {user && profile?.role === 'business_owner' && (
+                  <Link 
+                    to="/dashboard"
+                    className="hidden lg:flex items-center gap-2 px-4 py-2 bg-secondary text-bg-dark text-[10px] font-black rounded-xl shadow-lg shadow-secondary/20 hover:bg-secondary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
                   >
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">Register / Login</span>
-                  </button>
+                    <Briefcase className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                )}
+
+                {!user ? (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        setAuthMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-text-main text-[10px] font-black rounded-xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>{translations.addBusiness[language]}</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setAuthMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="px-4 py-2 text-text-muted text-[10px] font-black rounded-xl hover:text-primary transition-all uppercase tracking-widest"
+                    >
+                      Login
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-bg-dark text-[10px] font-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">Register</span>
+                    </button>
+                  </div>
                 ) : (
                   <div className="relative">
                     <button 
@@ -235,7 +266,20 @@ export default function HomePage() {
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-[70]">
                         <div className="px-4 py-2 border-b border-slate-200 mb-2">
                           <p className="text-[10px] font-black text-text-main truncate">{user.email}</p>
+                          {profile?.role === 'business_owner' && (
+                            <p className="text-[8px] font-black text-secondary uppercase tracking-widest mt-0.5">Business Owner</p>
+                          )}
                         </div>
+                        
+                        {profile?.role === 'business_owner' && (
+                          <Link 
+                            to="/dashboard"
+                            className="w-full px-4 py-2 text-left text-xs font-bold text-text-muted hover:bg-slate-50 hover:text-secondary flex items-center gap-2 transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4" /> {translations.dashboard[language]}
+                          </Link>
+                        )}
+
                         <button className="w-full px-4 py-2 text-left text-xs font-bold text-text-muted hover:bg-slate-50 hover:text-primary flex items-center gap-2 transition-colors">
                           <Settings className="w-4 h-4" /> {translations.settings[language]}
                         </button>
@@ -377,6 +421,12 @@ export default function HomePage() {
         </div>
       </main>
 
+      <AddBusinessModal 
+        isOpen={isAddBusinessModalOpen} 
+        onClose={() => setIsAddBusinessModalOpen(false)}
+        onSuccess={() => refresh()}
+      />
+
       {/* Footer */}
       <footer className="bg-bg-dark text-white pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -413,9 +463,9 @@ export default function HomePage() {
             <div className="lg:col-span-2">
               <h4 className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-8">For Business</h4>
               <ul className="space-y-4 text-sm font-bold text-slate-400">
-                <li><button onClick={() => setIsAddBusinessModalOpen(true)} className="hover:text-white transition-colors text-left">Add Your Business</button></li>
                 <li><a href="#" className="hover:text-white transition-colors">Claim Listing</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Advertise</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Business Blog</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Success Stories</a></li>
               </ul>
             </div>
