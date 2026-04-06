@@ -30,7 +30,7 @@ export const useHomeStore = create<HomeState>()(
       language: "en",
 
       setGovernorate: (governorate) =>
-        set({ selectedGovernorate: governorate, selectedCity: null }),
+        set({ selectedGovernorate: governorate, selectedCity: null, selectedCategory: null }),
 
       setCity: (city) =>
         set({ selectedCity: city }),
