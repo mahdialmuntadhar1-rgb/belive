@@ -1,0 +1,21 @@
+{
+  "scanned_directories": [
+    "data/import/raw",
+    "data/import/samples",
+    "scripts/legacy",
+    "docs/import-notes"
+  ],
+  "discovered_files": [
+    "docs/import-notes/PHASE1_MASTER_TABLE.md"
+  ],
+  "unsupported_files": [],
+  "source_headers": {},
+  "file_mappings": {},
+  "unmapped_columns": {},
+  "totals": {
+    "total_imported": 0,
+    "total_mapped": 0,
+    "total_missing_minimum_required_fields": 0
+  },
+  "generated_at": "2026-04-06T07:39:02.306Z"
+}
