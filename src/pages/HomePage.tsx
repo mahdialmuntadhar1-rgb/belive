@@ -9,6 +9,7 @@ import FeedComponent from "@/components/home/FeedComponent";
 import BusinessGrid from "@/components/home/BusinessGrid";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
+import AddBusinessModal from "@/components/home/AddBusinessModal";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -121,6 +123,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-bg-light selection:bg-primary/30" dir={isRTL ? 'rtl' : 'ltr'}>
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <BusinessDetailModal business={selectedBusiness} onClose={() => setSelectedBusiness(null)} />
+<<<<<<< HEAD
       {/* Header */}
       <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
@@ -136,6 +139,16 @@ export default function HomePage() {
               <h1 className="text-lg font-black text-text-main poppins-bold tracking-tight leading-none">Saku Maku</h1>
               <p className="text-[8px] text-primary font-black uppercase tracking-[0.2em] mt-0.5">Iraqi Directory</p>
             </div>
+=======
+      <AddBusinessModal isOpen={isAddBusinessModalOpen} onClose={() => setIsAddBusinessModalOpen(false)} />
+
+      {/* Top Bar (Languages & Branding) */}
+      <div className="bg-white/90 backdrop-blur-md py-2 border-b border-slate-200 shadow-sm relative z-[70]">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Top Left Branding - Hidden on very small mobile to save space */}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-lg font-black text-primary poppins-bold">شكو ماكو؟</span>
+>>>>>>> 182f5e4 (feat: Add business detail modal, add business form, trust signals, and loading states)
           </div>
 
           {/* Center: Search & Language */}
@@ -179,6 +192,25 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse" />
             ) : (
               <>
+<<<<<<< HEAD
+=======
+                <button 
+                  onClick={() => setIsAddBusinessModalOpen(true)}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-xs font-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  {language === 'ar' ? 'أضف عملك' : language === 'ku' ? 'کار زیاد بکە' : 'Add Business'}
+                </button>
+                {profile?.role === 'business_owner' && (
+                  <button 
+                    className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-secondary text-white text-xs font-black rounded-xl shadow-lg shadow-secondary/20 hover:bg-secondary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    {translations.manage[language]}
+                  </button>
+                )}
+                
+>>>>>>> 182f5e4 (feat: Add business detail modal, add business form, trust signals, and loading states)
                 {!user ? (
                   <button 
                     onClick={() => setIsAuthModalOpen(true)}
@@ -381,9 +413,9 @@ export default function HomePage() {
             <div className="lg:col-span-2">
               <h4 className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-8">For Business</h4>
               <ul className="space-y-4 text-sm font-bold text-slate-400">
+                <li><button onClick={() => setIsAddBusinessModalOpen(true)} className="hover:text-white transition-colors text-left">Add Your Business</button></li>
                 <li><a href="#" className="hover:text-white transition-colors">Claim Listing</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Advertise</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Business Blog</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Success Stories</a></li>
               </ul>
             </div>
