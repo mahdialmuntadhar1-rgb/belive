@@ -60,40 +60,7 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
     return date.toLocaleDateString();
   };
 
-  const mockPosts: Post[] = [
-    {
-      id: "mock-1",
-      businessId: businesses[0]?.id || "b1",
-      authorName: "Al-Mansour Mall",
-      authorAvatar: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&q=80&w=200",
-      content: "Exciting news! Our new spring collection has just arrived. Visit us today for exclusive discounts and a first look at the latest trends in fashion. 🛍️✨",
-      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
-      likes: 124,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    },
-    {
-      id: "mock-2",
-      businessId: businesses[1]?.id || "b2",
-      authorName: "Saj Al-Reef",
-      authorAvatar: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=200",
-      content: "Craving something delicious? Our signature Shawarma is ready! Made with fresh ingredients and our secret spice blend. Come and taste the difference. 🌯🔥",
-      image: "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&q=80&w=800",
-      likes: 89,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    },
-    {
-      id: "mock-3",
-      businessId: businesses[2]?.id || "b3",
-      authorName: "Grand Millenium Hotel",
-      authorAvatar: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=200",
-      content: "Experience luxury like never before. Book your stay this weekend and enjoy a complimentary spa session. Your perfect getaway awaits. 🏨💎",
-      image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
-      likes: 256,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
-    }
-  ];
-
-  const displayPosts = posts.length > 0 ? posts : mockPosts;
+  const displayPosts = posts;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 pb-20">
@@ -215,6 +182,7 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
             </button>
           </div>
         </div>
-    </div>
-  );
-}
+      </div>
+    );
+  }
+
