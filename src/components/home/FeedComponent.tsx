@@ -81,14 +81,31 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours} hours ago`;
+    if (hours < 1) return language === 'ar' ? 'الآن' : language === 'ku' ? 'ئێستا' : 'Just now';
+    if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
   };
 
-  const displayPosts = posts;
+  // FALLBACK: Generate posts from businesses when Supabase posts are empty
+  const displayPosts = posts.length > 0 ? posts : businesses.slice(0, 8).map((biz, idx) => ({
+    id: `fallback-${biz.id}`,
+    businessId: biz.id,
+    content: language === 'ar' 
+      ? `اكتشف ${biz.name || 'هذا المكان'} في ${biz.city || 'العراق'}! ${biz.description || 'وجهة رائعة تستحق الزيارة.'}`
+      : language === 'ku'
+      ? `${biz.name || 'ئەم شوێنە'} لە ${biz.city || 'عێراق'} ببینە! ${biz.description || 'شوێنی خۆش شایەنی سەردانکردن.'}`
+      : `Discover ${biz.name || 'this place'} in ${biz.city || 'Iraq'}! ${biz.description || 'A wonderful destination worth visiting.'}`,
+    image: biz.image_url || biz.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+    createdAt: new Date(Date.now() - idx * 3600000), // Staggered times
+    likes: Math.floor(Math.random() * 50) + 5,
+    comments: 0,
+    shares: 0,
+    authorName: biz.name,
+    authorAvatar: biz.image_url || biz.image,
+    postComments: []
+  }));
 
-  if (displayPosts.length === 0 && !postsLoading) {
+  if (displayPosts.length === 0 && !postsLoading && !businessesLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
