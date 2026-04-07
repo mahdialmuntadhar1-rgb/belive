@@ -1,7 +1,7 @@
 import LocationFilter from '@/components/home/LocationFilter';
 import CategoryGrid from '@/components/home/CategoryGrid';
 import TrendingSection from '@/components/home/TrendingSection';
-import BusinessGrid from '@/components/home/BusinessGrid';
+import CategoryBusinessSections from '@/components/home/CategoryBusinessSections';
 import type { Business } from '@/lib/supabase';
 
 interface HomeExploreSectionProps {
@@ -27,7 +27,7 @@ export default function HomeExploreSection({
       <CategoryGrid />
       <TrendingSection businesses={businesses} loading={loading} onBusinessClick={onBusinessClick} />
       <div id="business-grid">
-        <BusinessGrid
+        <CategoryBusinessSections
           businesses={businesses}
           loading={loading}
           hasMore={hasMore}
