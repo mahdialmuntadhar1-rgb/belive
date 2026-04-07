@@ -1,23 +1,18 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { User, PlusCircle, MapPin, LogOut, Settings, ChevronDown, Search, Briefcase, LayoutDashboard, Star, TrendingUp } from "lucide-react";
+import { User, PlusCircle, LogOut, Settings, ChevronDown, Briefcase, LayoutDashboard } from "lucide-react";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "motion/react";
 import HeroSection from "@/components/home/HeroSection";
-import StorySection from "@/components/home/StorySection";
-import LocationFilter from "@/components/home/LocationFilter";
-import CategoryGrid from "@/components/home/CategoryGrid";
-import FeedComponent from "@/components/home/FeedComponent";
-import BusinessGrid from "@/components/home/BusinessGrid";
-import BusinessCard from "@/components/home/BusinessCard";
-import CategorySection from "@/components/home/CategorySection";
+import HomeTabSwitcher, { type HomeTab } from "@/components/home/HomeTabSwitcher";
+import HomeSocialSection from "@/components/home/HomeSocialSection";
+import HomeExploreSection from "@/components/home/HomeExploreSection";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
 import AddBusinessModal from "@/components/home/AddBusinessModal";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
-import { CATEGORIES } from "@/constants";
 import type { Business } from "@/lib/supabase";
 
 export default function HomePage() {
@@ -27,32 +22,18 @@ export default function HomePage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-  const toggleCategoryExpansion = (categoryId: string) => {
-    setExpandedCategories(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId);
-      } else {
-        newSet.add(categoryId);
-      }
-      return newSet;
-    });
-  };
+  const [activeTab, setActiveTab] = useState<HomeTab>('social');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const { user, profile, signOut, loading: authLoading } = useAuthStore();
   const { 
     language,
-    setLanguage,
-    setCategory
+    setLanguage
   } = useHomeStore();
   
   const { 
     businesses, 
     loading: businessesLoading, 
-    error,
     hasMore,
     totalCount,
     loadMore,
@@ -337,175 +318,37 @@ export default function HomePage() {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          {/* 2. Quick Filters & Categories */}
-          <div className="max-w-4xl mx-auto pt-12">
-            {/* Dropdown Filters (Utility) */}
-            <LocationFilter businesses={businesses} />
-
-            {/* Popular Now Chips */}
-            <div className="flex items-center gap-4 mb-12 px-1 overflow-x-auto no-scrollbar pb-2">
-              <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 text-secondary rounded-full border border-secondary/20 whitespace-nowrap">
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Popular Now:</span>
-              </div>
-              {CATEGORIES.slice(0, 6).map((cat, idx) => (
-                <button 
-                  key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  className="px-5 py-2 bg-white border border-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest hover:border-primary hover:text-primary transition-all shadow-sm whitespace-nowrap flex items-center gap-2 group"
-                >
-                  <cat.icon className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  {cat.name[language]}
-                </button>
-              ))}
-            </div>
-
-            {/* Compact Category Grid (Discovery) */}
-            <div className="mb-20">
-              <div className="flex items-center justify-between mb-8 px-1">
-                <h2 className="text-xl font-black text-bg-dark poppins-bold uppercase tracking-tight">
-                  {language === 'ar' ? 'استكشف الفئات' : language === 'ku' ? 'پۆلەکان بگەڕێ' : 'Explore Categories'}
-                </h2>
-              </div>
-              <CategoryGrid />
-            </div>
-          </div>
-
-          <div className="space-y-32">
-            {/* 3. Featured Businesses */}
-            <div className="space-y-10">
-              <div className="flex items-center justify-end gap-4 px-1">
-                <div className="text-right">
-                  <h2 className="text-2xl font-black text-bg-dark poppins-bold leading-tight uppercase tracking-tight">
-                    {language === 'ar' ? 'أماكن مميزة' : language === 'ku' ? 'شوێنە دیارەکان' : 'Featured Businesses'}
-                  </h2>
-                  <p className="text-[11px] font-bold text-slate-400">
-                    {language === 'ar' ? 'أفضل الأماكن المختارة' : language === 'ku' ? 'باشترین شوێنەکان' : 'Handpicked top-rated establishments'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-sm">
-                  <Star className="w-6 h-6" />
-                </div>
-              </div>
-              <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                {businesses.filter(b => b.isFeatured).slice(0, 10).map(business => (
-                  <div key={business.id}>
-                    <BusinessCard 
-                      biz={business}
-                      variant="featured"
-                      onClick={setSelectedBusiness}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 4. Trending / Discovery */}
-            <div className="space-y-10">
-              <div className="flex items-center justify-end gap-4 px-1">
-                <div className="text-right">
-                  <h2 className="text-2xl font-black text-bg-dark poppins-bold leading-tight uppercase tracking-tight">
-                    {language === 'ar' ? `رائج في ${useHomeStore.getState().selectedGovernorate || 'العراق'}` : language === 'ku' ? `لە ${useHomeStore.getState().selectedGovernorate || 'عێراق'} باوە` : `Trending in ${useHomeStore.getState().selectedGovernorate || 'Iraq'}`}
-                  </h2>
-                  <p className="text-[11px] font-bold text-slate-400">
-                    {language === 'ar' ? 'الأماكن الأكثر زيارة' : language === 'ku' ? 'زۆرترین سەردانیکراو' : 'Most visited places this week'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-secondary/20 rounded-2xl flex items-center justify-center text-bg-dark border border-secondary/30 shadow-sm">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-              </div>
-              <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                {businesses.slice(0, 12).map(business => (
-                  <div key={business.id}>
-                    <BusinessCard 
-                      biz={business}
-                      variant="compact"
-                      onClick={setSelectedBusiness}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 5. Platform Activity (Live Feed) */}
-            <div className="space-y-10">
-              <div className="flex items-center justify-end gap-4 px-1">
-                <div className="text-right">
-                  <h2 className="text-2xl font-black text-bg-dark poppins-bold leading-tight uppercase tracking-tight">
-                    {language === 'ar' ? 'آخر الأخبار والنشاطات' : language === 'ku' ? 'دوایین چالاکییەکان' : 'Live Platform Activity'}
-                  </h2>
-                  <p className="text-[11px] font-bold text-slate-400">
-                    {language === 'ar' ? 'تحديثات مباشرة من الشركات' : language === 'ku' ? 'نوێکارییەکان' : 'Real-time updates from local businesses'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20 shadow-sm">
-                  <div className="w-3 h-3 rounded-full bg-accent animate-ping" />
-                </div>
-              </div>
-              <FeedComponent businesses={businesses} loading={businessesLoading} />
-            </div>
-
-            {/* 6. Main Business Listing Grouped by Category */}
-            <div id="business-grid" className="space-y-20">
-              {CATEGORIES.filter(cat => {
-                // Only show categories that have businesses in the current list
-                return businesses.some(b => b.category === cat.id);
-              }).map(category => {
-                const categoryBusinesses = businesses.filter(b => b.category === category.id);
-                if (categoryBusinesses.length === 0) return null;
-
-                return (
-                  <div key={category.id}>
-                    <CategorySection 
-                      category={category}
-                      businesses={categoryBusinesses}
-                      loading={businessesLoading}
-                      onBusinessClick={setSelectedBusiness}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* General/Other Category */}
-              {businesses.filter(b => !CATEGORIES.some(c => c.id === b.category)).length > 0 && (
-                <CategorySection 
-                  category={{
-                    id: 'other',
-                    name: { en: 'Other', ar: 'أخرى', ku: 'ئەوانی تر' },
-                    icon: Briefcase
-                  }}
-                  businesses={businesses.filter(b => !CATEGORIES.some(c => c.id === b.category))}
+          <HomeTabSwitcher activeTab={activeTab} onChange={setActiveTab} />
+          <AnimatePresence mode="wait" initial={false}>
+            {activeTab === 'social' ? (
+              <motion.div
+                key="social-tab-panel"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                <HomeSocialSection businesses={businesses} loading={businessesLoading} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="explore-tab-panel"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                <HomeExploreSection
+                  businesses={businesses}
                   loading={businessesLoading}
+                  hasMore={hasMore}
+                  totalCount={totalCount}
+                  onLoadMore={loadMore}
                   onBusinessClick={setSelectedBusiness}
                 />
-              )}
-
-              {/* Global Load More */}
-              {hasMore && (
-                <div className="flex flex-col items-center gap-8 py-20 bg-slate-50/50 rounded-[60px] border border-slate-100">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                      {translations.showing[language]} <span className="text-bg-dark">{businesses.length}</span> {translations.of[language]} <span className="text-bg-dark">{totalCount}</span> {translations.services[language]}
-                    </div>
-                    <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-accent"
-                        style={{ width: `${(businesses.length / totalCount) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={loadMore}
-                    disabled={businessesLoading}
-                    className="px-16 py-6 bg-bg-dark text-white text-[12px] font-black uppercase tracking-[0.4em] rounded-[28px] hover:bg-primary hover:text-bg-dark transition-all duration-700 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] hover:shadow-primary/30 active:scale-95"
-                  >
-                    {businessesLoading ? 'Loading...' : 'Load More Businesses'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
 
