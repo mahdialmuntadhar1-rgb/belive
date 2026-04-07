@@ -29,6 +29,9 @@ const CONFIG = {
   RETRY_DELAY_MS: 5000,
   BATCH_SIZE: 100, // Fetch businesses in batches
   STATE_FILE: join(__dirname, '../.bulk-sender-state.json'),
+  // Testing mode: limit to 20 businesses max
+  TESTING_MODE: process.env.BULK_SEND_TEST_MODE === 'true',
+  TEST_MODE_LIMIT: 20,
 };
 
 // WhatsApp Cloud API Config
@@ -239,12 +242,15 @@ class BulkMessageSender {
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   }
 
-  async run() {
+  async run(filters = {}) {
     try {
       console.log('🚀 Starting bulk messaging campaign...');
       console.log(`Campaign ID: ${this.campaignId}`);
       console.log(`Rate limit: ${(60000 / CONFIG.MESSAGE_DELAY_MS).toFixed(0)} messages/minute`);
       console.log(`Max retries: ${CONFIG.MAX_RETRIES}`);
+      if (CONFIG.TESTING_MODE) {
+        console.log(`🧪 TEST MODE: Max ${CONFIG.TEST_MODE_LIMIT} businesses`);
+      }
       console.log('');
 
       // Fetch campaign details
@@ -257,15 +263,16 @@ class BulkMessageSender {
       console.log(`📝 Template: ${campaign.message_template?.substring(0, 50)}...`);
       console.log('');
 
-      // Get target businesses
-      const businesses = await this.getTargetBusinesses(campaign);
+      // Get target businesses from REAL Supabase businesses table
+      const businesses = await this.getTargetBusinesses(campaign, filters);
+      
       if (businesses.length === 0) {
         console.log('✅ No new businesses to message. All already contacted or no valid phones.');
         this.state.complete();
         return;
       }
 
-      console.log(`🎯 Targeting ${businesses.length} businesses`);
+      console.log(`\n🎯 QUEUED: ${businesses.length} businesses ready for messaging`);
       console.log('');
 
       // Process each business
@@ -318,16 +325,37 @@ class BulkMessageSender {
     return data;
   }
 
-  async getTargetBusinesses(campaign) {
-    // Build query for businesses
+  async getTargetBusinesses(campaign, filters = {}) {
+    console.log('🔍 Fetching businesses from Supabase...');
+    console.log(`   Filters: ${JSON.stringify({
+      governorate: filters.governorate || 'any',
+      category: filters.category || 'any',
+      city: filters.city || 'any',
+      has_phone: true
+    })}`);
+
+    // Build query for businesses - ONLY from real Supabase businesses table
     let query = this.supabase
       .from('businesses')
       .select('id, name, phone, governorate, city, category')
       .not('phone', 'is', null)
       .neq('phone', '');
 
-    // If campaign has specific targeting criteria, add filters here
-    // Example: filter by governorate, category, etc.
+    // Apply filters from campaign or CLI args
+    if (filters.governorate) {
+      query = query.eq('governorate', filters.governorate);
+      console.log(`   📍 Filter: governorate = ${filters.governorate}`);
+    }
+    
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+      console.log(`   🏷️ Filter: category = ${filters.category}`);
+    }
+    
+    if (filters.city) {
+      query = query.eq('city', filters.city);
+      console.log(`   🏙️ Filter: city = ${filters.city}`);
+    }
 
     // Exclude businesses already in conversations (deduplication)
     const { data: existingConversations } = await this.supabase
@@ -339,19 +367,23 @@ class BulkMessageSender {
       (existingConversations || []).map(c => c.business_id)
     );
 
+    console.log(`   📋 Excluding ${contactedBusinessIds.size} already-contacted businesses`);
+
     // Resume from last processed if state exists
     if (this.state.state.lastProcessedId) {
       console.log(`📍 Resuming after business: ${this.state.state.lastProcessedId}`);
     }
 
-    const { data: businesses, error } = await query;
+    const { data: businesses, error, count } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch businesses: ${error.message}`);
     }
 
+    console.log(`   📊 Raw businesses from Supabase: ${businesses?.length || 0}`);
+
     // Filter out already contacted and invalid phones
-    return (businesses || [])
+    let validBusinesses = (businesses || [])
       .filter(b => {
         // Skip if already in conversations
         if (contactedBusinessIds.has(b.id)) {
@@ -373,11 +405,25 @@ class BulkMessageSender {
         return true;
       })
       // Resume from last processed
-      .filter((b, index) => {
+      .filter((b) => {
         if (!this.state.state.lastProcessedId) return true;
-        const lastIndex = businesses.findIndex(b => b.id === this.state.state.lastProcessedId);
-        return index > lastIndex;
+        return b.id > this.state.state.lastProcessedId; // Assuming ID is sortable
       });
+
+    // Apply testing mode limit (20 businesses max)
+    if (CONFIG.TESTING_MODE) {
+      const beforeLimit = validBusinesses.length;
+      validBusinesses = validBusinesses.slice(0, CONFIG.TEST_MODE_LIMIT);
+      console.log(`\n🧪 TESTING MODE: Limited to ${CONFIG.TEST_MODE_LIMIT} businesses (from ${beforeLimit})`);
+    }
+
+    // Log summary
+    console.log(`\n✅ Businesses selected: ${validBusinesses.length}`);
+    console.log(`   📞 With valid phones: ${validBusinesses.length}`);
+    console.log(`   📍 Governorates: ${[...new Set(validBusinesses.map(b => b.governorate))].join(', ')}`);
+    console.log(`   🏷️ Categories: ${[...new Set(validBusinesses.map(b => b.category))].join(', ')}`);
+    
+    return validBusinesses;
   }
 
   async processBusiness(business, campaign) {
@@ -509,10 +555,37 @@ class BulkMessageSender {
 
 async function main() {
   const campaignId = process.argv[2];
+  
+  // Parse optional filter args
+  const args = process.argv.slice(3);
+  const filters = {};
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--governorate' && args[i + 1]) {
+      filters.governorate = args[i + 1];
+      i++;
+    } else if (arg === '--category' && args[i + 1]) {
+      filters.category = args[i + 1];
+      i++;
+    } else if (arg === '--city' && args[i + 1]) {
+      filters.city = args[i + 1];
+      i++;
+    }
+  }
 
   if (!campaignId) {
-    console.error('❌ Usage: node bulk-sender.js <campaign_id>');
-    console.error('   Or: npm run bulk-send -- <campaign_id>');
+    console.error('❌ Usage: node bulk-sender.js <campaign_id> [options]');
+    console.error('   Or: npm run bulk-send -- <campaign_id> [options]');
+    console.error('');
+    console.error('Options:');
+    console.error('   --governorate <name>   Filter by governorate (e.g., Baghdad)');
+    console.error('   --category <name>     Filter by category (e.g., Restaurant)');
+    console.error('   --city <name>         Filter by city (e.g., Mansour)');
+    console.error('');
+    console.error('Environment Variables:');
+    console.error('   BULK_SEND_TEST_MODE=true   Limit to 20 businesses (testing)');
+    console.error('   BULK_SEND_DELAY_MS=3000    Delay between messages (ms)');
     process.exit(1);
   }
 
@@ -524,7 +597,7 @@ async function main() {
   }
 
   const sender = new BulkMessageSender(campaignId);
-  await sender.run();
+  await sender.run(filters);
 }
 
 main();
