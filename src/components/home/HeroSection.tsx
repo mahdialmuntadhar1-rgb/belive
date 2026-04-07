@@ -67,20 +67,24 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
         <div className="flex flex-col items-center text-center">
           {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 px-4 py-1.5 glass rounded-full border border-white/10 flex items-center gap-3"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-10 px-6 py-2.5 glass rounded-full border border-white/10 flex items-center gap-4 shadow-2xl"
           >
-            <div className="flex -space-x-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="w-6 h-6 rounded-full border-2 border-bg-dark bg-slate-200 overflow-hidden">
-                  <img src={`https://i.pravatar.cc/100?u=${i + 10}`} alt="" referrerPolicy="no-referrer" />
+            <div className="flex -space-x-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="w-8 h-8 rounded-full border-2 border-bg-dark bg-slate-200 overflow-hidden shadow-lg">
+                  <img src={`https://i.pravatar.cc/100?u=${i + 20}`} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-              {language === 'ar' ? 'أكثر من ١٠ آلاف مستخدم نشط' : language === 'ku' ? 'زیاتر لە ١٠ هەزار بەکارهێنەری چالاک' : '10k+ active users in Iraq'}
-            </span>
+            <div className="h-4 w-[1px] bg-white/20" />
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_rgba(212,175,55,0.8)]" />
+              <span className="text-[10px] font-black text-white uppercase tracking-[0.25em]">
+                {language === 'ar' ? 'أكثر من ١٠ آلاف مستخدم نشط' : language === 'ku' ? 'زیاتر لە ١٠ هەزار بەکارهێنەری چالاک' : '10k+ active users in Iraq'}
+              </span>
+            </div>
           </motion.div>
 
           {/* Slogan with Animation */}
@@ -94,56 +98,62 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 className="flex flex-col items-center"
               >
-                <h1 className="text-4xl sm:text-7xl font-black text-white tracking-tighter poppins-bold leading-[1.1] drop-shadow-2xl max-w-3xl">
+                <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter poppins-bold leading-tight drop-shadow-2xl max-w-4xl uppercase text-center">
                   {SLOGANS[currentSlogan][language]}
                 </h1>
               </motion.div>
             </AnimatePresence>
           </div>
 
-          {/* Search Bar - Centralized */}
+          {/* Search Bar - ChatGPT Inspired Design */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="w-full max-w-2xl relative group"
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="w-full max-w-4xl relative group px-4"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-accent/50 rounded-[28px] blur opacity-25 group-focus-within:opacity-50 transition duration-1000 group-focus-within:duration-200" />
-            <div className="relative flex items-center bg-white rounded-[24px] shadow-2xl overflow-hidden p-1.5">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 rounded-[32px] blur-2xl opacity-0 group-focus-within:opacity-100 transition-all duration-1000" />
+            <div className="relative flex items-center bg-white/95 backdrop-blur-xl rounded-[24px] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.3)] overflow-hidden p-2 border border-white/20 group-focus-within:border-primary/50 transition-all duration-500">
               <div className={`flex items-center flex-1 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className="px-5 text-slate-400">
+                <div className="px-5 text-slate-400 group-focus-within:text-primary transition-colors">
                   <Search className="w-5 h-5" />
                 </div>
                 <input 
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={language === 'ar' ? 'ابحث عن مطاعم، فنادق، خدمات...' : language === 'ku' ? 'بگەڕێ بۆ چێشتخانە، هوتێل، خزمەتگوزاری...' : 'Search for restaurants, hotels, services...'}
-                  className={`flex-1 py-4 text-sm font-bold text-bg-dark focus:outline-none bg-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                  placeholder={language === 'ar' ? 'ابحث عن أي شيء في العراق...' : language === 'ku' ? 'بگەڕێ بۆ هەر شتێک لە عێراق...' : 'Search for anything in Iraq...'}
+                  className={`flex-1 py-4 text-base font-bold text-bg-dark focus:outline-none bg-transparent placeholder:text-slate-400 ${isRTL ? 'text-right' : 'text-left'}`}
                 />
               </div>
-              <button className="hidden sm:flex items-center gap-2 px-8 py-4 bg-primary text-white font-black text-[11px] uppercase tracking-widest rounded-[18px] hover:bg-primary-dark transition-all active:scale-95 shadow-lg shadow-primary/20">
-                {language === 'ar' ? 'بحث' : language === 'ku' ? 'گەڕان' : 'Search'}
-                <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-              </button>
+              <div className="flex items-center gap-2 px-2">
+                <button className="hidden sm:flex items-center gap-2 px-6 py-3 bg-bg-dark text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-[18px] hover:bg-primary hover:text-bg-dark transition-all active:scale-95 shadow-xl border border-white/10 group/btn">
+                  {language === 'ar' ? 'بحث' : language === 'ku' ? 'گەڕان' : 'Search'}
+                  <ArrowRight className={`w-4 h-4 transition-transform group-hover/btn:translate-x-1 ${isRTL ? 'rotate-180 group-hover/btn:-translate-x-1' : ''}`} />
+                </button>
+              </div>
             </div>
           </motion.div>
 
-          {/* Popular Searches / Tags */}
+          {/* Live Activity Indicator */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8 flex flex-wrap justify-center gap-3"
+            transition={{ delay: 0.6 }}
+            className="mt-12 flex items-center gap-6"
           >
-            {['Restaurants', 'Hotels', 'Cafes', 'Shopping'].map((tag) => (
-              <button 
-                key={tag}
-                className="px-4 py-1.5 glass rounded-full border border-white/5 text-[10px] font-bold text-white/60 hover:text-white hover:border-white/20 transition-all"
-              >
-                {tag}
-              </button>
-            ))}
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
+                {language === 'ar' ? '١,٢٤٠ متصل الآن' : language === 'ku' ? '١,٢٤٠ کەس ئێستا چالاکن' : '1,240 Online Now'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
+                {language === 'ar' ? '٥٠+ عمل جديد اليوم' : language === 'ku' ? '٥٠+ کارێکی نوێ ئەمڕۆ' : '50+ New Businesses Today'}
+              </span>
+            </div>
           </motion.div>
         </div>
       </div>

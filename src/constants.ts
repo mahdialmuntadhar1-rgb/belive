@@ -76,6 +76,4 @@ export const CATEGORIES = [
   { id: 'beauty', name: { en: 'BEAUTY & SALONS', ar: 'الجمال والصالونات', ku: 'جوانی و ساڵۆنەکان' }, icon: Sparkles, types: 4, image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=400&auto=format&fit=crop' },
   { id: 'supermarkets', name: { en: 'SUPERMARKETS', ar: 'الأسواق المركزية', ku: 'سوپەرمارکێتەکان' }, icon: Store, types: 4, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400&auto=format&fit=crop' },
   { id: 'furniture', name: { en: 'FURNITURE & HOME', ar: 'الأثاث والمنزل', ku: 'کەلوپەلی ناوماڵ' }, icon: Armchair, types: 4, image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=400&auto=format&fit=crop' },
-  { id: 'automotive', name: { en: 'AUTOMOTIVE & CARS', ar: 'السيارات والمركبات', ku: 'ئۆتۆمبێل و ئامرازەکان' }, icon: Car, types: 5, image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=400&auto=format&fit=crop' },
-  { id: 'electronics', name: { en: 'ELECTRONICS & TECH', ar: 'الإلكترونيات والتكنولوجيا', ku: 'ئەلکترۆنیات و تەکنەلۆژیا' }, icon: Cpu, types: 4, image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=400&auto=format&fit=crop' },
 ];

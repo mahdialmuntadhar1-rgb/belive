@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Heart, MessageCircle, Share2, Clock, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Clock, Loader2, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
 import type { Business, Post } from "@/lib/supabase";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
+import { CATEGORIES } from "@/constants";
 
 interface FeedComponentProps {
   businesses: Business[];
@@ -78,49 +79,68 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 pb-20">
-      <div className="space-y-12">
-        {displayPosts.map((post) => {
+    <div className="max-w-3xl mx-auto px-4 py-16 pb-32">
+      {/* Feed Header */}
+      <div className="flex items-center justify-between mb-12 px-4">
+        <div>
+          <h2 className="text-3xl font-black text-bg-dark poppins-bold tracking-tighter uppercase">
+            {language === 'ar' ? 'آخر التحديثات' : language === 'ku' ? 'دوایین نوێکارییەکان' : 'Live Business Feed'}
+          </h2>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2">
+            {language === 'ar' ? 'اكتشف ما هو جديد في العراق' : language === 'ku' ? 'بزانە چی نوێیە لە عێراق' : 'Real-time updates from Iraqi brands'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+          <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-2">Live</span>
+        </div>
+      </div>
+
+      <div className="space-y-16">
+        {displayPosts.map((post, idx) => {
           const business = businesses.find(b => b.id === post.businessId);
-          const category = business?.category || "Featured";
+          const category = CATEGORIES.find(c => c.id === business?.category)?.name[language] || business?.category || "Featured";
           const phone = business?.phone;
           const authorName = post.authorName || business?.name || "Business";
 
             return (
               <motion.div
                 key={post.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="bg-white rounded-[32px] border border-slate-200 shadow-social hover:shadow-2xl transition-all duration-700 overflow-hidden group flex flex-col md:flex-row"
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, delay: idx * 0.1 }}
+                className="bg-white rounded-[48px] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] transition-all duration-1000 overflow-hidden group flex flex-col md:flex-row relative"
               >
                 {/* Piece 1: Image */}
                 {post.image && (
-                  <div className="w-full md:w-1/2 h-[250px] md:h-auto relative overflow-hidden group/img">
+                  <div className="w-full md:w-2/5 h-[300px] md:h-auto relative overflow-hidden group/img">
                     <img
                       src={post.image}
                       alt=""
-                      className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-1000"
+                      className="w-full h-full object-cover group-hover/img:scale-125 transition-transform duration-[2000ms] ease-out"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/60 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/80 via-bg-dark/20 to-transparent opacity-60 group-hover/img:opacity-80 transition-opacity duration-700" />
                     
                     {/* Floating Badge on Image */}
-                    <div className="absolute bottom-4 left-4 glass-dark px-3 py-1.5 rounded-lg border border-white/20">
-                      <span className="text-[8px] font-black text-white uppercase tracking-widest">
-                        {category}
-                      </span>
+                    <div className="absolute top-8 left-8">
+                      <div className="glass-dark px-5 py-2.5 rounded-[20px] border border-white/20 shadow-2xl backdrop-blur-md">
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                          {category}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* Piece 2: Information */}
-                <div className={`flex-1 flex flex-col ${!post.image ? 'w-full' : ''}`}>
+                <div className={`flex-1 flex flex-col p-10 sm:p-12 ${!post.image ? 'w-full' : ''}`}>
                   {/* Post Header */}
-                  <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl p-[1px] bg-gradient-to-tr from-primary via-secondary to-accent">
-                        <div className="w-full h-full rounded-xl bg-white flex items-center justify-center text-primary font-bold border border-white shadow-inner overflow-hidden">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 rounded-[24px] p-[2px] bg-gradient-to-tr from-primary via-accent to-secondary shadow-2xl group-hover:rotate-6 transition-transform duration-700">
+                        <div className="w-full h-full rounded-[22px] bg-white flex items-center justify-center text-bg-dark font-bold border border-white shadow-inner overflow-hidden">
                           {post.authorAvatar ? (
                             <img
                               src={post.authorAvatar}
@@ -129,61 +149,64 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <span className="text-lg font-black">{authorName.charAt(0)}</span>
+                            <span className="text-2xl font-black">{authorName.charAt(0)}</span>
                           )}
                         </div>
                       </div>
                       <div>
-                        <h3 className="font-black text-text-main text-sm poppins-bold group-hover:text-primary transition-colors tracking-tight">
+                        <h3 className="font-black text-bg-dark text-xl poppins-bold group-hover:text-primary transition-colors duration-500 tracking-tighter uppercase leading-none">
                           {authorName}
                         </h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Clock size={10} className="text-primary" />
-                          <p className="text-[8px] text-text-muted font-black uppercase tracking-widest">
-                            {formatTimestamp(post.createdAt)}
-                          </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                            <Clock size={12} className="text-primary" />
+                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                              {formatTimestamp(post.createdAt)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Post Content */}
-                  <div className="p-6 flex-1">
-                    <p className="text-text-main text-sm leading-relaxed font-medium line-clamp-4">
+                  <div className="flex-1 mb-10">
+                    <p className="text-slate-600 text-lg leading-relaxed font-medium line-clamp-4 group-hover:text-bg-dark transition-colors duration-500">
                       {post.content}
                     </p>
                   </div>
 
                   {/* Engagement & Contact */}
-                  <div className="p-4 bg-slate-50/50 mt-auto border-t border-slate-100 space-y-3">
-                    <div className="flex gap-2">
+                  <div className="space-y-5">
+                    <div className="flex gap-4">
                       <button
                         onClick={() => handleLike(post.id)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-[9px] transition-all duration-300 uppercase tracking-widest ${
+                        className={`flex-1 flex items-center justify-center gap-4 py-5 rounded-[22px] font-black text-[11px] transition-all duration-500 uppercase tracking-[0.2em] shadow-xl ${
                           likedPosts.has(post.id)
-                            ? "bg-primary text-white shadow-neon"
-                            : "bg-white text-text-muted border border-slate-200 hover:border-primary/20"
+                            ? "bg-primary text-bg-dark shadow-primary/30 scale-105"
+                            : "bg-slate-50 text-slate-400 border border-slate-100 hover:border-primary/30 hover:bg-white hover:text-primary"
                         }`}
                       >
                         <Heart
-                          size={14}
+                          size={18}
                           className={likedPosts.has(post.id) ? "fill-current" : ""}
                         />
                         {(post.likes || 0) + (likedPosts.has(post.id) ? 1 : 0)}
                       </button>
 
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-200 text-text-muted rounded-xl font-black text-[9px] transition-all duration-300 uppercase tracking-widest">
-                        <MessageCircle size={14} />
-                        Chat
+                      <button className="flex-1 flex items-center justify-center gap-4 py-5 bg-white border-2 border-slate-100 text-slate-400 rounded-[22px] font-black text-[11px] transition-all duration-500 uppercase tracking-[0.2em] hover:bg-bg-dark hover:text-white hover:border-bg-dark shadow-xl shadow-slate-100">
+                        <MessageCircle size={18} />
+                        {language === 'ar' ? 'دردشة' : language === 'ku' ? 'چات' : 'Message'}
                       </button>
                     </div>
 
                     {phone && (
                       <a
                         href={`tel:${phone}`}
-                        className="block w-full py-2.5 bg-bg-dark hover:bg-primary text-white hover:text-white text-[9px] font-black rounded-xl transition-all duration-300 text-center uppercase tracking-widest"
+                        className="flex items-center justify-center gap-4 w-full py-5 bg-bg-dark text-white text-[11px] font-black rounded-[22px] transition-all duration-700 text-center uppercase tracking-[0.3em] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:bg-primary hover:text-bg-dark hover:shadow-primary/30 group/btn"
                       >
-                        Call Now
+                        <Share2 size={16} className="group-hover/btn:rotate-12 transition-transform" />
+                        {language === 'ar' ? 'تواصل الآن' : language === 'ku' ? 'پەیوەندی بکە' : 'Connect with Brand'}
                       </a>
                     )}
                   </div>
@@ -193,9 +216,12 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
         })}
 
           {/* Load More Button */}
-          <div className="text-center pt-10">
-            <button className="px-16 py-5 bg-bg-dark text-white rounded-[24px] shadow-social hover:shadow-2xl text-xs font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 border border-white/10">
-              Load More Updates
+          <div className="text-center pt-16">
+            <button className="px-20 py-6 bg-white border-2 border-slate-100 text-bg-dark rounded-[32px] shadow-2xl hover:shadow-primary/20 text-[12px] font-black uppercase tracking-[0.3em] transition-all duration-700 hover:scale-105 active:scale-95 hover:border-primary hover:bg-primary/5 group/more">
+              <span className="flex items-center gap-4">
+                {language === 'ar' ? 'عرض المزيد من التحديثات' : language === 'ku' ? 'بینینی نوێکاری زیاتر' : 'Explore More Updates'}
+                <TrendingUp className="w-5 h-5 group-hover/more:translate-y-[-2px] transition-transform" />
+              </span>
             </button>
           </div>
         </div>

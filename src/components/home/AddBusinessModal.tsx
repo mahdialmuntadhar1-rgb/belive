@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Store, MapPin, Phone, Globe, Image as ImageIcon, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Store, MapPin, Phone, Globe, Image as ImageIcon, Clock, Loader2, CheckCircle2, AlertCircle, ChevronDown } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
@@ -127,231 +127,234 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess }: AddBusi
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-10">
               {success ? (
-                <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle2 className="w-10 h-10 text-primary" />
+                <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                  <div className="w-24 h-24 bg-primary/10 rounded-[32px] flex items-center justify-center mb-8 shadow-inner">
+                    <CheckCircle2 className="w-12 h-12 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-black text-text-main mb-2 poppins-bold">{translations.success[language]}</h3>
-                  <p className="text-sm text-text-muted">Your business has been added to our directory.</p>
+                  <h3 className="text-3xl font-black text-bg-dark mb-4 poppins-bold tracking-tighter uppercase">{translations.success[language]}</h3>
+                  <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">Your business has been added to our directory and is now live for millions to see.</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-10">
                   {error && (
-                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
-                      <AlertCircle className="w-4 h-4" />
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-5 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-4 text-red-600 text-[11px] font-black uppercase tracking-widest"
+                    >
+                      <AlertCircle className="w-5 h-5 shrink-0" />
                       {error}
-                    </div>
+                    </motion.div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.nameEn[language]}</label>
-                      <input 
-                        required
-                        type="text"
-                        value={formData.name}
-                        onChange={e => setFormData({...formData, name: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="e.g. Al-Mansour Restaurant"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.nameAr[language]}</label>
-                      <input 
-                        required
-                        type="text"
-                        value={formData.nameAr}
-                        onChange={e => setFormData({...formData, nameAr: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="مثلاً: مطعم المنصور"
-                        dir="rtl"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.category[language]}</label>
-                      <select 
-                        required
-                        value={formData.category}
-                        onChange={e => setFormData({...formData, category: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold appearance-none"
-                      >
-                        {CATEGORIES.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name[language]}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.governorate[language]}</label>
-                      <select 
-                        required
-                        value={formData.governorate}
-                        onChange={e => setFormData({...formData, governorate: e.target.value, city: ''})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold appearance-none"
-                      >
-                        {GOVERNORATES.map(gov => (
-                          <option key={gov.id} value={gov.name.en}>{language === 'ar' ? gov.name.ar : language === 'ku' ? gov.name.ku : gov.name.en}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.city[language]}</label>
-                      <input 
-                        required
-                        type="text"
-                        list="cities-list"
-                        value={formData.city}
-                        onChange={e => setFormData({...formData, city: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="e.g. Mansour"
-                      />
-                      <datalist id="cities-list">
-                        {availableCities.map(city => (
-                          <option key={city.id} value={city.name.en} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.neighborhood[language]}</label>
-                      <input 
-                        type="text"
-                        value={formData.neighborhood}
-                        onChange={e => setFormData({...formData, neighborhood: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="e.g. Al-Mansour Street"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.phone[language]}</label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                          required
-                          type="tel"
-                          value={formData.phone}
-                          onChange={e => setFormData({...formData, phone: e.target.value})}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                          placeholder="+964 7XX XXX XXXX"
-                        />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Section: Basic Info */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1 h-4 bg-primary rounded-full" />
+                        <h3 className="text-[10px] font-black text-bg-dark uppercase tracking-[0.3em]">Basic Information</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.nameEn[language]}</label>
+                          <input 
+                            required
+                            type="text"
+                            value={formData.name}
+                            onChange={e => setFormData({...formData, name: e.target.value})}
+                            className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                            placeholder="e.g. Al-Mansour Restaurant"
+                          />
+                        </div>
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.nameAr[language]}</label>
+                          <input 
+                            required
+                            type="text"
+                            value={formData.nameAr}
+                            onChange={e => setFormData({...formData, nameAr: e.target.value})}
+                            className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                            placeholder="مثلاً: مطعم المنصور"
+                            dir="rtl"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.whatsapp[language]}</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 flex items-center justify-center font-bold text-[8px]">WA</div>
-                        <input 
-                          type="tel"
-                          value={formData.whatsapp}
-                          onChange={e => setFormData({...formData, whatsapp: e.target.value})}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                          placeholder="+964 7XX XXX XXXX"
-                        />
+                    {/* Section: Location */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1 h-4 bg-secondary rounded-full" />
+                        <h3 className="text-[10px] font-black text-bg-dark uppercase tracking-[0.3em]">Location & Category</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.category[language]}</label>
+                          <div className="relative">
+                            <select 
+                              required
+                              value={formData.category}
+                              onChange={e => setFormData({...formData, category: e.target.value})}
+                              className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold appearance-none cursor-pointer"
+                            >
+                              {CATEGORIES.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name[language]}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.governorate[language]}</label>
+                          <div className="relative">
+                            <select 
+                              required
+                              value={formData.governorate}
+                              onChange={e => setFormData({...formData, governorate: e.target.value, city: ''})}
+                              className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold appearance-none cursor-pointer"
+                            >
+                              {GOVERNORATES.map(gov => (
+                                <option key={gov.id} value={gov.name.en}>{language === 'ar' ? gov.name.ar : language === 'ku' ? gov.name.ku : gov.name.en}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.city[language]}</label>
+                          <input 
+                            required
+                            type="text"
+                            list="cities-list"
+                            value={formData.city}
+                            onChange={e => setFormData({...formData, city: e.target.value})}
+                            className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                            placeholder="e.g. Mansour"
+                          />
+                          <datalist id="cities-list">
+                            {availableCities.map(city => (
+                              <option key={city.id} value={city.name.en} />
+                            ))}
+                          </datalist>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.neighborhood[language]}</label>
+                          <input 
+                            type="text"
+                            value={formData.neighborhood}
+                            onChange={e => setFormData({...formData, neighborhood: e.target.value})}
+                            className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                            placeholder="e.g. Al-Mansour Street"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.facebook[language]}</label>
-                      <input 
-                        type="url"
-                        value={formData.facebook}
-                        onChange={e => setFormData({...formData, facebook: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="https://facebook.com/..."
-                      />
-                    </div>
+                    {/* Section: Contact */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1 h-4 bg-accent rounded-full" />
+                        <h3 className="text-[10px] font-black text-bg-dark uppercase tracking-[0.3em]">Contact Details</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.phone[language]}</label>
+                          <div className="relative">
+                            <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                            <input 
+                              required
+                              type="tel"
+                              value={formData.phone}
+                              onChange={e => setFormData({...formData, phone: e.target.value})}
+                              className="w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                              placeholder="+964 7XX XXX XXXX"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.instagram[language]}</label>
-                      <input 
-                        type="url"
-                        value={formData.instagram}
-                        onChange={e => setFormData({...formData, instagram: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                        placeholder="https://instagram.com/..."
-                      />
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.address[language]}</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                          required
-                          type="text"
-                          value={formData.address}
-                          onChange={e => setFormData({...formData, address: e.target.value})}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                          placeholder="Street name, landmark..."
-                        />
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.whatsapp[language]}</label>
+                          <div className="relative">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 bg-green-500 rounded-lg flex items-center justify-center text-white font-black text-[8px]">WA</div>
+                            <input 
+                              type="tel"
+                              value={formData.whatsapp}
+                              onChange={e => setFormData({...formData, whatsapp: e.target.value})}
+                              className="w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                              placeholder="+964 7XX XXX XXXX"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.website[language]}</label>
-                      <div className="relative">
-                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                          type="url"
-                          value={formData.website}
-                          onChange={e => setFormData({...formData, website: e.target.value})}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                          placeholder="https://..."
-                        />
+                    {/* Section: Media */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1 h-4 bg-bg-dark rounded-full" />
+                        <h3 className="text-[10px] font-black text-bg-dark uppercase tracking-[0.3em]">Media & Description</h3>
                       </div>
-                    </div>
+                      <div className="space-y-6">
+                        <div className="space-y-2.5">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.image[language]}</label>
+                          <div className="relative">
+                            <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                            <input 
+                              type="url"
+                              value={formData.image}
+                              onChange={e => setFormData({...formData, image: e.target.value})}
+                              className="w-full pl-14 pr-6 py-4.5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                              placeholder="Paste a high-quality image URL"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.image[language]}</label>
-                      <div className="relative">
-                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                          type="url"
-                          value={formData.image}
-                          onChange={e => setFormData({...formData, image: e.target.value})}
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold"
-                          placeholder="Image URL"
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.descriptionEn[language]}</label>
+                            <textarea 
+                              required
+                              value={formData.description}
+                              onChange={e => setFormData({...formData, description: e.target.value})}
+                              className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-50 rounded-3xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold min-h-[120px] placeholder:text-slate-300 resize-none"
+                              placeholder="Tell us about your brand story..."
+                            />
+                          </div>
+                          <div className="space-y-2.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">{translations.descriptionAr[language]}</label>
+                            <textarea 
+                              required
+                              value={formData.descriptionAr}
+                              onChange={e => setFormData({...formData, descriptionAr: e.target.value})}
+                              className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-50 rounded-3xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all text-sm font-bold min-h-[120px] placeholder:text-slate-300 resize-none"
+                              placeholder="أخبرنا عن قصة علامتك التجارية..."
+                              dir="rtl"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.descriptionEn[language]}</label>
-                      <textarea 
-                        required
-                        value={formData.description}
-                        onChange={e => setFormData({...formData, description: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold min-h-[100px]"
-                        placeholder="Tell us about your business..."
-                      />
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{translations.descriptionAr[language]}</label>
-                      <textarea 
-                        required
-                        value={formData.descriptionAr}
-                        onChange={e => setFormData({...formData, descriptionAr: e.target.value})}
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold min-h-[100px]"
-                        placeholder="أخبرنا عن عملك..."
-                        dir="rtl"
-                      />
                     </div>
                   </div>
 
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-5 bg-bg-dark text-white font-black rounded-[24px] shadow-2xl hover:bg-primary hover:text-bg-dark transition-all flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-xs disabled:opacity-50"
-                  >
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : translations.submit[language]}
-                  </button>
+                  <div className="pt-4">
+                    <button 
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-6 bg-bg-dark text-white font-black rounded-[28px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:bg-primary hover:text-bg-dark transition-all duration-700 flex items-center justify-center gap-4 uppercase tracking-[0.3em] text-[11px] disabled:opacity-50 group active:scale-95"
+                    >
+                      {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                        <>
+                          <span>{translations.submit[language]}</span>
+                          <CheckCircle2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>

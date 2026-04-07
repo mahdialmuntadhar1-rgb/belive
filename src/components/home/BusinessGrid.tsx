@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, MapPin, Loader2, SearchX, CheckCircle2, Phone, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Loader2, SearchX, RefreshCw } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { CATEGORIES } from '@/constants';
+import BusinessCard from './BusinessCard';
 
 interface BusinessGridProps {
   businesses: Business[];
@@ -33,40 +33,28 @@ export default function BusinessGrid({
     },
     loadMore: { en: 'Load More', ar: 'تحميل المزيد', ku: 'بارکردنی زیاتر' },
     loading: { en: 'Loading...', ar: 'جاري التحميل...', ku: 'بارکردن...' },
-    verified: { en: 'Verified', ar: 'موثق', ku: 'پشتڕاستکراوە' },
-    call: { en: 'Call', ar: 'اتصال', ku: 'پەیوەندی' },
     showing: { en: 'Showing', ar: 'عرض', ku: 'پیشاندانی' },
     of: { en: 'of', ar: 'من', ku: 'لە' }
   };
 
-  const getBusinessName = (biz: Business) => {
-    if (language === 'ar' && biz.nameAr) return biz.nameAr;
-    if (language === 'ku' && biz.nameKu) return biz.nameKu;
-    return biz.name;
-  };
-
-  const getBusinessImage = (biz: Business) => {
-    if (biz.image) return biz.image;
-    const cat = CATEGORIES.find(c => c.id === biz.category);
-    return cat?.image || `https://picsum.photos/seed/${biz.id}/600/400`;
-  };
-
   if (loading && businesses.length === 0) return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-4 mb-12">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 px-4 mb-24">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="bg-white rounded-[32px] overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-100 animate-pulse">
-          <div className="aspect-[16/10] bg-slate-100" />
-          <div className="p-6 space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2 flex-1">
-                <div className="h-5 bg-slate-100 rounded-lg w-3/4" />
-                <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
+        <div key={i} className="bg-white rounded-[40px] overflow-hidden shadow-2xl shadow-slate-200/40 border border-slate-100 animate-pulse">
+          <div className="aspect-[16/11] bg-slate-100 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="flex justify-between items-start gap-4">
+              <div className="space-y-3 flex-1">
+                <div className="h-6 bg-slate-100 rounded-xl w-3/4" />
+                <div className="h-4 bg-slate-100 rounded-lg w-1/2" />
               </div>
-              <div className="w-12 h-12 bg-slate-100 rounded-2xl" />
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl shrink-0" />
             </div>
-            <div className="pt-4 flex gap-3">
-              <div className="h-12 bg-slate-100 rounded-2xl flex-1" />
-              <div className="h-12 bg-slate-100 rounded-2xl w-12" />
+            <div className="pt-6 flex gap-4">
+              <div className="h-14 bg-slate-100 rounded-2xl flex-1" />
+              <div className="h-14 bg-slate-100 rounded-2xl w-14" />
             </div>
           </div>
         </div>
@@ -75,122 +63,58 @@ export default function BusinessGrid({
   );
 
   if (!loading && businesses.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8">
-        <SearchX className="w-12 h-12 text-slate-300" />
+    <motion.div 
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center py-32 px-4 text-center"
+    >
+      <div className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center mb-10 shadow-inner rotate-3">
+        <SearchX className="w-16 h-16 text-slate-300" />
       </div>
-      <h3 className="text-xl font-black text-text-main mb-3 poppins-bold uppercase tracking-tight">{translations.noResults[language]}</h3>
-      <p className="text-sm text-text-muted max-w-[320px] mb-10 leading-relaxed">{translations.noResultsDesc[language]}</p>
+      <h3 className="text-3xl font-black text-bg-dark mb-4 poppins-bold uppercase tracking-tighter">{translations.noResults[language]}</h3>
+      <p className="text-sm text-slate-400 max-w-[360px] mb-12 leading-relaxed font-medium">{translations.noResultsDesc[language]}</p>
       <button 
         onClick={() => window.location.reload()}
-        className="flex items-center gap-3 px-8 py-4 bg-primary text-bg-dark text-xs font-black rounded-2xl uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+        className="flex items-center gap-4 px-10 py-5 bg-bg-dark text-white text-[11px] font-black rounded-2xl uppercase tracking-[0.25em] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all group"
       >
-        <RefreshCw className="w-4 h-4" />
-        Reset Filters
+        <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
+        {language === 'ar' ? 'إعادة ضبط الفلاتر' : language === 'ku' ? 'پاککردنەوەی فلتەرەکان' : 'Reset All Filters'}
       </button>
-    </div>
+    </motion.div>
   );
 
   return (
-    <div className="w-full mb-12 space-y-12">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+    <div className="w-full mb-24 space-y-20">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
         <AnimatePresence mode="popLayout">
-          {businesses.map((biz, index) => (
+          {businesses.map((biz, idx) => (
             <motion.div
               key={biz.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (index % 6) * 0.1 }}
-              className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-xl shadow-slate-200/50 border border-slate-100 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
+              transition={{ delay: idx * 0.05 }}
             >
-              {/* Image Section */}
-              <div 
-                className="aspect-[16/10] w-full overflow-hidden relative cursor-pointer"
-                onClick={() => onBusinessClick?.(biz)}
-              >
-                <img 
-                  src={getBusinessImage(biz)} 
-                  alt={biz.name}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                {/* Category Badge */}
-                <div className="absolute top-4 left-4">
-                  <div className="px-3 py-1.5 glass rounded-xl shadow-lg flex items-center gap-2 border border-white/20">
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-[9px] font-black text-bg-dark uppercase tracking-widest">
-                      {CATEGORIES.find(c => c.id === biz.category)?.name[language] || biz.category}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Rating Badge */}
-                <div className="absolute bottom-4 right-4">
-                  <div className="px-3 py-1.5 glass-dark rounded-xl shadow-lg flex items-center gap-2 border border-white/10">
-                    <Star className="w-3 h-3 text-secondary fill-secondary" />
-                    <span className="text-[10px] font-black text-white">{biz.rating?.toFixed(1) || '5.0'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Info Section */}
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 
-                      className="text-lg font-black text-text-main poppins-bold uppercase tracking-tight group-hover:text-primary transition-colors cursor-pointer line-clamp-1"
-                      onClick={() => onBusinessClick?.(biz)}
-                    >
-                      {getBusinessName(biz)}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-text-muted">
-                      <MapPin className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{biz.governorate} • {biz.neighborhood || biz.city}</span>
-                    </div>
-                  </div>
-                  {biz.isVerified && (
-                    <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary" title={translations.verified[language]}>
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-auto flex items-center gap-3">
-                  <button 
-                    onClick={() => onBusinessClick?.(biz)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-bg-dark text-white text-[10px] font-black rounded-2xl uppercase tracking-widest hover:bg-primary hover:text-white transition-all duration-300 shadow-lg shadow-bg-dark/10"
-                  >
-                    <span className="hidden sm:inline">View Details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                  <a 
-                    href={`tel:${biz.phone}`}
-                    className="w-12 h-12 flex items-center justify-center bg-slate-50 text-text-main rounded-2xl hover:bg-secondary hover:text-white transition-all duration-300 border border-slate-100 group/btn"
-                  >
-                    <Phone className="w-4 h-4 transition-transform group-hover/btn:rotate-12" />
-                  </a>
-                </div>
-              </div>
+              <BusinessCard
+                biz={biz}
+                onClick={onBusinessClick}
+              />
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
       {hasMore && (
-        <div className="flex flex-col items-center gap-6 py-12">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">
-              {translations.showing[language]} {businesses.length} {translations.of[language]} {totalCount}
+        <div className="flex flex-col items-center gap-8 py-16 bg-slate-50/50 rounded-[60px] border border-slate-100 mx-4">
+          <div className="flex flex-col items-center gap-3">
+            <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+              {translations.showing[language]} <span className="text-bg-dark">{businesses.length}</span> {translations.of[language]} <span className="text-bg-dark">{totalCount}</span>
             </div>
-            <div className="w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
               <motion.div 
-                className="h-full bg-primary"
+                className="h-full bg-gradient-to-r from-primary to-accent"
                 initial={{ width: 0 }}
                 animate={{ width: `${(businesses.length / totalCount) * 100}%` }}
-                transition={{ duration: 1 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
               />
             </div>
           </div>
@@ -198,18 +122,18 @@ export default function BusinessGrid({
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="group relative px-12 py-5 bg-white border-2 border-bg-dark text-bg-dark text-[11px] font-black uppercase tracking-[0.3em] rounded-[24px] hover:bg-bg-dark hover:text-white transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden shadow-xl shadow-slate-200"
+            className="group relative px-16 py-6 bg-bg-dark text-white text-[12px] font-black uppercase tracking-[0.35em] rounded-[28px] hover:bg-primary hover:text-bg-dark transition-all duration-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] hover:shadow-primary/30 active:scale-95"
           >
-            <span className="relative z-10 flex items-center gap-3">
+            <span className="relative z-10 flex items-center gap-4">
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   {translations.loading[language]}
                 </>
               ) : (
                 <>
                   {translations.loadMore[language]}
-                  <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
+                  <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-1000" />
                 </>
               )}
             </span>

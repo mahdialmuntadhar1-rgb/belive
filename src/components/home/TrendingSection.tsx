@@ -86,72 +86,87 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
   if (!loading && featured.length === 0) return null;
 
   return (
-    <div className="w-full mb-16">
-      <div className="flex items-center justify-between px-6 mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <h2 className="text-xl font-black text-text-main poppins-bold tracking-tight uppercase">{translations.featured[language]}</h2>
+    <div className="w-full mb-20 bg-slate-50/30 py-16 border-y border-slate-100">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-end justify-between px-6 mb-12">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-accent rounded-2xl flex items-center justify-center shadow-lg shadow-accent/20 rotate-6 group-hover:rotate-12 transition-transform duration-700">
+                <TrendingUp className="w-5 h-5 text-bg-dark" />
+              </div>
+              <h2 className="text-3xl font-black text-bg-dark poppins-bold tracking-tighter uppercase leading-none">
+                {translations.featured[language]}
+              </h2>
+            </div>
+            <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">
+              {translations.featuredDesc[language]}
+            </p>
           </div>
-          <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.2em]">{translations.featuredDesc[language]}</p>
-        </div>
-        <button 
-          onClick={() => document.getElementById('explore-section')?.scrollIntoView({ behavior: 'smooth' })}
-          className="group flex items-center gap-2 px-6 py-2.5 glass text-text-main text-[10px] font-black rounded-full hover:bg-primary hover:text-white transition-all duration-500 uppercase tracking-widest border border-slate-200"
-        >
-          {translations.seeAll[language]} <ArrowRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${language === 'en' ? '' : 'rotate-180'}`} />
-        </button>
-      </div>
-
-      <div className="flex gap-5 overflow-x-auto px-6 no-scrollbar pb-8 snap-x snap-mandatory">
-        {featured.map((biz) => (
-          <motion.div
-            key={biz.id}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => onBusinessClick?.(biz)}
-            className="flex-shrink-0 w-48 aspect-square bg-bg-dark rounded-[40px] overflow-hidden shadow-social flex flex-col group cursor-pointer transition-all duration-500 snap-start border-2 border-transparent hover:border-primary relative"
+          <button 
+            onClick={() => document.getElementById('explore-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="group flex items-center gap-4 px-8 py-4 bg-white text-bg-dark text-[10px] font-black rounded-2xl hover:bg-bg-dark hover:text-white transition-all duration-700 uppercase tracking-[0.25em] border-2 border-slate-100 shadow-xl shadow-slate-200/50"
           >
-            {/* Background Image */}
-            <div className="absolute inset-0">
-              <img 
-                src={getBusinessImage(biz)} 
-                alt={biz.name}
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 group-hover:from-black/95" />
-            </div>
+            {translations.seeAll[language]} 
+            <ArrowRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform duration-500 ${language === 'en' ? '' : 'rotate-180 group-hover:-translate-x-1'}`} />
+          </button>
+        </div>
 
-            {/* Content */}
-            <div className="relative h-full p-5 flex flex-col justify-end items-start text-left">
-              {/* Rating Badge */}
-              <div className="absolute top-4 right-4">
-                <div className="flex items-center gap-1 glass-dark px-2.5 py-1.5 rounded-xl border border-white/20">
-                  <Star className="w-3 h-3 text-secondary fill-secondary" />
-                  <span className="text-[11px] font-black text-white">{biz.rating?.toFixed(1) || 'N/A'}</span>
+        <div className="flex gap-8 overflow-x-auto px-6 no-scrollbar pb-12 snap-x snap-mandatory">
+          {featured.map((biz, idx) => (
+            <motion.div
+              key={biz.id}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.1, type: 'spring', stiffness: 100 }}
+              whileHover={{ y: -12 }}
+              onClick={() => onBusinessClick?.(biz)}
+              className="flex-shrink-0 w-64 aspect-[4/5] bg-bg-dark rounded-[48px] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col group cursor-pointer transition-all duration-700 snap-start border-2 border-transparent hover:border-primary relative"
+            >
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                <img 
+                  src={getBusinessImage(biz)} 
+                  alt={biz.name}
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125 group-hover:rotate-2"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/95 via-bg-dark/40 to-transparent transition-opacity duration-700 group-hover:from-bg-dark/100" />
+              </div>
+
+              {/* Content */}
+              <div className="relative h-full p-8 flex flex-col justify-end items-start text-left">
+                {/* Rating Badge */}
+                <div className="absolute top-6 right-6">
+                  <div className="flex items-center gap-2 bg-bg-dark/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-white/10 shadow-2xl">
+                    <Star className="w-3.5 h-3.5 text-secondary fill-secondary" />
+                    <span className="text-[12px] font-black text-white">{biz.rating?.toFixed(1) || '5.0'}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[9px] font-black text-primary uppercase tracking-widest">
-                  {biz.category}
-                </span>
-              </div>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,159,28,0.8)]" />
+                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.25em]">
+                    {CATEGORIES.find(c => c.id === biz.category)?.name[language] || biz.category}
+                  </span>
+                </div>
 
-              <h3 className="text-sm font-black text-white mb-1.5 poppins-bold leading-tight tracking-tight group-hover:text-primary transition-colors line-clamp-2 uppercase">
-                {getBusinessName(biz)}
-              </h3>
-              
-              <div className="flex items-center gap-1.5 text-white/70 text-[10px] font-bold uppercase tracking-tighter">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span className="line-clamp-1">{biz.city}</span>
+                <h3 className="text-xl font-black text-white mb-3 poppins-bold leading-tight tracking-tighter group-hover:text-primary transition-colors duration-500 line-clamp-2 uppercase">
+                  {getBusinessName(biz)}
+                </h3>
+                
+                <div className="flex items-center gap-2.5 text-white/60 text-[11px] font-black uppercase tracking-widest">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <span className="line-clamp-1">{biz.city || biz.governorate}</span>
+                </div>
+
+                {/* Hover Indicator */}
+                <div className="w-0 h-1 bg-primary rounded-full mt-4 group-hover:w-12 transition-all duration-700" />
               </div>
-            </div>
-          </motion.div>
-        ))}
-        {/* Peek Effect Spacer */}
-        <div className="flex-shrink-0 w-6" />
+            </motion.div>
+          ))}
+          {/* Peek Effect Spacer */}
+          <div className="flex-shrink-0 w-12" />
+        </div>
       </div>
     </div>
   );
