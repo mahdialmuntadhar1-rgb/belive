@@ -38,4 +38,12 @@ export interface Post {
   createdAt: Date;
   authorName?: string;
   authorAvatar?: string;
+  businessName?: string;
+  businessNameAr?: string;
+  businessNameKu?: string;
+  businessCategory?: string;
+  businessGovernorate?: string;
+  businessCity?: string;
+  businessPhone?: string;
+  hasValidBusiness: boolean;
 }
