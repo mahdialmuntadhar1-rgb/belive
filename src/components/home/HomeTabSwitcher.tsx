@@ -30,9 +30,9 @@ export default function HomeTabSwitcher({ activeTab, onChange }: HomeTabSwitcher
   } as const;
 
   return (
-    <div className="max-w-3xl mx-auto pt-10 pb-8 px-4">
+    <div id="tab-section" className="max-w-3xl mx-auto pt-8 pb-6 px-4">
       {/* Tab Buttons */}
-      <div className="grid grid-cols-2 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-lg shadow-slate-100/80">
+      <div className="grid grid-cols-2 bg-white border border-slate-200 rounded-[24px] p-2 shadow-[0_8px_30px_-10px_rgba(0,0,0,0.12)]">
         {(['social', 'explore'] as const).map((tab) => {
           const isActive = activeTab === tab;
 
@@ -41,27 +41,36 @@ export default function HomeTabSwitcher({ activeTab, onChange }: HomeTabSwitcher
               key={tab}
               type="button"
               onClick={() => onChange(tab)}
-              className={`relative py-3 sm:py-3.5 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-[0.18em] transition-colors duration-300 ${
-                isActive ? 'text-bg-dark' : 'text-slate-400 hover:text-slate-600'
+              className={`relative py-4 sm:py-5 rounded-[18px] text-[12px] sm:text-sm font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                isActive 
+                  ? 'text-bg-dark shadow-[0_4px_20px_-4px_rgba(255,159,28,0.4)]' 
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
             >
               {isActive && (
                 <motion.span
                   layoutId="home-tab-active-pill"
-                  className="absolute inset-0 bg-primary/30 border border-primary/40 rounded-xl"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  className="absolute inset-0 bg-gradient-to-r from-primary/40 to-accent/40 rounded-[18px] border-2 border-primary/50"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              <span className="relative z-10">{labels[tab][language]}</span>
+              <span className="relative z-10 flex flex-col items-center gap-1">
+                {labels[tab][language]}
+              </span>
             </button>
           );
         })}
       </div>
       
       {/* Tab Subtitle */}
-      <p className="text-center text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] mt-3">
+      <motion.p 
+        key={activeTab}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center text-[12px] text-slate-500 font-bold mt-4 tracking-wide"
+      >
         {subtitles[activeTab][language]}
-      </p>
+      </motion.p>
     </div>
   );
 }

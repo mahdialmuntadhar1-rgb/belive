@@ -123,14 +123,10 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
         {displayPosts.map((post, idx) => {
           const business = businesses.find(b => b.id === post.businessId);
           
-          // Defensive logging for malformed feed items
-          if (!business && post.businessId) {
-            console.warn('[FeedComponent] Business not found for post:', {
-              postId: post.id,
-              businessId: post.businessId,
-              postContent: post.content?.substring(0, 50) + '...'
-            });
-          }
+          // Defensive logging for malformed feed items - disabled in production
+          // if (!business && post.businessId) {
+          //   console.warn('[FeedComponent] Business not found for post:', post.id);
+          // }
           
           // Support all possible phone fields with fallback logic for both old and new schemas
           const getPhone = (biz: Business | undefined) => {
@@ -184,29 +180,20 @@ export default function FeedComponent({ businesses, loading: businessesLoading }
           const businessCategory = getCategory(business);
           const category = CATEGORIES.find(c => c.id === businessCategory)?.name[language] || businessCategory || "Featured";
           
-          // Additional logging for debugging data structure issues
-          if (business) {
-            const businessFields = Object.keys(business);
-            const hasPhoneFields = businessFields.some(field => 
-              ['phone', 'phone_1', 'phone_2', 'whatsapp'].includes(field)
-            );
-            
-            if (!hasPhoneFields) {
-              console.warn('[FeedComponent] Business missing phone fields:', {
-                businessId: business.id,
-                businessName: getBusinessName(business),
-                availableFields: businessFields
-              });
-            }
-          }
+          // Additional logging for debugging data structure issues - disabled in production
+          // if (business) {
+          //   const businessFields = Object.keys(business);
+          //   const hasPhoneFields = businessFields.some(field => 
+          //     ['phone', 'phone_1', 'phone_2', 'whatsapp'].includes(field)
+          //   );
+          //   if (!hasPhoneFields) {
+          //     console.warn('[FeedComponent] Business missing phone fields:', business.id);
+          //   }
+          // }
           
           // Skip rendering if business data is completely missing to prevent crashes
           if (!business && !post.authorName) {
-            console.warn('[FeedComponent] Skipping post with no business or author data:', {
-              postId: post.id,
-              businessId: post.businessId,
-              hasAuthorName: !!post.authorName
-            });
+            // Silently skip posts with missing data in production
             return null;
           }
 

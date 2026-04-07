@@ -89,24 +89,21 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   }, []);
   
   return (
-    <section className="w-full relative overflow-hidden bg-bg-dark pt-12 pb-20 sm:pt-20 sm:pb-32 border-b border-white/5">
-      {/* Background Elements */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1920&auto=format&fit=crop" 
-          alt="Iraq Business"
-          className="w-full h-full object-cover opacity-20 scale-105 blur-[2px]"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-dark/95 via-bg-dark/80 to-bg-dark" />
-        
-        {/* Animated Glows */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse delay-1000" />
-      </div>
+    <section className="w-full px-4 sm:px-6 pt-6 pb-8">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-bg-dark via-bg-dark to-slate-800 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.4)] border border-white/10"
+        >
+          {/* Background Effects */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/10 rounded-full blur-[80px]" />
+          </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-        <div className="flex flex-col items-center text-center">
+          <div className="relative z-10 flex flex-col items-center text-center px-6 sm:px-12 py-10 sm:py-14">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -239,7 +236,8 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 : 'Find businesses or see what\'s happening around you'}
           </motion.p>
         </div>
-      </div>
-    </section>
+      </motion.div>
+    </div>
+  </section>
   );
 }
