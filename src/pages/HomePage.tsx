@@ -6,7 +6,7 @@ import StorySection from "@/components/home/StorySection";
 import LocationFilter from "@/components/home/LocationFilter";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import FeedComponent from "@/components/home/FeedComponent";
-import BusinessGrid from "@/components/home/BusinessGrid";
+import CategorizedBusinessGrid from "@/components/home/CategorizedBusinessGrid";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
 import AddBusinessModal from "@/components/home/AddBusinessModal";
@@ -344,19 +344,16 @@ export default function HomePage() {
               <FeedComponent businesses={businesses} loading={businessesLoading} />
             </div>
 
-            {/* 4. Normal Business Cards (Directory) */}
+            {/* 4. Categorized Business Sections (Directory) */}
             <div id="business-grid" className="px-4 mb-12">
               <div className="flex items-center justify-between mb-6 px-1">
                 <h2 className="text-sm font-black text-text-main poppins-bold uppercase tracking-tight">
                   {language === 'ar' ? 'جميع الأماكن' : language === 'ku' ? 'هەموو شوێنەکان' : 'All Places'}
                 </h2>
               </div>
-              <BusinessGrid 
+              <CategorizedBusinessGrid 
                 businesses={businesses} 
                 loading={businessesLoading}
-                hasMore={hasMore}
-                totalCount={totalCount}
-                onLoadMore={loadMore}
                 onBusinessClick={setSelectedBusiness}
               />
             </div>
