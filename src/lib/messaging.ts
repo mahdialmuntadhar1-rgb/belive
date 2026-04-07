@@ -1,5 +1,55 @@
 import { supabase } from '@/services/supabase';
 
+/**
+ * Messaging Library - Frontend
+ * 
+ * This module provides functions for the Messaging Dashboard UI.
+ * It calls backend API endpoints that securely handle:
+ * - Campaign creation
+ * - Message queuing (fetching businesses from Supabase)
+ * - Message sending (via Nabda WhatsApp API)
+ * 
+ * The backend keeps secrets (NABDA_API_KEY, SUPABASE_SERVICE_ROLE_KEY) secure.
+ */
+
+// ============================================================================
+// API ENDPOINT CONFIGURATION
+// ============================================================================
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+/**
+ * Helper to make API requests to backend
+ */
+async function apiRequest<T>(
+  endpoint: string,
+  options?: { method?: string; body?: unknown }
+): Promise<{ data?: T; error?: Error }> {
+  try {
+    const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint;
+    
+    const response = await fetch(url, {
+      method: options?.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: options?.body ? JSON.stringify(options.body) : undefined,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return {
+        error: new Error(result.error || `HTTP ${response.status}`),
+      };
+    }
+
+    return { data: result as T };
+  } catch (err) {
+    return { error: err instanceof Error ? err : new Error('Unknown error') };
+  }
+}
+
 // ============================================================================
 // CORE TYPES (MVP)
 // ============================================================================
@@ -10,7 +60,7 @@ export interface Campaign {
   message_text: string;
   governorate_filter: string | null;
   category_filter: string | null;
-  status: 'draft' | 'pending' | 'sending' | 'completed' | 'failed';
+  status: 'draft' | 'pending' | 'sending' | 'completed' | 'failed' | 'queued' | 'active';
   is_testing_mode: boolean;
   total_selected: number;
   created_at: string;
@@ -57,22 +107,44 @@ export async function createCampaign(campaign: {
   category_filter: string | null;
   is_testing_mode: boolean;
 }): Promise<{ data: Campaign | null; error: Error | null }> {
-  console.log('[messaging] Creating campaign:', campaign.name);
-  
-  try {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .insert({ ...campaign, status: 'draft', total_selected: 0 })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    console.log('[messaging] Campaign created:', data.id);
-    return { data, error: null };
-  } catch (error) {
+  console.log('[messaging] Creating campaign via API:', campaign.name);
+
+  // Call backend API
+  const { data: result, error } = await apiRequest<{
+    campaign: Campaign;
+    filters: {
+      governorate_filter: string | null;
+      category_filter: string | null;
+      is_testing_mode: boolean;
+    };
+  }>('/api/campaigns/create', {
+    method: 'POST',
+    body: {
+      name: campaign.name,
+      message_template: campaign.message_text,
+      governorate_filter: campaign.governorate_filter,
+      category_filter: campaign.category_filter,
+      is_testing_mode: campaign.is_testing_mode,
+    },
+  });
+
+  if (error || !result?.campaign) {
     console.error('[messaging] Failed to create campaign:', error);
-    return { data: null, error: error as Error };
+    return { data: null, error: error || new Error('Failed to create campaign') };
   }
+
+  // Enhance campaign with frontend fields for compatibility
+  const campaignWithExtras: Campaign = {
+    ...result.campaign,
+    message_text: campaign.message_text,
+    governorate_filter: campaign.governorate_filter,
+    category_filter: campaign.category_filter,
+    is_testing_mode: campaign.is_testing_mode,
+    total_selected: 0,
+  };
+
+  console.log('[messaging] Campaign created:', campaignWithExtras.id);
+  return { data: campaignWithExtras, error: null };
 }
 
 export async function fetchCampaigns(): Promise<{ data: Campaign[]; error: Error | null }> {
@@ -85,8 +157,19 @@ export async function fetchCampaigns(): Promise<{ data: Campaign[]; error: Error
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    console.log(`[messaging] Fetched ${data?.length || 0} campaigns`);
-    return { data: data || [], error: null };
+
+    // Map to Campaign interface with compatibility fields
+    const campaigns: Campaign[] = (data || []).map(c => ({
+      ...c,
+      message_text: c.message_template || '',
+      governorate_filter: null,
+      category_filter: null,
+      is_testing_mode: false,
+      total_selected: c.total_recipients || 0,
+    }));
+
+    console.log(`[messaging] Fetched ${campaigns.length} campaigns`);
+    return { data: campaigns, error: null };
   } catch (error) {
     console.error('[messaging] Failed to fetch campaigns:', error);
     return { data: [], error: error as Error };
@@ -109,11 +192,12 @@ export async function fetchTargetBusinesses(filters?: {
   console.log('[messaging] Fetching target businesses:', filters);
   
   try {
+    // Build query with multiple phone field options and corrected status
     let query = supabase
       .from('businesses')
-      .select('id, business_name, phone_1, whatsapp, governorate, category', { count: 'exact' })
-      .eq('status', 'active')
-      .or('phone_1.not.is.null,whatsapp.not.is.null');
+      .select('id, business_name, phone, phone_1, phone_2, whatsapp, governorate, category', { count: 'exact' })
+      .eq('status', 'approved')
+      .or('phone.not.is.null,phone_1.not.is.null,phone_2.not.is.null,whatsapp.not.is.null');
     
     if (filters?.governorate) {
       query = query.eq('governorate', filters.governorate);
@@ -127,16 +211,20 @@ export async function fetchTargetBusinesses(filters?: {
     
     if (error) throw error;
     
-    const businesses = (data || []).map(b => ({
-      id: b.id,
-      name: b.business_name,
-      phone: b.whatsapp || b.phone_1,
-      governorate: b.governorate,
-      category: b.category
-    }));
+    const businesses = (data || []).map(b => {
+      // Try multiple phone fields in order of preference
+      const phone = b.whatsapp || b.phone || b.phone_1 || b.phone_2;
+      return {
+        id: b.id,
+        name: b.business_name,
+        phone: phone,
+        governorate: b.governorate,
+        category: b.category
+      };
+    }).filter(b => b.phone && b.phone.trim() !== ''); // Filter out businesses with no valid phone
     
-    console.log(`[messaging] Found ${businesses.length} businesses with phone numbers`);
-    return { businesses, total: count || businesses.length, error: null };
+    console.log(`[messaging] Found ${businesses.length} businesses with phone numbers (from ${count || 0} total approved records)`);
+    return { businesses, total: businesses.length, error: null };
   } catch (error) {
     console.error('[messaging] Failed to fetch businesses:', error);
     return { businesses: [], total: 0, error: error as Error };
@@ -150,38 +238,37 @@ export async function fetchTargetBusinesses(filters?: {
 export async function queueMessages(
   campaignId: string,
   businesses: { id: string; name: string; phone: string }[],
-  messageText: string
-): Promise<{ count: number; error: Error | null }> {
-  console.log(`[messaging] Queuing ${businesses.length} messages for campaign ${campaignId}`);
-  
-  try {
-    const messages = businesses.map(b => ({
-      campaign_id: campaignId,
-      business_id: b.id,
-      phone_number: b.phone,
-      message_text: messageText,
-      status: 'queued'
-    }));
-    
-    const { data, error } = await supabase
-      .from('messages')
-      .insert(messages)
-      .select();
-    
-    if (error) throw error;
-    
-    // Update campaign status and count
-    await supabase
-      .from('campaigns')
-      .update({ status: 'queued', total_selected: messages.length })
-      .eq('id', campaignId);
-    
-    console.log(`[messaging] Queued ${data?.length || 0} messages`);
-    return { count: data?.length || 0, error: null };
-  } catch (error) {
-    console.error('[messaging] Failed to queue messages:', error);
-    return { count: 0, error: error as Error };
+  messageText: string,
+  filters?: {
+    governorate?: string | null;
+    category?: string | null;
+    is_testing_mode?: boolean;
   }
+): Promise<{ count: number; error: Error | null }> {
+  console.log(`[messaging] Queuing messages via API for campaign ${campaignId}`);
+
+  const { data, error } = await apiRequest<{
+    queued: number;
+    total_matching: number;
+    campaign_id: string;
+  }>('/api/messages/queue', {
+    method: 'POST',
+    body: {
+      campaign_id: campaignId,
+      message_template: messageText,
+      governorate_filter: filters?.governorate || null,
+      category_filter: filters?.category || null,
+      is_testing_mode: filters?.is_testing_mode || false,
+    },
+  });
+
+  if (error) {
+    console.error('[messaging] Failed to queue messages:', error);
+    return { count: 0, error };
+  }
+
+  console.log(`[messaging] Queued ${data?.queued || 0} messages`);
+  return { count: data?.queued || 0, error: null };
 }
 
 export async function fetchPendingMessages(campaignId?: string): Promise<{ data: Message[]; error: Error | null }> {
@@ -201,8 +288,17 @@ export async function fetchPendingMessages(campaignId?: string): Promise<{ data:
     const { data, error } = await query.limit(100);
     
     if (error) throw error;
-    console.log(`[messaging] Found ${data?.length || 0} pending messages`);
-    return { data: data || [], error: null };
+
+    // Map to Message interface with compatibility fields
+    const messages: Message[] = (data || []).map(m => ({
+      ...m,
+      business_name: '', // Will be populated by UI if needed
+      phone_number: m.phone,
+      message_text: m.message_body,
+    }));
+
+    console.log(`[messaging] Found ${messages.length} pending messages`);
+    return { data: messages, error: null };
   } catch (error) {
     console.error('[messaging] Failed to fetch pending messages:', error);
     return { data: [], error: error as Error };
@@ -240,6 +336,52 @@ export async function markMessageFailed(messageId: string, errorMsg: string): Pr
   } catch (error) {
     return { success: false, error: error as Error };
   }
+}
+
+// ============================================================================
+// SEND MESSAGES VIA BACKEND API
+// ============================================================================
+
+/**
+ * Send queued messages via backend API
+ * Backend endpoint: POST /api/messages/send
+ */
+export async function sendQueuedMessages(options?: {
+  campaignId?: string;
+  batchSize?: number;
+}): Promise<{
+  success: boolean;
+  sent?: number;
+  failed?: number;
+  error?: Error;
+}> {
+  console.log('[messaging] Sending messages via API...');
+
+  const { data, error } = await apiRequest<{
+    processed: number;
+    sent: number;
+    failed: number;
+    results: Array<{ message_id: string; status: string; error?: string }>;
+  }>('/api/messages/send', {
+    method: 'POST',
+    body: {
+      campaign_id: options?.campaignId,
+      batch_size: options?.batchSize || 20,
+      delay_ms: 4000, // ~15 messages per minute
+    },
+  });
+
+  if (error) {
+    console.error('[messaging] Failed to send messages:', error);
+    return { success: false, error };
+  }
+
+  console.log(`[messaging] Send complete: ${data?.sent} sent, ${data?.failed} failed`);
+  return {
+    success: true,
+    sent: data?.sent,
+    failed: data?.failed,
+  };
 }
 
 // ============================================================================
@@ -299,14 +441,23 @@ export async function fetchConversations(): Promise<{ data: Conversation[]; erro
 // ============================================================================
 
 export const CATEGORIES = [
-  { id: 'restaurant', label: 'Restaurants', icon: '🍽️' },
-  { id: 'cafe', label: 'Cafes', icon: '☕' },
-  { id: 'shopping', label: 'Shopping', icon: '🛍️' },
-  { id: 'health', label: 'Health', icon: '💊' },
-  { id: 'entertainment', label: 'Entertainment', icon: '🎬' },
-  { id: 'hotel', label: 'Hotels', icon: '🏨' },
-  { id: 'services', label: 'Services', icon: '💼' },
-  { id: 'education', label: 'Education', icon: '🎓' },
+  { id: 'Restaurant', label: 'Restaurants', icon: 'Restaurant' },
+  { id: 'Cafe', label: 'Cafes', icon: 'Cafe' },
+  { id: 'Hotel', label: 'Hotels', icon: 'Hotel' },
+  { id: 'Hospital', label: 'Hospitals', icon: 'Hospital' },
+  { id: 'Clinic', label: 'Clinics', icon: 'Clinic' },
+  { id: 'Pharmacy', label: 'Pharmacies', icon: 'Pharmacy' },
+  { id: 'Supermarket', label: 'Supermarkets', icon: 'Supermarket' },
+  { id: 'Shopping', label: 'Shopping', icon: 'Shopping' },
+  { id: 'Gym', label: 'Gyms', icon: 'Gym' },
+  { id: 'Salon', label: 'Salons', icon: 'Salon' },
+  { id: 'Car Repair', label: 'Car Repair', icon: 'Car Repair' },
+  { id: 'Electronics', label: 'Electronics', icon: 'Electronics' },
+  { id: 'Education', label: 'Education', icon: 'Education' },
+  { id: 'Real Estate', label: 'Real Estate', icon: 'Real Estate' },
+  { id: 'Travel', label: 'Travel', icon: 'Travel' },
+  { id: 'Bank', label: 'Banks', icon: 'Bank' },
+  { id: 'Other', label: 'Other', icon: 'Other' },
 ];
 
 export const GOVERNORATES = [
