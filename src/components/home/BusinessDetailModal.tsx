@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck } from 'lucide-react';
+import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { CATEGORIES } from '@/constants';
 import { useHomeStore } from '@/stores/homeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
 import { useReviews } from '@/hooks/useReviews';
+import { usePosts } from '@/hooks/usePosts';
 
 interface BusinessDetailModalProps {
   business: Business | null;
@@ -18,6 +19,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
   const { user, profile } = useAuthStore();
   const { claimBusiness, loading: claimLoading } = useBusinessManagement();
   const { reviews, loading: reviewsLoading, hasMore: reviewsHasMore, loadMore: reviewsLoadMore } = useReviews(business?.id);
+  const { posts: businessPosts, loading: postsLoading } = usePosts(business?.id);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
 
@@ -83,6 +85,11 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
       en: 'Customer Reviews',
       ar: 'آراء العملاء',
       ku: 'پێداچوونەوەی کڕیاران'
+    },
+    recentPosts: {
+      en: 'Recent Posts',
+      ar: 'آخر المنشورات',
+      ku: 'دوایین پۆستەکان'
     },
     reviewsDesc: {
       en: 'What people are saying about this place',
@@ -163,7 +170,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#2B2F33]/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
@@ -434,24 +441,65 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                 </div>
               </div>
 
+              {/* Recent Posts Section */}
+              {businessPosts.length > 0 && (
+                <div className="mt-16 pt-16 border-t border-[#E5E7EB]">
+                  <div className="flex items-center gap-5 mb-10">
+                    <div className="w-2 h-10 bg-accent rounded-full shadow-[0_0_15px_rgba(212,175,55,0.5)]" />
+                    <h3 className="text-3xl font-black text-bg-dark poppins-bold uppercase tracking-tight">
+                      {translations.recentPosts[language]}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {businessPosts.map((post) => (
+                      <div key={post.id} className="group cursor-pointer">
+                        <div className="aspect-square rounded-[32px] overflow-hidden border border-slate-100 shadow-sm relative mb-4">
+                          <img 
+                            src={post.image} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                              <ImageIcon className="w-6 h-6" />
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-600 line-clamp-2 font-medium px-2">
+                          {post.content}
+                        </p>
+                
+                        <div className="flex items-center gap-4 mt-3 px-2">
+                          <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-400">
+                            <Heart className="w-3.5 h-3.5" />
+                            <span>{post.likes}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Reviews Section */}
               <div className="mt-16 pt-16 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h3 className="text-2xl font-bold text-[#2B2F33] poppins-bold tracking-tight">{translations.reviews[language]}</h3>
-                    <p className="text-sm text-[#6B7280]">{translations.reviewsDesc[language]}</p>
+                    <h3 className="text-2xl font-bold text-bg-dark poppins-bold tracking-tight">{translations.reviews[language]}</h3>
+                    <p className="text-sm text-slate-500">{translations.reviewsDesc[language]}</p>
                   </div>
-                  <button className="px-6 py-2.5 bg-white border-2 border-[#2CA6A4] text-[#2CA6A4] text-xs font-black rounded-xl hover:bg-[#2CA6A4] hover:text-white transition-all uppercase tracking-widest">
+                  <button className="px-6 py-2.5 bg-white border-2 border-accent text-accent text-xs font-black rounded-xl hover:bg-accent hover:text-white transition-all uppercase tracking-widest">
                     {translations.writeReview[language]}
                   </button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {reviews.map((review) => (
-                    <div key={review.id} className="p-6 bg-white rounded-[28px] border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow">
+                    <div key={review.id} className="p-6 bg-white rounded-[28px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#2CA6A4]/10 flex items-center justify-center text-[#2CA6A4] text-sm font-black overflow-hidden">
+                          <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent text-sm font-black overflow-hidden">
                             {review.userAvatar ? (
                               <img src={review.userAvatar} className="w-full h-full object-cover" alt="" />
                             ) : (
@@ -459,23 +507,23 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                             )}
                           </div>
                           <div>
-                            <span className="text-sm font-bold text-[#2B2F33] block">{review.userName || 'Anonymous'}</span>
-                            <span className="text-[10px] text-[#6B7280] font-medium uppercase tracking-widest">{review.createdAt.toLocaleDateString()}</span>
+                            <span className="text-sm font-bold text-bg-dark block">{review.userName || 'Anonymous'}</span>
+                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">{review.createdAt.toLocaleDateString()}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-0.5">
                           {[...Array(5)].map((_, j) => (
-                            <Star key={j} className={`w-3 h-3 ${j < review.rating ? 'text-[#E87A41] fill-[#E87A41]' : 'text-gray-200'}`} />
+                            <Star key={j} className={`w-3 h-3 ${j < review.rating ? 'text-accent fill-accent' : 'text-gray-200'}`} />
                           ))}
                         </div>
                       </div>
-                      <p className="text-sm text-[#6B7280] leading-relaxed italic">
+                      <p className="text-sm text-slate-600 leading-relaxed italic">
                         "{review.comment}"
                       </p>
                     </div>
                   ))}
                   {reviews.length === 0 && !reviewsLoading && (
-                    <div className="md:col-span-2 py-12 text-center text-[#6B7280]">
+                    <div className="md:col-span-2 py-12 text-center text-slate-400">
                       <p>No reviews yet. Be the first to share your experience!</p>
                     </div>
                   )}
@@ -486,7 +534,7 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                     <button 
                       onClick={reviewsLoadMore}
                       disabled={reviewsLoading}
-                      className="px-8 py-3 bg-white border-2 border-[#2CA6A4] text-[#2CA6A4] font-black rounded-2xl hover:bg-[#2CA6A4] hover:text-white transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
+                      className="px-8 py-3 bg-white border-2 border-accent text-accent font-black rounded-2xl hover:bg-accent hover:text-white transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
                     >
                       {reviewsLoading ? 'Loading...' : 'Load More Reviews'}
                     </button>

@@ -13,98 +13,113 @@ interface UseBusinessesResult {
   refresh: () => void;
 }
 
-const FETCH_LIMIT = 1000;
-
-const normalizeBusiness = (item: any): Business => {
-  const name = item.business_name || item.english_name || item.name || item.name_ar || 'Business';
-  const primaryPhone = item.phone_1 || item.whatsapp || item.phone_2 || item.phone || '';
-
-  return {
-    id: item.id,
-    name,
-    nameAr: item.name_ar || item.arabic_name,
-    nameKu: item.name_ku,
-    category: item.category || item.subcategory || 'uncategorized',
-    governorate: item.governorate || 'Unknown',
-    city: item.city || 'Unknown',
-    neighborhood: item.neighborhood,
-    address: item.address || item.location || '',
-    phone: primaryPhone,
-    rating: item.rating || 0,
-    reviewCount: item.review_count || 0,
-    isFeatured: item.is_featured || false,
-    isVerified: item.is_verified || false,
-    image: item.image_url || item.logo_url || item.image || '',
-    website: item.website,
-    socialLinks: {
-      ...(item.social_links || {}),
-      whatsapp: item.whatsapp || item.social_links?.whatsapp,
-    },
-    description: item.description || item.bio,
-    descriptionAr: item.description_ar,
-    openingHours: item.opening_hours,
-    ownerId: item.owner_id,
-    createdAt: new Date(item.created_at || Date.now()),
-    updatedAt: new Date(item.updated_at || item.created_at || Date.now())
-  };
-};
+const ITEMS_PER_PAGE = 24;
 
 export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
   const { selectedGovernorate, selectedCategory, selectedCity } = useHomeStore();
 
-  const fetchBusinesses = useCallback(async () => {
-    setLoading(true);
+  const fetchBusinesses = useCallback(async (isRefresh = false) => {
     setError(null);
+    
+    const currentPage = isRefresh ? 1 : page;
+    
+    if (isRefresh) {
+      setLoading(true);
+    }
 
     try {
       let query = supabase
         .from('businesses')
         .select('*', { count: 'exact' })
-        .order('is_featured', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(FETCH_LIMIT);
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
-      if (selectedGovernorate) query = query.eq('governorate', selectedGovernorate);
-      if (selectedCity) query = query.eq('city', selectedCity);
-      if (selectedCategory) query = query.eq('category', selectedCategory);
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.trim();
-        query = query.or(`name.ilike.%${q}%,business_name.ilike.%${q}%,description.ilike.%${q}%,city.ilike.%${q}%,governorate.ilike.%${q}%`);
+      if (selectedGovernorate) {
+        query = query.eq('governorate', selectedGovernorate);
+      }
+      if (selectedCity) {
+        query = query.eq('city', selectedCity);
+      }
+      if (selectedCategory) {
+        query = query.eq('category', selectedCategory);
+      }
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
 
       const { data, count, error: fetchError } = await query;
+      
       if (fetchError) throw fetchError;
+      
+      if (data) {
+        const mappedBusinesses: Business[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          nameAr: item.name_ar,
+          nameKu: item.name_ku,
+          category: item.category,
+          governorate: item.governorate,
+          city: item.city,
+          address: item.address,
+          phone: item.phone,
+          rating: item.rating || 0,
+          reviewCount: item.review_count || 0,
+          isFeatured: item.is_featured || false,
+          isVerified: item.is_verified || false,
+          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+          website: item.website,
+          socialLinks: item.social_links || {},
+          description: item.description,
+          descriptionAr: item.description_ar,
+          openingHours: item.opening_hours,
+          ownerId: item.owner_id,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at || item.created_at)
+        }));
 
-      const mappedBusinesses: Business[] = (data || []).map(normalizeBusiness);
-      setBusinesses(mappedBusinesses);
-      setTotalCount(count || mappedBusinesses.length);
+        setBusinesses(prev => {
+          const newBusinesses = isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses];
+          const countVal = count || 0;
+          setTotalCount(countVal);
+          setHasMore(newBusinesses.length < countVal);
+          return newBusinesses;
+        });
+      }
     } catch (err) {
       console.error('Error fetching businesses:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
-      setBusinesses([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
+  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchBusinesses(true);
   }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
 
   useEffect(() => {
-    fetchBusinesses();
-  }, [fetchBusinesses]);
+    if (page > 1) {
+      fetchBusinesses(false);
+    }
+  }, [page]);
 
-  return {
-    businesses,
-    loading,
-    error,
-    hasMore: false,
-    totalCount,
-    loadMore: () => undefined,
-    refresh: fetchBusinesses,
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+    }
   };
+
+  const refresh = () => {
+    setPage(1);
+    fetchBusinesses(true);
+  };
+
+  return { businesses, loading, error, hasMore, totalCount, loadMore, refresh };
 }

@@ -25,17 +25,10 @@ export interface Business {
   descriptionAr?: string;
   openingHours?: string;
   ownerId?: string;
+  lat?: number;
+  lng?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface PostComment {
-  id: string;
-  postId: string;
-  authorName: string;
-  commentText: string;
-  createdAt: Date;
-  isSeeded?: boolean;
 }
 
 export interface Post {
@@ -44,15 +37,7 @@ export interface Post {
   content: string;
   image?: string;
   likes: number;
-  comments: number;
-  shares: number;
   createdAt: Date;
   authorName?: string;
   authorAvatar?: string;
-  businessName?: string;
-  businessCity?: string;
-  businessCategory?: string;
-  businessPhone?: string;
-  businessWhatsapp?: string;
-  postComments?: PostComment[];
 }

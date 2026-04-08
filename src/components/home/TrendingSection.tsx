@@ -12,15 +12,7 @@ interface TrendingSectionProps {
 }
 
 export default function TrendingSection({ businesses, loading, onBusinessClick }: TrendingSectionProps) {
-  // Show featured first, but fallback to top-rated if no featured
-  let featured = businesses.filter(b => b.isFeatured).slice(0, 6);
-  if (featured.length === 0 && businesses.length > 0) {
-    // Fallback: show top 6 businesses by rating or first 6
-    featured = businesses
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 6);
-  }
-  
+  const featured = businesses.filter(b => b.isFeatured).slice(0, 6);
   const { language } = useHomeStore();
 
   const translations = {
@@ -91,16 +83,7 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
     </div>
   );
 
-  if (!loading && featured.length === 0 && businesses.length === 0) return null;
-
-  // If no featured but we have businesses, still show them
-  const displayTitle = businesses.some(b => b.isFeatured) 
-    ? translations.featured[language] 
-    : { en: 'Popular Now', ar: 'الأكثر زيارة', ku: 'بەناوبانگ ئێستا' }[language];
-  
-  const displayDesc = businesses.some(b => b.isFeatured)
-    ? translations.featuredDesc[language]
-    : { en: 'Discover top-rated places', ar: 'اكتشف الأماكن الأعلى تقييماً', ku: 'شوێنە باشەکان بدۆزەرەوە' }[language];
+  if (!loading && featured.length === 0) return null;
 
   return (
     <div className="w-full mb-20 bg-slate-50/30 py-16 border-y border-slate-100">
@@ -112,11 +95,11 @@ export default function TrendingSection({ businesses, loading, onBusinessClick }
                 <TrendingUp className="w-5 h-5 text-bg-dark" />
               </div>
               <h2 className="text-3xl font-black text-bg-dark poppins-bold tracking-tighter uppercase leading-none">
-                {displayTitle}
+                {translations.featured[language]}
               </h2>
             </div>
             <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">
-              {displayDesc}
+              {translations.featuredDesc[language]}
             </p>
           </div>
           <button 

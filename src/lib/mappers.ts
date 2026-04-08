@@ -27,7 +27,7 @@ export const mapBusinessToCard = (biz: Business, language: 'en' | 'ar' | 'ku'): 
 
   const getImage = () => {
     if (biz.image) return biz.image;
-    return category?.image || 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?w=1200&q=80';
+    return category?.image || `https://picsum.photos/seed/${biz.id}/600/400`;
   };
 
   const getLocation = () => {

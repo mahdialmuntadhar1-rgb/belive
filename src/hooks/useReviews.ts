@@ -117,7 +117,7 @@ export function useReviews(businessId?: string) {
 
   useEffect(() => {
     fetchReviews();
-  }, [fetchReviews]);
+  }, [businessId]);
 
   return { reviews, loading, error, hasMore, loadMore, addReview, refresh: fetchReviews };
 }

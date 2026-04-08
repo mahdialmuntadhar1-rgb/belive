@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Star, MapPin, Phone, ArrowRight, ShieldCheck, TrendingUp, Heart } from 'lucide-react';
+import { Star, MapPin, Phone, MessageCircle, ShieldCheck, TrendingUp, Heart, Share2 } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { mapBusinessToCard } from '@/lib/mappers';
 
 interface BusinessCardProps {
+  key?: string | number;
   biz: Business;
   variant?: 'default' | 'compact' | 'featured';
   onClick?: (biz: Business) => void;
@@ -14,6 +15,20 @@ interface BusinessCardProps {
 export default function BusinessCard({ biz, variant = 'default', onClick }: BusinessCardProps) {
   const { language } = useHomeStore();
   const card = mapBusinessToCard(biz, language);
+
+  const whatsappNumber = biz.socialLinks?.whatsapp || biz.phone;
+  const callNumber = biz.phone;
+
+  const handleWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const cleanNumber = whatsappNumber.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanNumber}`, '_blank');
+  };
+
+  const handleCall = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.location.href = `tel:${callNumber}`;
+  };
 
   if (variant === 'featured') {
     return (
@@ -48,41 +63,16 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-white/60">
-                <MapPin className="w-3 h-3 text-primary" />
+                <MapPin className="w-3 h-3 text-accent" />
                 <span className="text-[9px] font-bold uppercase tracking-widest">
                   {card.location}
                 </span>
               </div>
               <div className="flex items-center gap-1 glass-dark px-2 py-0.5 rounded-lg border border-white/10">
-                <Star className="w-2.5 h-2.5 text-secondary fill-secondary" />
+                <Star className="w-2.5 h-2.5 text-accent fill-accent" />
                 <span className="text-[9px] font-black text-white">{card.rating.toFixed(1)}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (variant === 'compact') {
-    return (
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        onClick={() => onClick?.(biz)}
-        className="flex-shrink-0 w-48 group cursor-pointer"
-      >
-        <div className="relative aspect-square rounded-[20px] overflow-hidden mb-2 shadow-sm border border-slate-100">
-          <img 
-            src={card.image} 
-            alt={card.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-bg-dark/40 group-hover:bg-bg-dark/10 transition-colors" />
-          <div className="absolute bottom-2 left-2 right-2 text-left">
-            <p className="text-white text-[9px] font-black truncate uppercase tracking-tight drop-shadow-md">
-              {card.name}
-            </p>
           </div>
         </div>
       </motion.div>
@@ -94,111 +84,84 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -10 }}
-      className="group relative flex flex-col bg-white rounded-[40px] overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] border border-slate-100 transition-all duration-700 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] h-full"
+      whileHover={{ y: -8 }}
+      className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-card border border-slate-100 transition-all duration-500 h-full"
     >
-      {/* Image Section */}
+      {/* Postcard Image Section */}
       <div 
-        className="aspect-[16/11] w-full overflow-hidden relative cursor-pointer"
+        className="aspect-[4/3] w-full overflow-hidden relative cursor-pointer"
         onClick={() => onClick?.(biz)}
       >
         <img 
           src={card.image} 
           alt={card.name}
-          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
           referrerPolicy="no-referrer"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/80 via-bg-dark/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
         
-        {/* Category & Trending Badges */}
-        <div className="absolute top-5 left-5 flex flex-col gap-2">
-          <div className="px-4 py-2 glass rounded-[18px] shadow-2xl flex items-center gap-2.5 border border-white/30 backdrop-blur-md">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(255,159,28,0.8)]" />
-            <span className="text-[9px] font-black text-bg-dark uppercase tracking-[0.25em]">
+        {/* Badges */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-white/50 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="text-[8px] font-black text-bg-dark uppercase tracking-widest">
               {card.categoryName}
             </span>
           </div>
-          
-          {(card.rating >= 4.8 || card.reviewCount > 50) && (
-            <div className="px-4 py-2 bg-secondary rounded-[18px] shadow-2xl flex items-center gap-2.5 border border-white/20 backdrop-blur-md animate-bounce-slow">
-              <TrendingUp className="w-3.5 h-3.5 text-bg-dark" />
-              <span className="text-[9px] font-black text-bg-dark uppercase tracking-[0.25em]">
-                Trending
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* Rating & Interaction */}
-        <div className="absolute bottom-5 right-5 flex items-center gap-3">
-          <button 
-            onClick={(e) => { e.stopPropagation(); /* Handle Like */ }}
-            className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 transition-all shadow-premium border border-white/20 group/heart"
-          >
-            <Heart className="w-5 h-5 transition-transform group-hover/heart:scale-110" />
-          </button>
-          <div className="px-4 py-2 bg-bg-dark/80 backdrop-blur-md rounded-[18px] shadow-2xl flex items-center gap-2.5 border border-white/10">
-            <Star className="w-3.5 h-3.5 text-secondary fill-secondary" />
-            <span className="text-[11px] font-black text-white">{card.rating.toFixed(1)}</span>
+        {/* Rating Badge */}
+        <div className="absolute bottom-4 left-4">
+          <div className="px-3 py-1.5 bg-bg-dark/80 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
+            <Star className="w-3 h-3 text-accent fill-accent" />
+            <span className="text-[10px] font-black text-white">{card.rating.toFixed(1)}</span>
           </div>
-        </div>
-
-        {/* Quick Action Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClick?.(biz); }}
-            className="px-8 py-4 bg-white text-bg-dark text-[10px] font-black rounded-2xl uppercase tracking-[0.3em] shadow-2xl hover:bg-primary hover:text-bg-dark transition-all active:scale-95"
-          >
-            {language === 'ar' ? 'عرض التفاصيل' : language === 'ku' ? 'بینینی وردەکاری' : 'View Details'}
-          </button>
         </div>
       </div>
       
       {/* Info Section */}
-      <div className="p-8 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-4">
+      <div className="p-6 flex flex-col flex-1">
+        <div className="flex justify-between items-start mb-3">
           <div className="flex-1 min-w-0">
             <h3 
-              className="text-xl font-black text-bg-dark poppins-bold uppercase tracking-tighter group-hover:text-primary transition-colors duration-500 cursor-pointer line-clamp-1 leading-tight"
+              className="text-lg font-black text-bg-dark poppins-bold uppercase tracking-tight group-hover:text-accent transition-colors duration-300 cursor-pointer line-clamp-1"
               onClick={() => onClick?.(biz)}
             >
               {card.name}
             </h3>
-            <div className="flex items-center gap-2.5 mt-2 text-slate-400">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] truncate">
+            <div className="flex items-center gap-2 mt-1.5 text-slate-400">
+              <MapPin className="w-3 h-3 text-accent" />
+              <span className="text-[9px] font-bold uppercase tracking-widest truncate">
                 {card.location}
               </span>
             </div>
           </div>
           {card.isVerified && (
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-inner shrink-0 group-hover:bg-primary group-hover:text-bg-dark transition-all duration-700">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
           )}
         </div>
 
         {card.description && (
-          <p className="text-slate-500 text-xs line-clamp-2 mb-6 font-medium leading-relaxed">
+          <p className="text-slate-500 text-[11px] line-clamp-2 mb-6 font-medium leading-relaxed">
             {card.description}
           </p>
         )}
         
-        <div className="mt-auto flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="mt-auto grid grid-cols-2 gap-3">
           <button 
-            onClick={() => onClick?.(biz)}
-            className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-bg-dark text-white text-[10px] font-black rounded-2xl uppercase tracking-[0.3em] hover:bg-primary hover:text-bg-dark transition-all duration-500 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.3)] hover:shadow-primary/30 active:scale-95 group/btn"
+            onClick={handleCall}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-bg-dark text-white text-[9px] font-black rounded-xl uppercase tracking-widest hover:bg-primary transition-all active:scale-95 shadow-sm"
           >
-            <span>{language === 'ar' ? 'تواصل الآن' : language === 'ku' ? 'پەیوەندی بکە' : 'Contact Now'}</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+            <Phone className="w-3.5 h-3.5" />
+            <span>{language === 'ar' ? 'اتصال' : 'Call'}</span>
           </button>
-          <a 
-            href={`tel:${card.phone}`}
-            onClick={(e) => e.stopPropagation()}
-            className="w-12 h-12 flex items-center justify-center bg-slate-50 text-bg-dark rounded-2xl hover:bg-secondary hover:text-bg-dark transition-all duration-500 border border-slate-100 group/phone shadow-sm hover:shadow-secondary/20"
+          <button 
+            onClick={handleWhatsApp}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] text-white text-[9px] font-black rounded-xl uppercase tracking-widest hover:bg-[#128C7E] transition-all active:scale-95 shadow-sm"
           >
-            <Phone className="w-4 h-4 transition-transform group-hover/phone:rotate-12 group-hover/phone:scale-110" />
-          </a>
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>WhatsApp</span>
+          </button>
         </div>
       </div>
     </motion.div>

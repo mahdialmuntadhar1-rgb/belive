@@ -172,23 +172,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               full_name: name,
               role: role,
             },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
         if (signUpError) throw signUpError;
 
         if (signUpData.user) {
-          // Create profile in profiles table
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: signUpData.user.id,
-                email: email,
-                full_name: name,
-                role: role,
-              },
-            ]);
-          if (profileError) throw profileError;
+          setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
+          return;
         }
       }
       onClose();
@@ -282,7 +273,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         placeholder={translations.fullName[language]}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
+                        className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
                         required={!isLogin && !isForgot}
                       />
                     </div>
@@ -294,7 +285,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         onClick={() => setRole('user')}
                         className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                           role === 'user' 
-                            ? 'bg-white text-[#2CA6A4] shadow-sm' 
+                            ? 'bg-white text-accent shadow-sm' 
                             : 'text-[#6B7280] hover:text-[#2B2F33]'
                         }`}
                       >
@@ -306,7 +297,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         onClick={() => setRole('business_owner')}
                         className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                           role === 'business_owner' 
-                            ? 'bg-white text-[#E87A41] shadow-sm' 
+                            ? 'bg-white text-accent shadow-sm' 
                             : 'text-[#6B7280] hover:text-[#2B2F33]'
                         }`}
                       >
@@ -326,7 +317,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     placeholder={translations.email[language]}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
+                    className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
                     required
                   />
                 </div>
@@ -341,7 +332,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       placeholder={translations.password[language]}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-[#2CA6A4] rounded-2xl focus:outline-none transition-all text-sm`}
+                      className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
                       required={!isForgot}
                     />
                   </div>
@@ -356,7 +347,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         setError(null);
                         setSuccess(null);
                       }}
-                      className="text-xs font-bold text-[#2CA6A4] hover:underline"
+                      className="text-xs font-bold text-accent hover:underline"
                     >
                       {translations.forgot[language]}
                     </button>
@@ -366,7 +357,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-[#2CA6A4] hover:bg-[#1e7a78] text-white font-bold rounded-2xl shadow-lg shadow-[#2CA6A4]/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3.5 bg-primary hover:bg-bg-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -454,7 +445,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         setError(null);
                         setSuccess(null);
                       }}
-                      className="font-bold text-[#2CA6A4] hover:underline"
+                      className="font-bold text-accent hover:underline"
                     >
                       {isLogin ? translations.signup[language] : translations.login[language]}
                     </button>
