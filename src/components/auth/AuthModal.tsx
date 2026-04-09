@@ -120,10 +120,34 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       ar: 'نسيت كلمة المرور؟',
       ku: 'وشەی نهێنیت لەبیرچووە؟'
     },
-    or: {
-      en: 'Or continue with',
-      ar: 'أو استمر بواسطة',
-      ku: 'یان بەردەوام بە لەڕێگەی'
+    errorMessages: {
+      en: {
+        generic: 'An error occurred during authentication',
+        network: 'Network error: Could not connect to server. Please check your internet connection.',
+        emailExists: 'This email is already registered. Please log in instead.',
+        invalidCredentials: 'Invalid email or password. Please try again.',
+        weakPassword: 'Password is too weak. Please use at least 6 characters.',
+        profileFailed: 'Account created but profile setup failed. Please contact support.',
+        missingFields: 'Please fill in all required fields.',
+      },
+      ar: {
+        generic: 'حدث خطأ أثناء المصادقة',
+        network: 'خطأ في الاتصال: لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.',
+        emailExists: 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول بدلاً من ذلك.',
+        invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.',
+        weakPassword: 'كلمة المرور ضعيفة جداً. يرجى استخدام 6 أحرف على الأقل.',
+        profileFailed: 'تم إنشاء الحساب لكن فشل إعداد الملف الشخصي. يرجى الاتصال بالدعم.',
+        missingFields: 'يرجى ملء جميع الحقول المطلوبة.',
+      },
+      ku: {
+        generic: 'هەڵەیەک ڕوویدا لە کاتی دڵنیاکردنەوە',
+        network: 'هەڵەی ئێنتەرنێت: ناتوانرێت پەیوەندی بە سێرڤەر بکرێت. تکایە پەیوەندی ئینتەرنێتەکەت بپشکە.',
+        emailExists: 'ئەم ئیمەیڵە پێشتر تۆمارکراوە. تکایە بچۆ ژوورەوە لەباتی تۆمارکردن.',
+        invalidCredentials: 'ئیمەیڵ یان وشەی نهێنی هەڵەیە. تکایە دووبارە هەوڵبدەرەوە.',
+        weakPassword: 'وشەی نهێنی زۆر لاوەکییە. تکایە بە لانیکەم 6 پیت بەکاربهێنە.',
+        profileFailed: 'هەژمار دروست کرا بەڵام دامەزراندنی پرۆفایل شکستی هێنا. تکایە پەیوەندی بە پشتگیری بکە.',
+        missingFields: 'تکایە هەموو خانە پێویستەکان پڕ بکەرەوە.',
+      }
     },
     noAccount: {
       en: "Don't have an account?",
@@ -137,15 +161,78 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     }
   };
 
+  // Helper function to get localized error message
+  const getErrorMessage = (error: Error | any): string => {
+    const messages = translations.errorMessages[language];
+    const msg = error?.message || '';
+    
+    // Check for specific error patterns
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network')) {
+      return messages.network;
+    }
+    if (msg.includes('User already registered') || msg.includes('already exists') || error?.code === '23505') {
+      return messages.emailExists;
+    }
+    if (msg.includes('Invalid login credentials') || msg.includes('Invalid email or password')) {
+      return messages.invalidCredentials;
+    }
+    if (msg.includes('Password should be at least') || msg.includes('weak')) {
+      return messages.weakPassword;
+    }
+    if (msg.includes('Database error saving new user') || msg.includes('profiles')) {
+      return messages.profileFailed;
+    }
+    
+    return messages.generic;
+  };
+
+  // Validate form fields
+  const validateForm = (): boolean => {
+    const messages = translations.errorMessages[language];
+    
+    if (!email || !email.includes('@')) {
+      setError(messages.missingFields);
+      return false;
+    }
+    
+    if (!isForgot && !password) {
+      setError(messages.missingFields);
+      return false;
+    }
+    
+    if (!isLogin && !isForgot && !name.trim()) {
+      setError(messages.missingFields);
+      return false;
+    }
+    
+    if (!isForgot && password.length < 6) {
+      setError(messages.weakPassword);
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) return;
+    
     setLoading(true);
     setError(null);
+    setSuccess(null);
+
+    // Validate before submission
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
       if (!isConfigured) {
-        throw new Error('Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.');
+        throw new Error('Supabase configuration missing');
       }
 
       if (isForgot) {
@@ -163,36 +250,68 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           password,
         });
         if (signInError) throw signInError;
+        onClose();
       } else {
+        // Sign up with metadata - profile will be auto-created by trigger
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              full_name: name,
+              full_name: name.trim(),
               role: role,
             },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
+        
         if (signUpError) throw signUpError;
 
         if (signUpData.user) {
-          setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
-          return;
+          // Wait briefly for trigger to create profile
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Verify profile was created
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', signUpData.user.id)
+            .single();
+          
+          if (profileError || !profileData) {
+            console.warn('[Auth] Profile auto-creation may have failed:', profileError);
+            // Try to create profile manually as fallback
+            const { error: manualInsertError } = await supabase
+              .from('profiles')
+              .insert([{
+                id: signUpData.user.id,
+                email: signUpData.user.email,
+                full_name: name.trim(),
+                role: role,
+              }]);
+            
+            if (manualInsertError) {
+              console.error('[Auth] Manual profile creation failed:', manualInsertError);
+              throw new Error('profile_failed');
+            }
+          }
+          
+          setSuccess(language === 'ar' 
+            ? 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.' 
+            : language === 'ku' 
+              ? 'هەژمار بە سەرکەوتوویی دروست کرا! ئێستا دەتوانی بچیتە ژوورەوە.'
+              : 'Account created successfully! You can now log in.');
+          
+          // Clear form and switch to login after 2 seconds
+          setTimeout(() => {
+            setIsLogin(true);
+            setSuccess(null);
+          }, 2000);
         }
       }
-      onClose();
     } catch (err) {
-      console.error('Auth error:', err);
-      let message = 'An error occurred during authentication';
-      if (err instanceof Error) {
-        message = err.message;
-        if (message.includes('Failed to fetch')) {
-          message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
-        }
-      }
-      setError(message);
+      console.error('[Auth] Error:', err);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -373,18 +492,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   )}
                 </button>
 
-                {isLogin && !isForgot && (
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-slate-500 font-bold tracking-widest">
-                        {language === 'ar' ? 'أو' : language === 'ku' ? 'یان' : 'OR'}
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 {isLogin && !isForgot && (
                   <button

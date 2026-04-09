@@ -51,12 +51,17 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   const store = useAuthStore.getState();
   const user = session?.user ?? null;
   
-  console.log('Auth state changed:', event, user?.email);
+  console.log('[Auth] State changed:', event, user?.email);
   
   store.setUser(user);
   
   if (user) {
     try {
+      // Try to fetch profile with a small delay for trigger to complete on new signups
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -64,11 +69,14 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         .single();
         
       if (!error && data) {
+        console.log('[Auth] Profile loaded:', data.full_name);
         store.setProfile(data as Profile);
-      } else if (error && error.code === 'PGRST116') {
-        console.log('Profile not found for user:', user.id);
-        // Might need to create profile if it was a Google signup
-        if (event === 'SIGNED_IN') {
+      } else if (error) {
+        console.warn('[Auth] Profile fetch error:', error.code, error.message);
+        
+        // Profile doesn't exist - try to create it (fallback for edge cases)
+        if (error.code === 'PGRST116' || error.code === '23505') {
+          console.log('[Auth] Creating missing profile for user:', user.id);
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
             .insert([
@@ -83,12 +91,29 @@ supabase.auth.onAuthStateChange(async (event, session) => {
             .single();
           
           if (!insertError && newProfile) {
+            console.log('[Auth] Profile created on signin:', newProfile.full_name);
             store.setProfile(newProfile as Profile);
+          } else if (insertError) {
+            console.error('[Auth] Failed to create profile on signin:', insertError);
+            // Don't throw - user can still use auth features
+            store.setProfile({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              role: user.user_metadata?.role || 'user',
+            });
           }
         }
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('[Auth] Error in profile management:', err);
+      // Set minimal profile so UI doesn't break
+      store.setProfile({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        role: user.user_metadata?.role || 'user',
+      });
     }
   } else {
     store.setProfile(null);
