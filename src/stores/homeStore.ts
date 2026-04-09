@@ -8,8 +8,6 @@ interface HomeState {
   searchQuery: string;
   sortBy: "trending" | "recent" | "rating";
   language: "en" | "ar" | "ku";
-  activeTab: "mycity" | "shakumaku";
-  categoryDisplayCounts: Record<string, number>; // Per-category display count (incremental: 3,6,9...)
 
   // Actions
   setGovernorate: (governorate: string) => void;
@@ -18,13 +16,10 @@ interface HomeState {
   setSearchQuery: (query: string) => void;
   setSortBy: (sort: "trending" | "recent" | "rating") => void;
   setLanguage: (lang: "en" | "ar" | "ku") => void;
-  setActiveTab: (tab: "mycity" | "shakumaku") => void;
-  incrementCategoryDisplay: (categoryId: string, totalCount: number) => void;
-  resetCategoryDisplay: (categoryId: string) => void;
   reset: () => void;
 }
 
-const DEFAULT_GOVERNORATE = "baghdad"; // Must match lowercase IDs in constants.ts GOVERNORATES
+const DEFAULT_GOVERNORATE = "Baghdad";
 
 export const useHomeStore = create<HomeState>()(
   persist(
@@ -35,8 +30,6 @@ export const useHomeStore = create<HomeState>()(
       searchQuery: "",
       sortBy: "trending",
       language: "en",
-      activeTab: "mycity",
-      categoryDisplayCounts: {},
 
       setGovernorate: (governorate) =>
         set({ selectedGovernorate: governorate, selectedCity: null }),
@@ -56,31 +49,6 @@ export const useHomeStore = create<HomeState>()(
       setLanguage: (lang) =>
         set({ language: lang }),
 
-      setActiveTab: (tab) =>
-        set({ activeTab: tab }),
-
-      // Increment display count by 3, capped at totalCount
-      incrementCategoryDisplay: (categoryId, totalCount) =>
-        set((state) => {
-          const currentCount = state.categoryDisplayCounts[categoryId] || 3;
-          const newCount = Math.min(currentCount + 3, totalCount);
-          return {
-            categoryDisplayCounts: {
-              ...state.categoryDisplayCounts,
-              [categoryId]: newCount
-            }
-          };
-        }),
-
-      // Reset to initial 3 items
-      resetCategoryDisplay: (categoryId) =>
-        set((state) => ({
-          categoryDisplayCounts: {
-            ...state.categoryDisplayCounts,
-            [categoryId]: 3
-          }
-        })),
-
       reset: () =>
         set({
           selectedGovernorate: DEFAULT_GOVERNORATE,
@@ -89,8 +57,6 @@ export const useHomeStore = create<HomeState>()(
           searchQuery: "",
           sortBy: "trending",
           language: "en",
-          activeTab: "mycity",
-          categoryDisplayCounts: {},
         }),
     }),
     {

@@ -8,7 +8,6 @@ import BusinessCard from './BusinessCard';
 import BusinessMap from './BusinessMap';
 import CategorySection from './CategorySection';
 import { useHomeStore } from '@/stores/homeStore';
-import { useFeaturedBusinesses } from '@/hooks/useFeaturedBusinesses';
 import { CATEGORIES } from '@/constants';
 import { Business } from '@/lib/supabase';
 
@@ -38,7 +37,6 @@ export default function DirectoryTabPanel({
   setViewMode
 }: DirectoryTabPanelProps) {
   const { language, setCategory } = useHomeStore();
-  const { businesses: featuredBusinesses } = useFeaturedBusinesses();
   const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>(
     CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat.id]: 3 }), {})
   );
@@ -50,13 +48,21 @@ export default function DirectoryTabPanel({
     exploreCategories: { en: 'Explore Categories', ar: 'استكشف الفئات', ku: 'پۆلەکان بگەڕێ' },
     businessDirectory: { en: 'Business Directory', ar: 'دليل الأعمال', ku: 'ڕێبەری کارەکان' },
     featured: { en: 'Featured Businesses', ar: 'أماكن مميزة', ku: 'شوێنە دیارەکان' },
-    loadMore: { en: 'Load More', ar: 'عرض المزيد', ku: 'زیاتر ببینە' }
+    loadMore: { en: 'Load More', ar: 'عرض المزيد', ku: 'زیاتر ببینە' },
+    loadLess: { en: 'Show Less', ar: 'عرض أقل', ku: 'کەمتر ببینە' }
   };
 
   const handleLoadMoreCategory = (categoryId: string) => {
     setCategoryLimits(prev => ({
       ...prev,
       [categoryId]: prev[categoryId] + 3
+    }));
+  };
+
+  const handleLoadLessCategory = (categoryId: string) => {
+    setCategoryLimits(prev => ({
+      ...prev,
+      [categoryId]: Math.max(3, prev[categoryId] - 3)
     }));
   };
 
@@ -140,24 +146,22 @@ export default function DirectoryTabPanel({
           </div>
         ) : (
           <div className="space-y-24">
-            {/* Featured Section - Independent Data Source */}
-            {featuredBusinesses.length > 0 && (
-              <div className="space-y-10">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
-                    {translations.featured[language]}
-                  </h2>
-                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                    <Star className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                  {featuredBusinesses.slice(0, 10).map(business => (
-                    <BusinessCard key={business.id} biz={business} variant="featured" onClick={onBusinessClick} />
-                  ))}
+            {/* Featured Section */}
+            <div className="space-y-10">
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
+                  {translations.featured[language]}
+                </h2>
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                  <Star className="w-5 h-5" />
                 </div>
               </div>
-            )}
+              <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+                {businesses.filter(b => b.isFeatured).slice(0, 10).map(business => (
+                  <BusinessCard key={business.id} biz={business} variant="featured" onClick={onBusinessClick} />
+                ))}
+              </div>
+            </div>
 
             {/* Category Sections - 3 per category + Load More */}
             <div className="space-y-24">
@@ -197,8 +201,8 @@ export default function DirectoryTabPanel({
                       ))}
                     </div>
 
-                    {hasMoreInCategory && (
-                      <div className="flex justify-center pt-4">
+                    <div className="flex justify-center gap-4 pt-4">
+                      {hasMoreInCategory && (
                         <button
                           onClick={() => handleLoadMoreCategory(category.id)}
                           className="px-8 py-3 bg-white border border-slate-200 text-primary text-[11px] font-black uppercase tracking-[0.2em] rounded-xl hover:border-accent hover:text-accent transition-all shadow-sm flex items-center gap-2"
@@ -206,8 +210,17 @@ export default function DirectoryTabPanel({
                           {translations.loadMore[language]}
                           <ChevronRight className={`w-4 h-4 ${language === 'ar' || language === 'ku' ? 'rotate-180' : ''}`} />
                         </button>
-                      </div>
-                    )}
+                      )}
+                      {limit > 3 && (
+                        <button
+                          onClick={() => handleLoadLessCategory(category.id)}
+                          className="px-8 py-3 bg-white border border-slate-200 text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl hover:border-red-500 hover:text-red-500 transition-all shadow-sm flex items-center gap-2"
+                        >
+                          {translations.loadLess[language]}
+                          <ChevronRight className={`w-4 h-4 rotate-90 ${language === 'ar' || language === 'ku' ? 'rotate-[-90deg]' : ''}`} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

@@ -11,65 +11,58 @@ export function usePosts(businessId?: string) {
   const PAGE_SIZE = 10;
 
   const fetchPosts = useCallback(async (isLoadMore = false) => {
-    if (!isLoadMore) {
-      setLoading(true);
-      setPage(0);
-    }
     setError(null);
     try {
-      const from = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
+      const currentPage = isLoadMore ? page + 1 : 0;
+      const from = currentPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      if (!isLoadMore) {
+        setLoading(true);
+      }
+
+      console.log('Fetching posts from:', import.meta.env.VITE_SUPABASE_URL);
       let query = supabase
-        .from('shakumaku_posts')
-        .select(`
-          *,
-          businesses (
-            name,
-            "nameAr",
-            city,
-            category,
-            governorate,
-            phone,
-            "imageUrl"
-          )
-        `, { count: 'exact' })
-        .eq('is_active', true)
-        .order('is_featured', { ascending: false })
+        .from('posts')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
       if (businessId) {
-        query = query.eq('business_id', businessId);
+        query = query.eq('businessId', businessId);
       }
 
       const { data, error: fetchError, count } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Supabase query error:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Posts returned:', data?.length, 'Total count:', count);
+      if (data && data.length > 0) {
+        console.log('First post shape:', Object.keys(data[0]));
+      }
 
       if (data) {
-        const mappedPosts: Post[] = data.map((item: any) => {
-          const biz = item.businesses || {};
-          return {
-            id: item.id,
-            businessId: String(item.business_id),
-            content: item.caption_ar || item.caption,
-            image: item.image_url || biz.imageUrl,
-            likes: item.likes_count || 0,
-            createdAt: new Date(item.created_at),
-            authorName: biz.nameAr || biz.name,
-            authorAvatar: null,
-            city: biz.city || biz.governorate,
-            category: biz.category,
-            governorate: biz.governorate
-          };
-        });
+        const mappedPosts: Post[] = data.map((item: any) => ({
+          id: item.id,
+          businessId: item.businessId,
+          content: item.content || item.caption || '',
+          image: item.image_url || item.imageUrl || '',
+          likes: item.likes || item.likes_count || 0,
+          createdAt: new Date(item.created_at || item.createdAt),
+          authorName: item.businessName || item.business_name || 'Business',
+          authorAvatar: item.businessAvatar || item.image_url || '',
+          isVerified: item.isVerified || item.verified || false
+        }));
 
         if (isLoadMore) {
           setPosts(prev => [...prev, ...mappedPosts]);
-          setPage(prev => prev + 1);
+          setPage(currentPage);
         } else {
           setPosts(mappedPosts);
+          setPage(0);
         }
 
         if (count !== null) {
@@ -84,6 +77,10 @@ export function usePosts(businessId?: string) {
     }
   }, [businessId, page]);
 
+  useEffect(() => {
+    fetchPosts();
+  }, [businessId]);
+
   const loadMore = () => {
     if (!loading && hasMore) {
       fetchPosts(true);
@@ -95,15 +92,13 @@ export function usePosts(businessId?: string) {
     
     try {
       const { data, error: insertError } = await supabase
-        .from('shakumaku_posts')
+        .from('posts')
         .insert([
           {
-            business_id: String(businessId),
-            caption: content,
-            caption_ar: content,
+            businessId: businessId,
+            content,
             image_url: imageUrl,
-            likes_count: 0,
-            is_active: true
+            likes: 0
           }
         ])
         .select()
@@ -123,27 +118,14 @@ export function usePosts(businessId?: string) {
 
   const likePost = async (postId: string) => {
     try {
-      const { error: likeError } = await supabase
-        .from('shakumaku_posts')
-        .update({ likes_count: supabase.rpc('increment', { x: 1 }) })
-        .eq('id', postId);
+      const { error: likeError } = await supabase.rpc('increment_likes', { post_id: postId });
+      if (likeError) throw likeError;
       
-      if (likeError) {
-        // Fallback: just update local state
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
-      } else {
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
-      }
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
     } catch (err) {
       console.error('Error liking post:', err);
-      // Still update UI optimistically
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
     }
   };
-
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
 
   return { posts, loading, error, hasMore, loadMore, createPost, likePost, refresh: fetchPosts };
 }

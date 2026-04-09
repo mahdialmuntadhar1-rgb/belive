@@ -132,7 +132,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 className="flex flex-col items-center"
               >
                 <h1 className="text-4xl sm:text-7xl font-black text-white tracking-tighter poppins-bold leading-tight drop-shadow-2xl max-w-4xl uppercase text-center">
-                  {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
+                  {language === 'ar' ? 'شكو ماكو' : 'Shakumaku'}
                 </h1>
                 <p className="text-xl sm:text-2xl font-bold text-accent mt-4 uppercase tracking-[0.2em]">
                   {SLOGANS[currentSlogan][language]}

@@ -19,7 +19,7 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
             className={`py-4 text-[11px] font-black uppercase tracking-[0.2em] relative transition-colors flex items-center gap-2 ${activeTab === 'guide' ? 'text-accent' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <span className="text-lg">🏙️</span>
-            {language === 'ar' ? 'مدينتي' : language === 'ku' ? 'شارەکەم' : 'My City'}
+            {language === 'ar' ? 'مدينتي' : language === 'ku' ? 'شارەکەم' : 'MyCity'}
             {activeTab === 'guide' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
             )}
@@ -29,7 +29,7 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
             className={`py-4 text-[11px] font-black uppercase tracking-[0.2em] relative transition-colors flex items-center gap-2 ${activeTab === 'social' ? 'text-accent' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <span className="text-lg">📱</span>
-            {language === 'ar' ? 'شكو ماكو' : language === 'ku' ? 'شکو ماکۆ' : 'Shaku Maku'}
+            {language === 'ar' ? 'شكو ماكو' : language === 'ku' ? 'شکو ماکۆ' : 'Shakumaku'}
             {activeTab === 'social' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
             )}

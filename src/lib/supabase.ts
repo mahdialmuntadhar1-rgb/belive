@@ -25,6 +25,8 @@ export interface Business {
   descriptionAr?: string;
   openingHours?: string;
   ownerId?: string;
+  lat?: number;
+  lng?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,10 +40,5 @@ export interface Post {
   createdAt: Date;
   authorName?: string;
   authorAvatar?: string;
-  city?: string;
-  category?: string;
-  governorate?: string;
-  neighborhood?: string;
-  lat?: number;
-  lng?: number;
+  isVerified?: boolean;
 }
