@@ -37,6 +37,8 @@ export interface Post {
   content: string;
   image?: string;
   likes: number;
+  views?: number;
+  commentsCount?: number;
   createdAt: Date;
   authorName?: string;
   authorAvatar?: string;

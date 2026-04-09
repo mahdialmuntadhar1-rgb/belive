@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icon.svg'],
         manifest: {
-          name: 'Saku Maku Iraqi Directory',
-          short_name: 'Saku Maku',
+          name: 'Shakumaku Iraqi Directory',
+          short_name: 'Shakumaku',
           description: 'The premier Iraqi business directory',
           theme_color: '#00BFA5',
           background_color: '#F8FAFC',

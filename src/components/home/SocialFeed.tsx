@@ -1,4 +1,5 @@
 import React from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { motion } from 'motion/react';
 import { Smartphone, Heart, MessageCircle, Share2, MapPin, MoreHorizontal, Bookmark, ArrowRight, Loader2, Eye, Star, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
@@ -98,67 +99,111 @@ const FALLBACK_POST_TEMPLATES = [
 
 export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   const { language } = useHomeStore();
-  const { posts: realPosts, loading: postsLoading, error, hasMore, loadMore, likePost } = usePosts();
+  const { posts: realPosts, loading: postsLoading, error, hasMore, loadMore, likePost, createPost } = usePosts();
   const { businesses, loading: bizLoading } = useBusinesses("");
+  const [isSeeding, setIsSeeding] = React.useState(false);
+  const [seedProgress, setSeedProgress] = React.useState(0);
   
   const isRTL = language === 'ar' || language === 'ku';
 
-  const virtualPosts = React.useMemo(() => {
-    if (realPosts.length > 0) return realPosts;
-    if (bizLoading || businesses.length === 0) return [];
-
-    // Shuffle businesses for randomness
-    const shuffled = [...businesses].sort(() => Math.random() - 0.5);
-
-    return shuffled.slice(0, 20).map((biz, index) => {
-      let content = "";
-      const isHotel = biz.category.toLowerCase().includes('hotel');
+  // AI Seeder Logic
+  React.useEffect(() => {
+    const seedPosts = async () => {
+      if (postsLoading || bizLoading || realPosts.length >= 50 || isSeeding) return;
       
-      if (language === 'ar') {
-        if (isHotel) {
-          content = HOTEL_POST_TEMPLATES_AR[index % HOTEL_POST_TEMPLATES_AR.length];
-        } else if (index % 4 === 0) {
-          content = ARABIC_TESTIMONIES[index % ARABIC_TESTIMONIES.length];
-        } else {
-          content = ARABIC_POST_TEMPLATES[index % ARABIC_POST_TEMPLATES.length];
+      // If we have some posts but less than 50, we might want to seed more, 
+      // but the requirement is "initially load 50".
+      // Let's only seed if it's empty or very low.
+      if (realPosts.length > 5) return;
+
+      setIsSeeding(true);
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+        
+        // Fetch businesses to link posts to
+        const availableBusinesses = businesses.length > 0 ? businesses : [];
+        const targetCount = 50;
+        const postsToCreate = [];
+
+        for (let i = 0; i < targetCount; i++) {
+          setSeedProgress(Math.round((i / targetCount) * 100));
+          
+          const biz = availableBusinesses[i % availableBusinesses.length];
+          const category = biz?.category || ['Hotel', 'Restaurant', 'Cafe', 'Gym', 'Pharmacy', 'Mall', 'Salon', 'Hospital', 'Electronics', 'Services'][Math.floor(Math.random() * 10)];
+          const city = biz?.city || ['Baghdad', 'Erbil', 'Basra', 'Sulaymaniyah', 'Najaf'][Math.floor(Math.random() * 5)];
+          const bizName = biz?.name || (language === 'ar' ? `مؤسسة ${category} العراقية` : `Iraqi ${category} Co.`);
+
+          // Generate Caption using Gemini
+          const captionResponse = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Generate a unique, natural, business-like social media caption in Iraqi Arabic dialect for a ${category} named "${bizName}" located in ${city}. The tone should be inviting and authentic. Include a light call to action like "زورونا" or "احجز الآن". Max 120 characters. No hashtags.`,
+          });
+          const caption = captionResponse.text?.trim() || "أهلاً بكم في مشروعنا الجديد!";
+
+          // Generate Image Prompt using Gemini
+          const promptResponse = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Generate a short, descriptive English image generation prompt for a ${category} in Iraq. Focus on high quality, realistic lighting, and local atmosphere. Example: "luxury hotel lobby in Erbil, warm lighting, modern design, Iraqi style, high quality". Return ONLY the prompt.`,
+          });
+          const imagePrompt = promptResponse.text?.trim() || `${category} in ${city} Iraq, high quality`;
+
+          // Use Pollinations.ai for unique AI image generation
+          const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1080&height=1080&seed=${Math.random()}&nologo=true`;
+
+          postsToCreate.push({
+            businessId: biz?.id || `fallback-${i}`,
+            businessName: bizName,
+            businessAvatar: biz?.image || `https://i.pravatar.cc/150?u=${biz?.id || i}`,
+            content: caption,
+            caption: caption,
+            imageUrl: imageUrl,
+            image_url: imageUrl,
+            likes: Math.floor(Math.random() * 1000) + 100,
+            isVerified: biz?.isVerified || Math.random() > 0.7,
+            createdAt: new Date(Date.now() - (targetCount - i) * 3600000).toISOString()
+          });
+
+          // Create post in Supabase
+          await createPost(caption, imageUrl, {
+            businessName: bizName,
+            businessAvatar: biz?.image,
+            isVerified: biz?.isVerified
+          } as any);
         }
-      } else {
-        if (isHotel) {
-          content = HOTEL_POST_TEMPLATES_EN[index % HOTEL_POST_TEMPLATES_EN.length];
-        } else {
-          content = FALLBACK_POST_TEMPLATES[index % FALLBACK_POST_TEMPLATES.length];
-        }
+      } catch (err) {
+        console.error("Seeding failed:", err);
+      } finally {
+        setIsSeeding(false);
+        setSeedProgress(100);
       }
+    };
 
-      content = content
-        .replace(/{name}/g, biz.name)
-        .replace(/{city}/g, biz.city || 'العراق')
-        .replace(/{governorate}/g, biz.governorate || 'العراق')
-        .replace(/{category}/g, biz.category)
-        .replace(/{address}/g, biz.address || biz.city);
+    seedPosts();
+  }, [realPosts, businesses, postsLoading, bizLoading, isSeeding]);
 
-      const images = CATEGORY_IMAGES[biz.category] || CATEGORY_IMAGES.general;
-      const image = images[index % images.length];
-
-      return {
-        id: `virtual-${biz.id}`,
-        businessId: biz.id,
-        content,
-        image,
-        likes: Math.floor(Math.random() * 2000) + 500,
-        views: Math.floor(Math.random() * 10000) + 2000,
-        commentsCount: Math.floor(Math.random() * 50) + 10,
-        createdAt: new Date(Date.now() - index * 3600000),
-        authorName: biz.name,
-        authorAvatar: biz.image,
-        isVerified: biz.isVerified,
-        isHotel: isHotel
-      } as any;
-    });
-  }, [realPosts, businesses, bizLoading, language]);
-
-  const displayPosts = virtualPosts;
+  const displayPosts = realPosts;
   const isLoading = postsLoading || (realPosts.length === 0 && bizLoading);
+
+  if (isSeeding) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 px-4 text-center">
+        <div className="w-24 h-24 bg-accent/10 rounded-[40px] flex items-center justify-center mb-8 shadow-inner relative">
+          <Loader2 className="w-12 h-12 text-accent animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[10px] font-black text-accent">{seedProgress}%</span>
+          </div>
+        </div>
+        <h3 className="text-2xl font-black text-bg-dark mb-4 poppins-bold uppercase tracking-tighter">
+          {language === 'ar' ? 'جاري توليد المحتوى بالذكاء الاصطناعي' : 'Generating AI Content'}
+        </h3>
+        <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed font-medium">
+          {language === 'ar' 
+            ? 'نقوم بتجهيز ٥٠ منشوراً فريداً لأعمال حقيقية في العراق باستخدام أحدث تقنيات الذكاء الاصطناعي.' 
+            : 'We are preparing 50 unique posts for real Iraqi businesses using state-of-the-art AI technology.'}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading && displayPosts.length === 0) {
     return (
