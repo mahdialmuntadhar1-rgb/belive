@@ -11,6 +11,7 @@ interface AuthModalProps {
 }
 
 type UserRole = 'user' | 'business_owner';
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
@@ -120,11 +121,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       ar: 'نسيت كلمة المرور؟',
       ku: 'وشەی نهێنیت لەبیرچووە؟'
     },
-    or: {
-      en: 'Or continue with',
-      ar: 'أو استمر بواسطة',
-      ku: 'یان بەردەوام بە لەڕێگەی'
-    },
     noAccount: {
       en: "Don't have an account?",
       ar: 'ليس لديك حساب؟',
@@ -134,13 +130,110 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       en: 'Already have an account?',
       ar: 'لديك حساب بالفعل؟',
       ku: 'پێشتر هەژمارت دروستکردووە؟'
+    },
+    signupSuccess: {
+      en: 'Account created successfully! Please check your email to confirm your account.',
+      ar: 'تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.',
+      ku: 'هەژمارەکە بە سەرکەوتوویی دروستکرا! تکایە ئیمەیڵەکەت بپشکنە بۆ پشتڕاستکردنەوەی هەژمار.'
+    },
+    requiredName: {
+      en: 'Full name is required',
+      ar: 'الاسم الكامل مطلوب',
+      ku: 'ناوی تەواو پێویستە'
+    },
+    requiredRole: {
+      en: 'Please select an account type',
+      ar: 'يرجى اختيار نوع الحساب',
+      ku: 'تکایە جۆری هەژمار هەڵبژێرە'
+    },
+    requiredEmail: {
+      en: 'Email is required',
+      ar: 'البريد الإلكتروني مطلوب',
+      ku: 'ئیمەیڵ پێویستە'
+    },
+    invalidEmail: {
+      en: 'Please enter a valid email address',
+      ar: 'يرجى إدخال بريد إلكتروني صحيح',
+      ku: 'تکایە ئیمەیڵێکی دروست بنووسە'
+    },
+    requiredPassword: {
+      en: 'Password is required',
+      ar: 'كلمة المرور مطلوبة',
+      ku: 'وشەی نهێنی پێویستە'
+    },
+    weakPassword: {
+      en: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      ar: `يجب أن تكون كلمة المرور ${MIN_PASSWORD_LENGTH} أحرف على الأقل`,
+      ku: `وشەی نهێنی دەبێت لانیکەم ${MIN_PASSWORD_LENGTH} پیت بێت`
+    },
+    friendlyAuthFailure: {
+      en: 'Unable to create account. Please try again.',
+      ar: 'تعذر إنشاء الحساب، يرجى المحاولة مرة أخرى',
+      ku: 'نەتوانرا هەژمارەکە دروست بکرێت، تکایە دووبارە هەوڵبدەرەوە'
+    },
+    friendlyProfileFailure: {
+      en: 'An error occurred while saving account details.',
+      ar: 'حدث خطأ أثناء حفظ بيانات الحساب',
+      ku: 'هەڵەیەک ڕوویدا لە کاتی پاشەکەوتکردنی زانیاری هەژمار'
+    },
+    emailInUse: {
+      en: 'This email is already in use',
+      ar: 'البريد الإلكتروني مستخدم بالفعل',
+      ku: 'ئەم ئیمەیڵە پێشتر بەکارهاتووە'
     }
+  };
+
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const normalizeAuthError = (rawMessage: string, fallback: string) => {
+    const message = rawMessage.toLowerCase();
+    if (message.includes('already registered') || message.includes('already in use') || message.includes('duplicate key')) {
+      return translations.emailInUse[language];
+    }
+    if (message.includes('database error saving new user')) {
+      return translations.friendlyProfileFailure[language];
+    }
+    if (message.includes('failed to fetch') || message.includes('network')) {
+      return language === 'ar'
+        ? 'تعذر الاتصال بالخادم، يرجى التحقق من الإنترنت والمحاولة مرة أخرى'
+        : language === 'ku'
+          ? 'نەتوانرا پەیوەندی بە سێرڤەر بکرێت، تکایە ئینتەرنێتەکەت بپشکنە و دووبارە هەوڵبدەرەوە'
+          : 'Unable to reach the server. Please check your internet connection and try again.';
+    }
+    return fallback;
+  };
+
+  const validateForm = () => {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) return translations.requiredEmail[language];
+    if (!isValidEmail(trimmedEmail)) return translations.invalidEmail[language];
+
+    if (!isForgot && !password) return translations.requiredPassword[language];
+    if (!isForgot && password.length < MIN_PASSWORD_LENGTH) return translations.weakPassword[language];
+
+    if (!isLogin && !isForgot) {
+      if (!trimmedName) return translations.requiredName[language];
+      if (!role) return translations.requiredRole[language];
+    }
+
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -159,17 +252,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
       if (isLogin) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
         if (signInError) throw signInError;
       } else {
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             data: {
-              full_name: name,
+              full_name: name.trim(),
               role: role,
             },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -178,18 +271,39 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         if (signUpError) throw signUpError;
 
         if (signUpData.user) {
-          setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
+          const hasSession = Boolean(signUpData.session?.user?.id);
+          if (hasSession) {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .upsert(
+                {
+                  id: signUpData.user.id,
+                  email: signUpData.user.email,
+                  full_name: name.trim(),
+                  role,
+                },
+                { onConflict: 'id' }
+              );
+
+            if (profileError) {
+              console.error('Profile save error after signup:', profileError);
+              throw new Error('PROFILE_SAVE_FAILED');
+            }
+          }
+
+          setSuccess(translations.signupSuccess[language]);
           return;
         }
       }
       onClose();
     } catch (err) {
       console.error('Auth error:', err);
-      let message = 'An error occurred during authentication';
+      let message = translations.friendlyAuthFailure[language];
       if (err instanceof Error) {
-        message = err.message;
-        if (message.includes('Failed to fetch')) {
-          message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
+        if (err.message === 'PROFILE_SAVE_FAILED') {
+          message = translations.friendlyProfileFailure[language];
+        } else {
+          message = normalizeAuthError(err.message, translations.friendlyAuthFailure[language]);
         }
       }
       setError(message);
@@ -373,51 +487,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   )}
                 </button>
 
-                {isLogin && !isForgot && (
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-slate-500 font-bold tracking-widest">
-                        {language === 'ar' ? 'أو' : language === 'ku' ? 'یان' : 'OR'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {isLogin && !isForgot && (
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={async () => {
-                      if (!email) {
-                        setError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني أولاً' : 'Please enter your email first');
-                        return;
-                      }
-                      setLoading(true);
-                      setError(null);
-                      try {
-                        const { error: magicError } = await supabase.auth.signInWithOtp({
-                          email,
-                          options: {
-                            emailRedirectTo: window.location.origin,
-                          },
-                        });
-                        if (magicError) throw magicError;
-                        setSuccess(language === 'ar' ? 'تم إرسال رابط تسجيل الدخول إلى بريدك الإلكتروني' : 'Magic link sent to your email');
-                      } catch (err: any) {
-                        setError(err.message);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    className="w-full py-3.5 bg-white border-2 border-slate-200 hover:border-primary text-bg-dark font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Mail className="w-4 h-4 text-primary" />
-                    {language === 'ar' ? 'تسجيل الدخول برابط سحري' : language === 'ku' ? 'چوونەژوورەوە بە لینکی سیحراوی' : 'Sign in with Magic Link'}
-                  </button>
-                )}
               </form>
 
               {isForgot && (

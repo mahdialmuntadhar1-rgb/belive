@@ -67,8 +67,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         store.setProfile(data as Profile);
       } else if (error && error.code === 'PGRST116') {
         console.log('Profile not found for user:', user.id);
-        // Might need to create profile if it was a Google signup
         if (event === 'SIGNED_IN') {
+          const fallbackRole = user.user_metadata?.role === 'business_owner' ? 'business_owner' : 'user';
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
             .insert([
@@ -76,7 +76,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
                 id: user.id,
                 email: user.email,
                 full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-                role: user.user_metadata?.role || 'user',
+                role: fallbackRole,
               },
             ])
             .select()
@@ -84,6 +84,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
           
           if (!insertError && newProfile) {
             store.setProfile(newProfile as Profile);
+          } else if (insertError) {
+            console.error('Failed to create missing profile after sign-in:', insertError);
           }
         }
       }
