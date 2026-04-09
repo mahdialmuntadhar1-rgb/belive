@@ -40,7 +40,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
           </div>
           <div className="flex flex-col">
             <h1 className="text-xl font-black text-primary poppins-bold tracking-tighter leading-none uppercase">
-              {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
+              {language === 'ar' ? 'شبكة' : 'Shabak'}
             </h1>
             <p className="text-[9px] text-accent font-black uppercase tracking-[0.3em] mt-1">
               {language === 'ar' ? 'دليل العراق' : 'Iraq Directory'}

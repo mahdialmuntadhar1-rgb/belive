@@ -33,7 +33,7 @@ interface SocialFeedProps {
 }
 
 const ARABIC_POST_TEMPLATES = [
-  "أهلاً بكم في {name}، حيث تلتقي الفخامة بالراحة في قلب {city}. نحن هنا لخدمتكم بأفضل المعايير. ✨ #العراق #شكو_ماكو",
+  "أهلاً بكم في {name}، حيث تلتقي الفخامة بالراحة في قلب {city}. نحن هنا لخدمتكم بأفضل المعايير. ✨ #العراق #شبكة",
   "استمتع بتجربة {category} عالمية في {name} بـ {governorate}. وجهة بارزة لمن يبحث عن التميز. 🌟 #تجربة_فريدة",
   "اكتشف النكهات الرائعة في {name} في {address}. رحلة لا تُنسى من المذاق والأناقة. 🍢🔥 #مطاعم_العراق",
   "انغمس في الأجواء الراقية لـ {name}. يقع في {city}، ونقدم مرافق لا مثيل لها. 🏨💎 #إقامة_فاخرة #بغداد",
@@ -56,7 +56,7 @@ const ARABIC_TESTIMONIES = [
   "بصراحة، {name} من أفضل الأماكن اللي زرتها في {city}. الخدمة تجنن والأجواء كلش راقية. ❤️",
   "تجربتي في {name} كانت خيالية. أنصح الكل يزورهم إذا كانوا في {governorate}. ⭐⭐⭐⭐⭐",
   "ما شاء الله على الرقي والنظافة في {name}. فعلاً مكان يرفع الرأس. ✨",
-  "أحلى شي في {name} هو التعامل الراقي والاهتمام بالتفاصيل. شكراً شاكوماكو على هذا الاكتشاف! 🙌"
+  "أحلى شي في {name} هو التعامل الراقي والاهتمام بالتفاصيل. شكراً شبكة على هذا الاكتشاف! 🙌"
 ];
 
 const ARABIC_COMMENTS = [
@@ -104,7 +104,7 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
 };
 
 const FALLBACK_POST_TEMPLATES = [
-  "Welcome to {name}! Located in {city}, we offer the best {category} experience. ✨ #Iraq #Shakumaku",
+  "Welcome to {name}! Located in {city}, we offer the best {category} experience. ✨ #Iraq #Shabak",
   "Experience world-class {category} at {name} in {governorate}. A premier destination for excellence. 🌟",
   "Discover amazing flavors at {name} in {address}. An unforgettable journey of taste and style. 🍢🔥",
   "Immerse yourself in the sophisticated atmosphere of {name}. Located in {city}, we offer unparalleled facilities. 🏨💎",
@@ -345,7 +345,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
           <Smartphone className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-black text-primary poppins-bold uppercase tracking-tighter">
-          {language === 'ar' ? 'شكو ماكو' : 'Shakumaku'}
+          {language === 'ar' ? 'شبكة' : 'Shabak'}
         </h2>
         
         <div className="flex bg-slate-100 p-1 rounded-2xl mt-6 border border-slate-200">
@@ -606,7 +606,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                   ? '"شكو ماكو هو التطبيق الوحيد اللي خلاني أكتشف أماكن في بلدي ما كنت أعرفها. التصميم والسهولة في الاستخدام يخليه التطبيق المفضل عندي يومياً."'
                   : language === 'ku'
                   ? '"شکو ماکۆ تەنها ئەپڵیکەیشنە کە وای لێکردم شوێنەکان لە وڵاتەکەمدا بدۆزمەوە کە نەمدەزانی. ديزاين و ئاسانی بەکارهێنان وای لێدەکات ببێتة ئەپڵیکەيشني دڵخوازی من ڕۆژانە."'
-                  : '"Shakumaku is the only app that made me discover places in my country I never knew existed. The design and ease of use make it my favorite daily app."'}
+                  : '"Shabak is the only app that made me discover places in my country I never knew existed. The design and ease of use make it my favorite daily app."'}
               </p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-slate-200 border-2 border-accent overflow-hidden shadow-md">
