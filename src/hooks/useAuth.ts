@@ -178,7 +178,12 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string, metadata?: SignupMetadata) => {
-    const safeMetadata = metadata?.full_name ? { full_name: metadata.full_name } : undefined;
+    const safeMetadata = (metadata?.full_name || metadata?.role)
+      ? {
+        ...(metadata?.full_name ? { full_name: metadata.full_name } : {}),
+        ...(metadata?.role ? { role: metadata.role } : {}),
+      }
+      : undefined;
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -196,7 +201,15 @@ export function useAuth() {
         name: error.name,
         details: error,
       });
-      throw error;
+      const errorPayload = {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        details: error.details,
+        hint: error.hint,
+      };
+      throw Object.assign(new Error(error.message), errorPayload);
     }
 
     savePendingSignupProfile(email, metadata);
@@ -208,13 +221,33 @@ export function useAuth() {
       email,
       password,
     });
-    if (error) throw error;
+    if (error) {
+      const errorPayload = {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        details: error.details,
+        hint: error.hint,
+      };
+      throw Object.assign(new Error(error.message), errorPayload);
+    }
     return data;
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      const errorPayload = {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        details: error.details,
+        hint: error.hint,
+      };
+      throw Object.assign(new Error(error.message), errorPayload);
+    }
     clearStore();
   };
 

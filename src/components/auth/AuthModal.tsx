@@ -181,12 +181,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         await signUp(email, password, {
           full_name: name,
           role: role,
-          business_name: role === 'business_owner' ? businessName : undefined,
-          phone: role === 'business_owner' ? phone : undefined,
-          governorate: role === 'business_owner' ? governorate : undefined,
-          category: role === 'business_owner' ? category : undefined,
-          city: role === 'business_owner' ? city : undefined,
-          description: role === 'business_owner' ? description : undefined,
         });
         setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
         return;
@@ -212,6 +206,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         if (message === 'Database error saving new user') {
           message = 'Signup failed in Supabase Auth database (likely a broken auth.users trigger/function). See SUPABASE_SIGNUP_FIX.md for exact checks.';
         }
+      }
+      if (err?.code || err?.status) {
+        message = `${message} (${[err?.code, err?.status && `HTTP ${err.status}`].filter(Boolean).join(' • ')})`;
       }
       setError(message);
     } finally {
