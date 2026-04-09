@@ -252,9 +252,30 @@ export function inferCategoryFromCaption(caption: string): string {
   return "general";
 }
 
+// Known generic/filler image URLs that should be treated as placeholders
+const GENERIC_IMAGE_PATTERNS = [
+  "photo-1517248135467-4c7edcad34c4", // The old default restaurant image
+  "placeholder",
+  "default",
+  "dummy",
+  "example",
+];
+
+/**
+ * Check if an image URL is a known generic/filler that should use category fallback
+ */
+function isGenericImage(url: string): boolean {
+  if (!url) return true;
+  const lowerUrl = url.toLowerCase();
+  return GENERIC_IMAGE_PATTERNS.some(pattern => lowerUrl.includes(pattern));
+}
+
 /**
  * Get fallback image for a post
- * Priority: 1) Post image, 2) Business category, 3) Caption inference
+ * Priority: 1) Post image (if not generic), 2) Business category, 3) Caption inference
+ * 
+ * CRITICAL: Treats known generic URLs as placeholders to enable category-based rotation
+ * This prevents "all posts look identical" when DB has same filler image for all rows
  */
 export function getPostImage(
   post: { 
@@ -265,8 +286,8 @@ export function getPostImage(
   },
   businessCategory?: string | null
 ): string {
-  // 1. Use post image if available and valid
-  if (post.image_url && !post.image_url.includes("placeholder")) {
+  // 1. Use post image ONLY if it's not a known generic/filler
+  if (post.image_url && !isGenericImage(post.image_url)) {
     return post.image_url;
   }
   
@@ -279,4 +300,24 @@ export function getPostImage(
   const caption = post.caption_ar || post.caption || "";
   const inferredCategory = inferCategoryFromCaption(caption);
   return getCategoryImage(inferredCategory, post.id);
+}
+
+/**
+ * Dev-only diagnostic: Log image selection for debugging
+ */
+export function logImageSelection(
+  postId: string,
+  rawImageUrl: string | null,
+  finalImageUrl: string,
+  categoryUsed: string
+): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[ShakuMaku] Image selection:', {
+      postId: postId.slice(0, 8) + '...',
+      rawImageUrl: rawImageUrl?.slice(0, 50) + '...' || 'null',
+      finalImageUrl: finalImageUrl.slice(0, 50) + '...',
+      categoryUsed,
+      usedFallback: isGenericImage(rawImageUrl || '')
+    });
+  }
 }

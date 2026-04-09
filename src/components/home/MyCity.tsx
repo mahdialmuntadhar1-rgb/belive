@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ChevronUp, MapPin, Building2, Sparkles } from 'lucide-react';
 import type { Business } from '@/lib/supabase';
@@ -30,37 +30,66 @@ export default function MyCity({
     language, 
     selectedGovernorate, 
     selectedCity, 
-    expandedCategories,
-    toggleCategoryExpansion,
+    categoryDisplayCounts,
+    incrementCategoryDisplay,
+    resetCategoryDisplay,
     setGovernorate 
   } = useHomeStore();
 
   const isRTL = language === 'ar' || language === 'ku';
 
-  // Group businesses by category
+  // Group businesses by category - maintains stable order from CATEGORIES
   const businessesByCategory = useMemo(() => {
     const grouped: Record<string, Business[]> = {};
     
-    // Initialize all categories
+    // Initialize all categories in stable order
     CATEGORIES.forEach(cat => {
       grouped[cat.id] = [];
     });
     grouped['other'] = [];
 
+    // Track unknown categories for dev warning
+    const unknownCategories = new Set<string>();
+
     // Group businesses
     businesses.forEach(business => {
-      const categoryId = CATEGORIES.find(c => c.id === business.category)?.id || 'other';
+      const matchedCategory = CATEGORIES.find(c => c.id === business.category);
+      if (!matchedCategory && business.category) {
+        unknownCategories.add(business.category);
+      }
+      const categoryId = matchedCategory?.id || 'other';
       if (!grouped[categoryId]) grouped[categoryId] = [];
       grouped[categoryId].push(business);
     });
 
-    // Only return categories that have businesses
-    return Object.fromEntries(
-      Object.entries(grouped).filter(([_, items]) => items.length > 0)
-    );
+    // Runtime guard: warn about DB taxonomy mismatch
+    if (unknownCategories.size > 0 && process.env.NODE_ENV === 'development') {
+      console.warn('[MyCity] Unknown categories in DB (not in constants.ts):', Array.from(unknownCategories));
+    }
+
+    // Only return categories that have businesses, maintaining CATEGORIES order
+    const orderedEntries: [string, Business[]][] = [];
+    CATEGORIES.forEach(cat => {
+      if (grouped[cat.id]?.length > 0) {
+        orderedEntries.push([cat.id, grouped[cat.id]]);
+      }
+    });
+    if (grouped['other']?.length > 0) {
+      orderedEntries.push(['other', grouped['other']]);
+    }
+    
+    return Object.fromEntries(orderedEntries);
   }, [businesses]);
 
-  const categoryIds = Object.keys(businessesByCategory);
+  // Stable category order from CATEGORIES
+  const categoryIds = useMemo(() => {
+    const ordered: string[] = [];
+    CATEGORIES.forEach(cat => {
+      if (businessesByCategory[cat.id]?.length > 0) ordered.push(cat.id);
+    });
+    if (businessesByCategory['other']?.length > 0) ordered.push('other');
+    return ordered;
+  }, [businessesByCategory]);
   const hasCategories = categoryIds.length > 0;
 
   const translations = {
@@ -111,10 +140,22 @@ export default function MyCity({
     }
   };
 
+  // Get display count for category (incremental: 3, 6, 9...)
   const getDisplayCount = (categoryId: string, totalCount: number) => {
-    const isExpanded = expandedCategories.includes(categoryId);
-    if (isExpanded) return totalCount;
+    const savedCount = categoryDisplayCounts[categoryId];
+    if (savedCount) return Math.min(savedCount, totalCount);
     return Math.min(ITEMS_PER_BATCH, totalCount);
+  };
+
+  // Handle load more: increment by 3
+  const handleLoadMore = (categoryId: string, totalCount: number, currentCount: number) => {
+    if (currentCount >= totalCount) {
+      // At max, reset to 3 (Show Less behavior)
+      resetCategoryDisplay(categoryId);
+    } else {
+      // Increment by 3
+      incrementCategoryDisplay(categoryId, totalCount);
+    }
   };
 
   if (loading && businesses.length === 0) {
@@ -222,11 +263,8 @@ export default function MyCity({
             
             const categoryBusinesses = businessesByCategory[categoryId];
             const totalInCategory = categoryBusinesses.length;
-            const isExpanded = expandedCategories.includes(categoryId);
             const displayCount = getDisplayCount(categoryId, totalInCategory);
             const visibleBusinesses = categoryBusinesses.slice(0, displayCount);
-            const hasMoreInCategory = totalInCategory > displayCount;
-            const canShowLess = isExpanded && totalInCategory > ITEMS_PER_BATCH;
 
             const CategoryIcon = category.icon || Building2;
 
@@ -254,13 +292,13 @@ export default function MyCity({
                     </div>
                   </div>
                   
-                  {/* Expand/Collapse All Button */}
+                  {/* Expand/Collapse Button - Shows current/max */}
                   {totalInCategory > ITEMS_PER_BATCH && (
                     <button
-                      onClick={() => toggleCategoryExpansion(categoryId)}
+                      onClick={() => handleLoadMore(categoryId, totalInCategory, displayCount)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all bg-slate-50 text-slate-500 hover:bg-slate-100"
                     >
-                      {isExpanded ? (
+                      {displayCount >= totalInCategory ? (
                         <>
                           <ChevronUp className="w-3.5 h-3.5" />
                           {translations.showLess[language]}
@@ -268,7 +306,7 @@ export default function MyCity({
                       ) : (
                         <>
                           <ChevronDown className="w-3.5 h-3.5" />
-                          {translations.loadMore[language]} ({totalInCategory - displayCount})
+                          {translations.loadMore[language]} ({displayCount}/{totalInCategory})
                         </>
                       )}
                     </button>
@@ -297,25 +335,25 @@ export default function MyCity({
                   </AnimatePresence>
                 </div>
 
-                {/* Load More / Show Less Buttons (Inline) */}
+                {/* Load More / Show Less Buttons (Inline) - Incremental 3→6→9 */}
                 {totalInCategory > ITEMS_PER_BATCH && (
                   <div className="mt-4 flex items-center justify-center gap-3">
-                    {!isExpanded && hasMoreInCategory && (
+                    {displayCount < totalInCategory && (
                       <button
-                        onClick={() => toggleCategoryExpansion(categoryId)}
+                        onClick={() => handleLoadMore(categoryId, totalInCategory, displayCount)}
                         className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm"
                       >
                         <ChevronDown className="w-4 h-4" />
                         {translations.loadMore[language]}
                         <span className="bg-slate-100 px-2 py-0.5 rounded-full text-[9px]">
-                          +{Math.min(ITEMS_PER_BATCH, totalInCategory - displayCount)}
+                          +{Math.min(ITEMS_PER_BATCH, totalInCategory - displayCount)} ({displayCount}/{totalInCategory})
                         </span>
                       </button>
                     )}
                     
-                    {canShowLess && (
+                    {displayCount >= totalInCategory && (
                       <button
-                        onClick={() => toggleCategoryExpansion(categoryId)}
+                        onClick={() => handleLoadMore(categoryId, totalInCategory, displayCount)}
                         className="flex items-center gap-2 px-6 py-2.5 bg-slate-50 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-all"
                       >
                         <ChevronUp className="w-4 h-4" />

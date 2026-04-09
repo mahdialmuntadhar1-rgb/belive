@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Heart, MapPin, Sparkles, Eye, Award, Store } from "lucide-react";
 import { useHomeStore } from "@/stores/homeStore";
 import { supabase } from "@/lib/supabaseClient";
-import { getPostImage } from "@/config/categoryImages";
+import { getPostImage, logImageSelection } from "@/config/categoryImages";
 
 interface ShakuMakuPost {
   id: string;
@@ -72,6 +72,14 @@ function PostCard({
     },
     post.category
   );
+  
+  // Dev diagnostic: log first post image selection
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      logImageSelection(post.id, post.image_url, image, post.category || 'inferred');
+    }
+  }, [post.id, post.image_url, image, post.category]);
+  
   const caption = formatCaption(post.caption_ar || post.caption);
   
   // Determine business display name

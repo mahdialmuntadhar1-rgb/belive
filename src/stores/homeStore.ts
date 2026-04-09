@@ -9,7 +9,7 @@ interface HomeState {
   sortBy: "trending" | "recent" | "rating";
   language: "en" | "ar" | "ku";
   activeTab: "mycity" | "shakumaku";
-  expandedCategories: string[];
+  categoryDisplayCounts: Record<string, number>; // Per-category display count (incremental: 3,6,9...)
 
   // Actions
   setGovernorate: (governorate: string) => void;
@@ -19,11 +19,12 @@ interface HomeState {
   setSortBy: (sort: "trending" | "recent" | "rating") => void;
   setLanguage: (lang: "en" | "ar" | "ku") => void;
   setActiveTab: (tab: "mycity" | "shakumaku") => void;
-  toggleCategoryExpansion: (categoryId: string) => void;
+  incrementCategoryDisplay: (categoryId: string, totalCount: number) => void;
+  resetCategoryDisplay: (categoryId: string) => void;
   reset: () => void;
 }
 
-const DEFAULT_GOVERNORATE = "Baghdad";
+const DEFAULT_GOVERNORATE = "baghdad"; // Must match lowercase IDs in constants.ts GOVERNORATES
 
 export const useHomeStore = create<HomeState>()(
   persist(
@@ -35,7 +36,7 @@ export const useHomeStore = create<HomeState>()(
       sortBy: "trending",
       language: "en",
       activeTab: "mycity",
-      expandedCategories: [],
+      categoryDisplayCounts: {},
 
       setGovernorate: (governorate) =>
         set({ selectedGovernorate: governorate, selectedCity: null }),
@@ -58,11 +59,26 @@ export const useHomeStore = create<HomeState>()(
       setActiveTab: (tab) =>
         set({ activeTab: tab }),
 
-      toggleCategoryExpansion: (categoryId) =>
+      // Increment display count by 3, capped at totalCount
+      incrementCategoryDisplay: (categoryId, totalCount) =>
+        set((state) => {
+          const currentCount = state.categoryDisplayCounts[categoryId] || 3;
+          const newCount = Math.min(currentCount + 3, totalCount);
+          return {
+            categoryDisplayCounts: {
+              ...state.categoryDisplayCounts,
+              [categoryId]: newCount
+            }
+          };
+        }),
+
+      // Reset to initial 3 items
+      resetCategoryDisplay: (categoryId) =>
         set((state) => ({
-          expandedCategories: state.expandedCategories.includes(categoryId)
-            ? state.expandedCategories.filter(id => id !== categoryId)
-            : [...state.expandedCategories, categoryId]
+          categoryDisplayCounts: {
+            ...state.categoryDisplayCounts,
+            [categoryId]: 3
+          }
         })),
 
       reset: () =>
@@ -74,7 +90,7 @@ export const useHomeStore = create<HomeState>()(
           sortBy: "trending",
           language: "en",
           activeTab: "mycity",
-          expandedCategories: [],
+          categoryDisplayCounts: {},
         }),
     }),
     {

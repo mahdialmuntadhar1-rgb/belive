@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { CATEGORIES } from '@/constants';
 import { useHomeStore } from '@/stores/homeStore';
@@ -8,6 +8,30 @@ import { useAuthStore } from '@/stores/authStore';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
 import { useReviews } from '@/hooks/useReviews';
 import { usePosts } from '@/hooks/usePosts';
+
+// WhatsApp Message Templates
+const WHATSAPP_TEMPLATES = {
+  inquiry: {
+    id: 'inquiry',
+    label: {
+      en: 'Ask for Details',
+      ar: 'طلب تفاصيل',
+      ku: 'پرسیناری وردەکاری'
+    },
+    getMessage: (businessName: string) => 
+      `مرحباً 👋\nأنا مهتم/ة بـ ${businessName}. هل ممكن ترسلون لي التفاصيل (الأسعار/الموقع/أوقات الدوام)؟\nشكراً لكم 🌟`
+  },
+  booking: {
+    id: 'booking',
+    label: {
+      en: 'Book/Reserve',
+      ar: 'حجز/موعد',
+      ku: 'کات دیاریکردن'
+    },
+    getMessage: (businessName: string) => 
+      `مرحباً 👋\nأريد حجز/موعد في ${businessName}.\nهل يوجد availability قريباً؟\nشكراً مقدماً 🌟`
+  }
+};
 
 interface BusinessDetailModalProps {
   business: Business | null;
@@ -22,6 +46,8 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
   const { posts: businessPosts, loading: postsLoading } = usePosts(business?.id);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<'inquiry' | 'booking'>('inquiry');
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
 
   if (!business) return null;
 
@@ -127,6 +153,16 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
     if (language === 'ar' && business.nameAr) return business.nameAr;
     if (language === 'ku' && business.nameKu) return business.nameKu;
     return business.name;
+  };
+
+  // Build WhatsApp URL with prefilled message
+  const getWhatsAppUrl = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const businessName = getBusinessName();
+    const template = WHATSAPP_TEMPLATES[selectedTemplate];
+    const message = template.getMessage(businessName);
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
   };
 
   const getBusinessDescription = () => {
@@ -365,14 +401,48 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                           </a>
                         )}
                         {business.socialLinks?.whatsapp && (
-                          <a 
-                            href={`https://wa.me/${business.socialLinks.whatsapp.replace(/\D/g, '')}`} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="w-20 h-20 bg-white rounded-[28px] border border-slate-100 flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all duration-500 shadow-premium hover:shadow-2xl hover:-translate-y-2 group"
-                          >
-                            <MessageCircle className="w-8 h-8 transition-transform group-hover:scale-110" />
-                          </a>
+                          <div className="relative">
+                            {/* Template Selector Dropdown */}
+                            <button
+                              onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                              className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:border-primary hover:text-primary transition-all flex items-center gap-1 shadow-sm whitespace-nowrap z-20"
+                            >
+                              {WHATSAPP_TEMPLATES[selectedTemplate].label[language]}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            
+                            {showTemplateDropdown && (
+                              <div className="absolute -top-24 left-1/2 -translate-x-1/2 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-30 min-w-[140px]">
+                                {Object.values(WHATSAPP_TEMPLATES).map((template) => (
+                                  <button
+                                    key={template.id}
+                                    onClick={() => {
+                                      setSelectedTemplate(template.id as 'inquiry' | 'booking');
+                                      setShowTemplateDropdown(false);
+                                    }}
+                                    className={`w-full px-3 py-2 rounded-lg text-[10px] font-bold text-left transition-all ${
+                                      selectedTemplate === template.id
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-slate-600 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {template.label[language]}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* WhatsApp Button with Prefilled Message */}
+                            <a 
+                              href={getWhatsAppUrl(business.socialLinks.whatsapp)}
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="w-20 h-20 bg-white rounded-[28px] border border-slate-100 flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all duration-500 shadow-premium hover:shadow-2xl hover:-translate-y-2 group"
+                              onClick={() => setShowTemplateDropdown(false)}
+                            >
+                              <MessageCircle className="w-8 h-8 transition-transform group-hover:scale-110" />
+                            </a>
+                          </div>
                         )}
                       </div>
                     </section>
