@@ -3,25 +3,92 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/stores/authStore';
 import { User } from '@supabase/supabase-js';
 
+type UserRole = 'user' | 'business_owner';
+
+interface SignupMetadata {
+  full_name?: string;
+  role?: UserRole;
+  business_name?: string;
+  phone?: string;
+  governorate?: string;
+  category?: string;
+  city?: string;
+  description?: string;
+}
+
+interface PendingSignupProfile {
+  full_name?: string;
+  role?: UserRole;
+  onboarding?: {
+    business_name?: string;
+    phone?: string;
+    governorate?: string;
+    category?: string;
+    city?: string;
+    description?: string;
+  };
+}
+
+const PENDING_SIGNUP_PREFIX = 'pending-signup-profile:';
+
+const getPendingSignupKey = (email: string) => `${PENDING_SIGNUP_PREFIX}${email.trim().toLowerCase()}`;
+
+const savePendingSignupProfile = (email: string, metadata?: SignupMetadata) => {
+  if (typeof window === 'undefined' || !metadata) return;
+
+  const profile: PendingSignupProfile = {
+    full_name: metadata.full_name,
+    role: metadata.role,
+    onboarding: metadata.role === 'business_owner' ? {
+      business_name: metadata.business_name,
+      phone: metadata.phone,
+      governorate: metadata.governorate,
+      category: metadata.category,
+      city: metadata.city,
+      description: metadata.description,
+    } : undefined,
+  };
+
+  if (!profile.full_name && !profile.role && !profile.onboarding) return;
+
+  window.localStorage.setItem(getPendingSignupKey(email), JSON.stringify(profile));
+};
+
+const loadPendingSignupProfile = (email?: string | null): PendingSignupProfile | null => {
+  if (typeof window === 'undefined' || !email) return null;
+
+  const raw = window.localStorage.getItem(getPendingSignupKey(email));
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as PendingSignupProfile;
+  } catch {
+    return null;
+  }
+};
+
+const clearPendingSignupProfile = (email?: string | null) => {
+  if (typeof window === 'undefined' || !email) return;
+  window.localStorage.removeItem(getPendingSignupKey(email));
+};
+
 export function useAuth() {
   const { user, profile, setUser, setProfile, signOut: clearStore } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user);
       }
       setLoading(false);
     });
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user);
       } else {
         setProfile(null);
       }
@@ -31,44 +98,108 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const syncProfileAfterAuth = async (currentUser: User, existingProfile: any | null) => {
+    const pendingProfile = loadPendingSignupProfile(currentUser.email);
+    const fullName = pendingProfile?.full_name || currentUser.user_metadata?.full_name;
+    const role = pendingProfile?.role;
+
+    if (!fullName && !role) {
+      clearPendingSignupProfile(currentUser.email);
+      return existingProfile;
+    }
+
+    const payload: Record<string, any> = {
+      id: currentUser.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (fullName) payload.full_name = fullName;
+    if (role) payload.role = role;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(payload, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error syncing profile after auth:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      return existingProfile;
+    }
+
+    clearPendingSignupProfile(currentUser.email);
+    return data ?? existingProfile;
+  };
+
+  const fetchProfile = async (currentUser: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', currentUser.id)
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Profile doesn't exist, create it
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
-            .insert([{ id: userId, created_at: new Date().toISOString() }])
+            .insert([{ id: currentUser.id, created_at: new Date().toISOString() }])
             .select()
             .single();
-          
-          if (!createError) setProfile(newProfile);
-        } else {
-          throw error;
+
+          if (createError) {
+            console.error('Error creating missing profile row:', {
+              message: createError.message,
+              code: createError.code,
+              details: createError.details,
+              hint: createError.hint,
+            });
+            return;
+          }
+
+          const synced = await syncProfileAfterAuth(currentUser, newProfile);
+          setProfile(synced);
+          return;
         }
-      } else {
-        setProfile(data);
+
+        throw error;
       }
+
+      const synced = await syncProfileAfterAuth(currentUser, data);
+      setProfile(synced);
     } catch (err) {
       console.error('Error fetching profile:', err);
     }
   };
 
-  const signUp = async (email: string, password: string, metadata?: any) => {
+  const signUp = async (email: string, password: string, metadata?: SignupMetadata) => {
+    const safeMetadata = metadata?.full_name ? { full_name: metadata.full_name } : undefined;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: metadata
-      }
+        data: safeMetadata,
+      },
     });
-    if (error) throw error;
+
+    if (error) {
+      console.error('Supabase signUp failed:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        details: error,
+      });
+      throw error;
+    }
+
+    savePendingSignupProfile(email, metadata);
     return data;
   };
 
@@ -94,6 +225,6 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
   };
 }

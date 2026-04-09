@@ -192,13 +192,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         return;
       }
       onClose();
-    } catch (err) {
-      console.error('Auth error:', err);
+    } catch (err: any) {
+      console.error('Auth error payload:', {
+        message: err?.message,
+        code: err?.code,
+        status: err?.status,
+        name: err?.name,
+        details: err?.details,
+        hint: err?.hint,
+        raw: err,
+      });
+
       let message = 'An error occurred during authentication';
       if (err instanceof Error) {
         message = err.message;
         if (message.includes('Failed to fetch')) {
           message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
+        }
+        if (message === 'Database error saving new user') {
+          message = 'Signup failed in Supabase Auth database (likely a broken auth.users trigger/function). See SUPABASE_SIGNUP_FIX.md for exact checks.';
         }
       }
       setError(message);
