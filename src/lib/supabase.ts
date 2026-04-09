@@ -33,11 +33,24 @@ export interface Business {
 
 export interface Post {
   id: string;
-  businessId: string;
-  content: string;
+  businessId?: string;
+  content?: string;
+  caption?: string;
   image?: string;
-  likes: number;
+  image_url?: string;
+  likes?: number;
+  likes_count?: number;
   createdAt: Date;
+  created_at?: Date;
   authorName?: string;
   authorAvatar?: string;
+  title?: string;
+  city?: string;
+  category?: string;
+  neighborhood?: string;
+  governorate?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  rating?: number;
 }
