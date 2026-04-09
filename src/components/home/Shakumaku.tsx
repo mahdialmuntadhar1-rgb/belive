@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { Heart, MapPin, Sparkles, Eye } from 'lucide-react';
-import { useHomeStore } from '@/stores/homeStore';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { motion } from "motion/react";
+import { Heart, MapPin, Sparkles, Eye, Award, Store } from "lucide-react";
+import { useHomeStore } from "@/stores/homeStore";
+import { supabase } from "@/lib/supabaseClient";
 
 interface ShakuMakuPost {
   id: string;
@@ -16,6 +17,14 @@ interface ShakuMakuPost {
   created_at: string;
 }
 
+interface EnrichedPost extends ShakuMakuPost {
+  businessName?: string;
+  businessNameAr?: string;
+  category?: string;
+  city?: string;
+  governorate?: string;
+}
+
 interface ShakumakuProps {
   posts: ShakuMakuPost[];
   loading: boolean;
@@ -24,11 +33,296 @@ interface ShakumakuProps {
   onLoadMore: () => void;
 }
 
+// Category-based fallback images - visually relevant to business type
+const CATEGORY_IMAGES: Record<string, string> = {
+  dining: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80",
+  cafe: "https://images.unsplash.com/photo-1501339819398-ed495197ff21?w=600&q=80",
+  hotels: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
+  shopping: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80",
+  banks: "https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=600&q=80",
+  education: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80",
+  entertainment: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
+  tourism: "https://images.unsplash.com/photo-1436491865332-7a61a109c0f3?w=600&q=80",
+  doctors: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=600&q=80",
+  lawyers: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&q=80",
+  hospitals: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80",
+  medical: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&q=80",
+  realestate: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80",
+  events: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=80",
+  pharmacy: "https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?w=600&q=80",
+  gym: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80",
+  beauty: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80",
+  supermarkets: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80",
+  furniture: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&q=80",
+  general: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&q=80",
+};
+
+// Default fallback if no category matches
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80";
+
+function getCategoryFromCaption(caption: string): string {
+  const lower = caption.toLowerCase();
+  if (lower.includes("????") || lower.includes("-restaurant") || lower.includes("????")) return "dining";
+  if (lower.includes("????") || lower.includes("coffee") || lower.includes("????")) return "cafe";
+  if (lower.includes("????") || lower.includes("hotel") || lower.includes("???")) return "hotels";
+  if (lower.includes("??????") || lower.includes("pharmacy") || lower.includes("????")) return "pharmacy";
+  if (lower.includes("??????") || lower.includes("hospital") || lower.includes("?????")) return "hospitals";
+  if (lower.includes("????") || lower.includes("clinic") || lower.includes("?????")) return "doctors";
+  if (lower.includes("?????") || lower.includes("beauty") || lower.includes("????")) return "beauty";
+  if (lower.includes("???") || lower.includes("gym") || lower.includes("?????")) return "gym";
+  if (lower.includes("???") || lower.includes("shop") || lower.includes("????")) return "shopping";
+  if (lower.includes("????") || lower.includes("supermarket") || lower.includes("?????")) return "supermarkets";
+  if (lower.includes("????") || lower.includes("real estate") || lower.includes("???")) return "realestate";
+  if (lower.includes("???") || lower.includes("event") || lower.includes("??????")) return "events";
+  if (lower.includes("???") || lower.includes("tourism") || lower.includes("????")) return "tourism";
+  if (lower.includes("???") || lower.includes("bank") || lower.includes("????")) return "banks";
+  if (lower.includes("?????") || lower.includes("school") || lower.includes("?????")) return "education";
+  if (lower.includes("?????") || lower.includes("lawyer") || lower.includes("?????")) return "lawyers";
+  if (lower.includes("????") || lower.includes("furniture") || lower.includes("?????")) return "furniture";
+  return "general";
+}
+
+function getFallbackImage(post: EnrichedPost): string {
+  // 1. Use post image if available
+  if (post.image_url && !post.image_url.includes("placeholder")) {
+    return post.image_url;
+  }
+  
+  // 2. Use business category if available
+  if (post.category) {
+    return CATEGORY_IMAGES[post.category] || DEFAULT_IMAGE;
+  }
+  
+  // 3. Infer from caption
+  const caption = post.caption_ar || post.caption || "";
+  const inferredCategory = getCategoryFromCaption(caption);
+  return CATEGORY_IMAGES[inferredCategory] || DEFAULT_IMAGE;
+}
+
+function formatCaption(caption: string | null): string {
+  if (!caption) return "اكتشف هذا المكان المميز!";
+  // Clean up repetitive phrases for display - avoid regex with Arabic
+  let cleaned = caption;
+  // Remove "discover" variations
+  cleaned = cleaned.replace("اكتشفوا ", "").replace("اكتشف ", "");
+  // Remove leading sparkle emoji
+  if (cleaned.startsWith("✨ ")) cleaned = cleaned.slice(2);
+  return cleaned.trim() || "اكتشف هذا المكان المميز!";
+}
+
+// Individual Post Card Component
+function PostCard({ 
+  post, 
+  isFeatured = false,
+  isLiked,
+  onLike 
+}: { 
+  post: EnrichedPost; 
+  isFeatured?: boolean;
+  isLiked: boolean;
+  onLike: () => void;
+}) {
+  const { language } = useHomeStore();
+  const isRTL = language === "ar" || language === "ku";
+  const image = getFallbackImage(post);
+  const caption = formatCaption(post.caption_ar || post.caption);
+  
+  // Determine business display name
+  const businessName = post.businessNameAr || post.businessName || "???? ?????";
+  const location = post.city || post.governorate || "??????";
+  
+  if (isFeatured) {
+    // FEATURED VARIANT: Larger, with accent styling
+    return (
+      <motion.article
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-2 border-primary/30"
+      >
+        {/* Image Section - Taller for featured */}
+        <div className="relative h-56 overflow-hidden">
+          <img
+            src={image}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_IMAGE; }}
+          />
+          {/* Featured Badge */}
+          <div className="absolute top-3 left-3 bg-primary text-bg-dark px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-lg">
+            <Award className="w-3 h-3" />
+            {isRTL ? "????" : "Featured"}
+          </div>
+          {/* Subtle gradient overlay at bottom */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
+        </div>
+        
+        {/* Content Section - Below Image */}
+        <div className="p-4 space-y-3" dir={isRTL ? "rtl" : "ltr"}>
+          {/* Business Name */}
+          <h3 className={`font-bold text-bg-dark line-clamp-1 ${isRTL ? "text-right" : "text-left"}`}>
+            {businessName}
+          </h3>
+          
+          {/* Location */}
+          <div className={`flex items-center gap-1.5 text-slate-500 text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            <span>{location}</span>
+          </div>
+          
+          {/* Caption */}
+          <p className={`text-slate-600 text-sm leading-relaxed line-clamp-2 ${isRTL ? "text-right" : "text-left"}`}>
+            {caption}
+          </p>
+          
+          {/* Footer Stats */}
+          <div className={`flex items-center justify-between pt-3 border-t border-slate-100 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex items-center gap-3 text-slate-400 text-xs">
+              <span className="flex items-center gap-1">
+                <Eye className="w-3.5 h-3.5" />
+                {post.views_count || 0}
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart className="w-3.5 h-3.5" />
+                {post.likes_count + (isLiked ? 1 : 0)}
+              </span>
+            </div>
+            <button
+              onClick={onLike}
+              className={`p-2 rounded-full transition-all ${
+                isLiked 
+                  ? "bg-red-50 text-red-500" 
+                  : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+            </button>
+          </div>
+        </div>
+      </motion.article>
+    );
+  }
+  
+  // STANDARD VARIANT: Clean, compact
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
+    >
+      {/* Image Section */}
+      <div className="relative h-44 overflow-hidden">
+        <img
+          src={image}
+          alt=""
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_IMAGE; }}
+        />
+        {/* Subtle gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
+      </div>
+      
+      {/* Content Section */}
+      <div className="p-3 space-y-2" dir={isRTL ? "rtl" : "ltr"}>
+        {/* Business Name + Location */}
+        <div className={`flex items-start justify-between gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <h3 className={`font-bold text-sm text-bg-dark line-clamp-1 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+            {businessName}
+          </h3>
+        </div>
+        
+        <div className={`flex items-center gap-1 text-slate-400 text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
+          <MapPin className="w-3 h-3" />
+          <span className="line-clamp-1">{location}</span>
+        </div>
+        
+        {/* Caption */}
+        <p className={`text-slate-600 text-xs leading-relaxed line-clamp-2 ${isRTL ? "text-right" : "text-left"}`}>
+          {caption}
+        </p>
+        
+        {/* Footer */}
+        <div className={`flex items-center justify-between pt-2 border-t border-slate-50 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex items-center gap-2 text-slate-400 text-[10px]">
+            <span className="flex items-center gap-0.5">
+              <Eye className="w-3 h-3" />
+              {post.views_count || 0}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <Heart className="w-3 h-3" />
+              {post.likes_count + (isLiked ? 1 : 0)}
+            </span>
+          </div>
+          <button
+            onClick={onLike}
+            className={`p-1.5 rounded-full transition-all ${
+              isLiked 
+                ? "text-red-500" 
+                : "text-slate-300 hover:text-slate-400"
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${isLiked ? "fill-current" : ""}`} />
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
 export default function Shakumaku({ posts, loading, error, hasMore, onLoadMore }: ShakumakuProps) {
   const { language } = useHomeStore();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [enrichedPosts, setEnrichedPosts] = useState<EnrichedPost[]>([]);
+  
+  const isRTL = language === "ar" || language === "ku";
 
+  // Enrich posts with business data (lightweight batch fetch)
+  useEffect(() => {
+    if (!posts.length) return;
+    
+    const enrichPosts = async () => {
+      // Get unique business IDs
+      const businessIds = [...new Set(posts.map(p => p.business_id))];
+      
+      if (businessIds.length === 0) {
+        setEnrichedPosts(posts);
+        return;
+      }
+      
+      try {
+        // Batch fetch business data
+        const { data: businesses } = await supabase
+          .from("businesses")
+          .select("id, name, nameAr, category, city, governorate")
+          .in("id", businessIds.slice(0, 50)); // Limit to prevent huge queries
+        
+        const businessMap = new Map(businesses?.map(b => [b.id, b]) || []);
+        
+        const enriched = posts.map(post => {
+          const biz = businessMap.get(post.business_id);
+          return {
+            ...post,
+            businessName: biz?.name,
+            businessNameAr: biz?.nameAr,
+            category: biz?.category,
+            city: biz?.city,
+            governorate: biz?.governorate,
+          };
+        });
+        
+        setEnrichedPosts(enriched);
+      } catch (err) {
+        // Fallback to posts without enrichment
+        setEnrichedPosts(posts);
+      }
+    };
+    
+    enrichPosts();
+  }, [posts]);
+
+  // Infinite scroll
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore || loading) return;
     const observer = new IntersectionObserver(
@@ -39,88 +333,103 @@ export default function Shakumaku({ posts, loading, error, hasMore, onLoadMore }
     return () => observer.disconnect();
   }, [hasMore, loading, onLoadMore]);
 
-  const handleLike = (postId: string) => {
+  const handleLike = useCallback((postId: string) => {
     setLikedPosts(prev => new Set(prev).add(postId));
-  };
+  }, []);
 
-  const getCaption = (post: ShakuMakuPost) => post.caption_ar || post.caption || '? ????? ??? ??????!';
-  const getImage = (post: ShakuMakuPost) => post.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80';
+  // Loading state
+  if (loading && enrichedPosts.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Sparkles className="w-6 h-6 text-primary" />
+          <h2 className="text-2xl font-black text-bg-dark uppercase">
+            {isRTL ? "???? ????" : "Shaku Maku"}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm">
+              <div className="h-44 bg-slate-100 animate-pulse" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                <div className="h-3 bg-slate-100 rounded w-2/3 animate-pulse" />
+                <div className="h-8 bg-slate-100 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  if (error && posts.length === 0) {
+  // Error state
+  if (error && enrichedPosts.length === 0) {
     return (
       <div className="text-center py-20">
-        <Sparkles className="w-8 h-8 text-red-400 mx-auto mb-4" />
+        <Sparkles className="w-12 h-12 text-red-400 mx-auto mb-4" />
         <p className="text-red-500 font-bold">{error}</p>
       </div>
     );
   }
 
-  if (loading && posts.length === 0) {
-    return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(6)].map((_, i) => <div key={i} className="aspect-[3/4] bg-slate-100 rounded-2xl animate-pulse" />)}</div>;
-  }
-
-  if (posts.length === 0) {
+  // Empty state
+  if (enrichedPosts.length === 0) {
     return (
       <div className="text-center py-20">
-        <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-4" />
-        <p className="text-slate-400">No posts yet</p>
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Store className="w-8 h-8 text-slate-300" />
+        </div>
+        <p className="text-slate-400 font-medium">
+          {isRTL ? "?? ???? ??????? ???" : "No posts yet"}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black text-bg-dark uppercase flex items-center gap-2">
-        <Sparkles className="w-6 h-6 text-primary" />
-        {language === 'ar' ? '???? ????' : 'Shaku Maku'}
-      </h2>
+      {/* Header */}
+      <div className={`flex items-center gap-3 mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <Sparkles className="w-7 h-7 text-primary" />
+        <div className={isRTL ? "text-right" : ""}>
+          <h2 className="text-2xl font-black text-bg-dark uppercase tracking-tight">
+            {isRTL ? "???? ????" : "Shaku Maku"}
+          </h2>
+          <p className="text-xs text-slate-400 font-medium">
+            {isRTL 
+              ? "????? ??????? ?????? ?????" 
+              : "Discover standout Iraqi businesses"}
+          </p>
+        </div>
+      </div>
       
+      {/* Grid - Featured posts get larger placement */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {posts.map((post, index) => {
-          const isLiked = likedPosts.has(post.id);
-          const caption = getCaption(post);
-          const image = getImage(post);
-
-          return (
-            <motion.article
-              key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (index % 8) * 0.05 }}
-              className={"group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all"}
-            >
-              <div className={"relative overflow-hidden aspect-[3/4]"}>
-                <img
-                  src={image}
-                  alt=""
-                  className={"w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"}
-                  loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'; }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {post.is_featured && (
-                  <div className="absolute top-3 left-3 bg-primary text-bg-dark px-2 py-1 rounded-lg text-[9px] font-black uppercase">
-                    ? Featured
-                  </div>
-                )}
-
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <p className="text-white/90 text-[11px] leading-relaxed line-clamp-2 mb-3 font-medium" dir="rtl">
-                    {caption}
-                  </p>
-                  <div className="flex items-center justify-between text-white/70 text-[10px] font-bold">
-                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.views_count || 0}</span>
-                    <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{post.likes_count + (isLiked ? 1 : 0)}</span>
-                  </div>
-                </div>
-              </div>
-            </motion.article>
-          );
-        })}
+        {enrichedPosts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            isFeatured={post.is_featured}
+            isLiked={likedPosts.has(post.id)}
+            onLike={() => handleLike(post.id)}
+          />
+        ))}
       </div>
 
-      {hasMore && <div ref={loadMoreRef} className="flex justify-center py-8">{loading && <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />}</div>}
+      {/* Load More */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="flex justify-center py-8">
+          {loading && (
+            <div className="flex items-center gap-2 text-slate-400">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm font-medium">
+                {isRTL ? "???? ???????..." : "Loading more..."}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
