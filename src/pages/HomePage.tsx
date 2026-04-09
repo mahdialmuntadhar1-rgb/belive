@@ -9,7 +9,7 @@ import AddBusinessModal from "@/components/home/AddBusinessModal";
 import MyCity from "@/components/home/MyCity";
 import Shakumaku from "@/components/home/Shakumaku";
 import { useBusinesses } from "@/hooks/useBusinesses";
-import { useShakumaku } from "@/hooks/useShakumaku";
+import { useShakuMakuFeed } from "@/hooks/useShakuMakuFeed";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
 import type { Business } from "@/lib/supabase";
@@ -46,9 +46,8 @@ export default function HomePage() {
     loading: shakumakuLoading,
     error: shakumakuError,
     hasMore: shakumakuHasMore,
-    loadMore: loadMoreShakumaku,
-    likePost: likeShakumakuPost
-  } = useShakumaku();
+    loadMore: loadMoreShakumaku
+  } = useShakuMakuFeed();
 
   // Debounce search query
   const debouncedSetQuery = useMemo(
@@ -337,7 +336,6 @@ export default function HomePage() {
                 error={shakumakuError}
                 hasMore={shakumakuHasMore}
                 onLoadMore={loadMoreShakumaku}
-                onLike={likeShakumakuPost}
               />
             </motion.div>
           )}
