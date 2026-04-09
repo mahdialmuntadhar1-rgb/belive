@@ -68,8 +68,11 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
       }));
     }
 
-    // Fallback to generating posts from businesses if no real posts exist
-    if (bizLoading || businesses.length === 0) return [];
+    // Fallback to generating posts from businesses only if:
+    // - Not loading AND
+    // - No error fetching real posts (error means table missing/broken) AND
+    // - Have businesses to generate from
+    if (postsLoading || error || bizLoading || businesses.length === 0) return [];
 
     return businesses.slice(0, 20).map((biz, index) => {
       const template = FALLBACK_POST_TEMPLATES[index % FALLBACK_POST_TEMPLATES.length];
@@ -94,7 +97,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
         authorAvatar: biz.image
       } as Post;
     });
-  }, [realPosts, businesses, bizLoading]);
+  }, [realPosts, businesses, bizLoading, postsLoading, error]);
 
   const displayPosts = virtualPosts;
   const isLoading = postsLoading || (realPosts.length === 0 && bizLoading);
@@ -110,11 +113,17 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
     );
   }
 
-  if (error) {
+  if (error && displayPosts.length === 0) {
     return (
       <div className="text-center py-20 px-4">
-        <p className="text-red-500 font-bold mb-4">{error}</p>
-        <button 
+        <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
+          <p className="text-red-700 font-bold mb-2">Feed Error</p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          {error.includes('business_postcards') && (
+            <p className="text-red-500 text-xs">⚠️ business_postcards table may be missing from database</p>
+          )}
+        </div>
+        <button
           onClick={() => window.location.reload()}
           className="px-6 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest"
         >

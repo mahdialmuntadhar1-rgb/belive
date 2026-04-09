@@ -8,7 +8,7 @@ export function usePosts(businessId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 20; // Load 20 posts initially instead of 10 for better initial density
 
   const fetchPosts = useCallback(async (isLoadMore = false) => {
     setError(null);
@@ -34,7 +34,13 @@ export function usePosts(businessId?: string) {
 
       const { data, error: fetchError, count } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        // Explicit logging for missing table or schema issues
+        if (fetchError.message?.includes('404') || fetchError.message?.includes('undefined')) {
+          console.error('❌ CRITICAL: business_postcards table missing or schema mismatch', fetchError);
+        }
+        throw fetchError;
+      }
 
       if (data) {
         const mappedPosts: Post[] = data.map((item: any) => ({

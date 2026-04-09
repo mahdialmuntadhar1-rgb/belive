@@ -49,6 +49,8 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
       if (selectedCategory) {
         query = query.eq('category', selectedCategory);
       }
+
+      // Search filter: apply as OR within name/description only
       if (searchQuery) {
         query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }

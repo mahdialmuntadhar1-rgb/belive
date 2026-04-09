@@ -8,6 +8,7 @@ import BusinessCard from './BusinessCard';
 import BusinessMap from './BusinessMap';
 import CategorySection from './CategorySection';
 import { useHomeStore } from '@/stores/homeStore';
+import { useFeaturedBusinesses } from '@/hooks/useFeaturedBusinesses';
 import { CATEGORIES } from '@/constants';
 import { Business } from '@/lib/supabase';
 
@@ -37,6 +38,7 @@ export default function DirectoryTabPanel({
   setViewMode
 }: DirectoryTabPanelProps) {
   const { language, setCategory } = useHomeStore();
+  const { businesses: featuredBusinesses } = useFeaturedBusinesses();
   const [categoryLimits, setCategoryLimits] = useState<Record<string, number>>(
     CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat.id]: 3 }), {})
   );
@@ -138,22 +140,24 @@ export default function DirectoryTabPanel({
           </div>
         ) : (
           <div className="space-y-24">
-            {/* Featured Section */}
-            <div className="space-y-10">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
-                  {translations.featured[language]}
-                </h2>
-                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                  <Star className="w-5 h-5" />
+            {/* Featured Section - Independent Data Source */}
+            {featuredBusinesses.length > 0 && (
+              <div className="space-y-10">
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
+                    {translations.featured[language]}
+                  </h2>
+                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                    <Star className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
+                  {featuredBusinesses.slice(0, 10).map(business => (
+                    <BusinessCard key={business.id} biz={business} variant="featured" onClick={onBusinessClick} />
+                  ))}
                 </div>
               </div>
-              <div className="flex gap-6 overflow-x-auto no-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-                {businesses.filter(b => b.isFeatured).slice(0, 10).map(business => (
-                  <BusinessCard key={business.id} biz={business} variant="featured" onClick={onBusinessClick} />
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Category Sections - 3 per category + Load More */}
             <div className="space-y-24">
