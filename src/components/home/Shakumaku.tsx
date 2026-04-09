@@ -87,13 +87,13 @@ export default function Shakumaku({ posts, loading, error, hasMore, onLoadMore }
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: (index % 8) * 0.05 }}
-              className={group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all  }
+              className={"group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all"}
             >
-              <div className={elative overflow-hidden }>
+              <div className={"relative overflow-hidden aspect-[3/4]"}>
                 <img
                   src={image}
                   alt=""
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  className={"w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"}
                   loading="lazy"
                   onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80'; }}
                 />
