@@ -12,30 +12,35 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icon.svg'],
+        includeAssets: [
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'mask-icon.svg'
+        ],
         manifest: {
-          name: 'Shakumaku Iraqi Directory',
-          short_name: 'Shakumaku',
-          description: 'The premier Iraqi business directory',
-          theme_color: '#00BFA5',
-          background_color: '#F8FAFC',
+          name: 'Shaku Maku',
+          short_name: 'Shaku Maku',
+          description: 'Iraq business directory',
+          theme_color: '#0B1220',
+          background_color: '#ffffff',
           display: 'standalone',
+          start_url: '/',
           icons: [
             {
-              src: 'icon.svg',
+              src: '/icon-192.png',
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: 'icon.svg',
+              src: '/icon-512.png',
               sizes: '512x512',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: 'icon.svg',
+              src: '/icon-maskable-512.png',
               sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ]
         }
