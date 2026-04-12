@@ -216,11 +216,12 @@ export default function PWAInstallButton() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-24 right-4 sm:right-6 z-[100]"
+          className="fixed bottom-12 md:bottom-24 right-4 sm:right-6 z-[100]"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <button
             onClick={handleInstall}
-            className="flex items-center gap-3 bg-primary text-white px-5 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all"
+            className="flex items-center gap-3 bg-primary text-white px-4 py-4 md:px-5 md:py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all min-h-[44px] min-w-[44px]"
           >
             <Download className="w-5 h-5" />
             <div className="flex flex-col items-start">
