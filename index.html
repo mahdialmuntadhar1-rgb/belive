@@ -2,16 +2,71 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Saku Maku | Iraqi Business Directory</title>
+    <meta name="description" content="Discover and connect with Iraqi businesses in your area" />
     <meta name="theme-color" content="#00BFA5" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Saku Maku" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    
+    <!-- PWA Install Styles -->
+    <link rel="stylesheet" href="/pwa-style.css" />
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Main React App -->
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Install Handler -->
+    <script src="/pwa-install.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Register the service worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('[PWA] Service Worker registered successfully:', registration.scope);
+              
+              // Check for service worker updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('[PWA] New service worker available - refresh to update');
+                    }
+                  });
+                }
+              });
+            })
+            .catch((error) => {
+              console.error('[PWA] Service Worker registration failed:', error);
+              // Don't break the UI if service worker fails to register
+            });
+        });
+        
+        // Listen for controlling service worker changes
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[PWA] Service Worker controller changed - reloading page');
+          window.location.reload();
+        });
+      } else {
+        console.log('[PWA] Service Worker not supported in this browser');
+      }
+    </script>
   </body>
 </html>
 
