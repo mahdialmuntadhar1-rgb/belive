@@ -9,6 +9,12 @@
   animation: slideIn 0.5s ease-out;
 }
 
+/* RTL support for Arabic */
+[dir="rtl"] .pwa-install-container {
+  right: auto;
+  left: 20px;
+}
+
 .pwa-install-button {
   display: flex;
   align-items: center;
@@ -58,8 +64,8 @@
   line-height: 1;
 }
 
-/* iOS Modal Styles */
-.pwa-ios-modal {
+/* Platform-specific Install Modal Styles */
+.pwa-install-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -76,7 +82,7 @@
   backdrop-filter: blur(5px);
 }
 
-.pwa-ios-modal-content {
+.pwa-modal-content {
   background: white;
   border-radius: 16px;
   max-width: 400px;
@@ -84,26 +90,32 @@
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   animation: scaleIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.pwa-ios-modal-header {
+.pwa-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
-.pwa-ios-modal-header h3 {
+.pwa-modal-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
   color: #111827;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  flex: 1;
 }
 
-.pwa-ios-modal-close {
+.pwa-modal-close {
   background: none;
   border: none;
   font-size: 32px;
@@ -118,18 +130,33 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
-.pwa-ios-modal-close:hover {
+[dir="rtl"] .pwa-modal-close {
+  margin-left: 0;
+  margin-right: 12px;
+}
+
+.pwa-modal-close:hover {
   background: #f3f4f6;
   color: #111827;
 }
 
-.pwa-ios-modal-body {
+.pwa-modal-body {
   padding: 24px;
 }
 
-.pwa-ios-modal-body ol {
+.pwa-modal-description {
+  margin: 0 0 20px 0;
+  color: #374151;
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.pwa-modal-body ol {
   margin: 0 0 20px 0;
   padding-left: 28px;
   line-height: 1.8;
@@ -138,22 +165,43 @@
   font-size: 15px;
 }
 
-.pwa-ios-modal-body li {
+[dir="rtl"] .pwa-modal-body ol {
+  padding-left: 0;
+  padding-right: 28px;
+}
+
+.pwa-modal-body li {
   margin-bottom: 16px;
   color: #374151;
 }
 
-.pwa-ios-modal-body li strong {
+.pwa-modal-body li strong {
   color: #111827;
   font-weight: 600;
 }
 
-.pwa-ios-modal-body p {
+.pwa-modal-body p {
   margin: 20px 0 0 0;
   color: #6b7280;
   font-size: 14px;
   line-height: 1.6;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.pwa-instruction-note {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin: 16px 0;
+  color: #92400e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+[dir="rtl"] .pwa-instruction-note {
+  border-left: none;
+  border-right: 4px solid #f59e0b;
 }
 
 .pwa-share-icon {
@@ -164,6 +212,7 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0 4px;
+  vertical-align: middle;
 }
 
 /* Animations */
