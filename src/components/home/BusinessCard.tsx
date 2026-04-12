@@ -89,7 +89,7 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
     >
       {/* Postcard Image Section */}
       <div 
-        className="aspect-[4/3] w-full overflow-hidden relative cursor-pointer"
+        className="aspect-[16/10] w-full overflow-hidden relative cursor-pointer"
         onClick={() => onClick?.(biz)}
       >
         <img 
@@ -99,9 +99,12 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
           referrerPolicy="no-referrer"
         />
         
+        {/* Overlay for better text contrast if needed */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
         {/* Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-white/50 flex items-center gap-2">
+          <div className="px-3 py-1.5 bg-white/95 backdrop-blur-md rounded-xl shadow-sm border border-white/50 flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             <span className="text-[8px] font-black text-bg-dark uppercase tracking-widest">
               {card.categoryName}
@@ -109,57 +112,68 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
           </div>
         </div>
 
+        {/* City Badge */}
+        <div className="absolute top-4 right-4">
+          <div className="px-3 py-1.5 bg-bg-dark/80 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
+            <MapPin className="w-3 h-3 text-accent" />
+            <span className="text-[8px] font-black text-white uppercase tracking-widest">
+              {biz.city || 'Iraq'}
+            </span>
+          </div>
+        </div>
+
         {/* Rating Badge */}
         <div className="absolute bottom-4 left-4">
-          <div className="px-3 py-1.5 bg-bg-dark/80 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
-            <Star className="w-3 h-3 text-accent fill-accent" />
-            <span className="text-[10px] font-black text-white">{card.rating.toFixed(1)}</span>
+          <div className="px-3 py-1.5 bg-accent backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
+            <Star className="w-3 h-3 text-bg-dark fill-bg-dark" />
+            <span className="text-[10px] font-black text-bg-dark">{card.rating.toFixed(1)}</span>
           </div>
         </div>
       </div>
       
       {/* Info Section */}
-      <div className="p-4 sm:p-6 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-2 sm:mb-3">
+      <div className="p-5 sm:p-7 flex flex-col flex-1">
+        <div className="flex justify-between items-start mb-3 sm:mb-4">
           <div className="flex-1 min-w-0">
             <h3 
-              className="text-base sm:text-lg font-black text-bg-dark poppins-bold uppercase tracking-tight group-hover:text-accent transition-colors duration-300 cursor-pointer line-clamp-1"
+              className="text-lg sm:text-xl font-black text-bg-dark poppins-bold uppercase tracking-tight group-hover:text-accent transition-colors duration-300 cursor-pointer line-clamp-1"
               onClick={() => onClick?.(biz)}
             >
               {card.name}
             </h3>
-            <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5 text-slate-400">
-              <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-accent" />
-              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest truncate">
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-2 text-slate-500">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest truncate bg-slate-100 px-2 py-0.5 rounded-md">
                 {card.location}
               </span>
             </div>
           </div>
           {card.isVerified && (
-            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-accent shrink-0" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
+            </div>
           )}
         </div>
 
         {card.description && (
-          <p className="text-slate-500 text-[10px] sm:text-[11px] line-clamp-2 mb-4 sm:mb-6 font-medium leading-relaxed">
+          <p className="text-slate-500 text-[11px] sm:text-[12px] line-clamp-2 mb-6 sm:mb-8 font-medium leading-relaxed">
             {card.description}
           </p>
         )}
         
         {/* Action Buttons */}
-        <div className="mt-auto grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="mt-auto flex flex-col sm:flex-row gap-2 sm:gap-4">
           <button 
             onClick={handleCall}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 bg-bg-dark text-white text-[8px] sm:text-[9px] font-black rounded-lg sm:rounded-xl uppercase tracking-widest hover:bg-primary transition-all active:scale-95 shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-bg-dark text-white text-[9px] sm:text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-primary transition-all active:scale-95 shadow-lg shadow-bg-dark/10"
           >
-            <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span>{language === 'ar' ? 'اتصال' : 'Call'}</span>
+            <Phone className="w-3.5 h-3.5" />
+            <span>{language === 'ar' ? 'اتصال' : 'Call Now'}</span>
           </button>
           <button 
             onClick={handleWhatsApp}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 bg-[#25D366] text-white text-[8px] sm:text-[9px] font-black rounded-lg sm:rounded-xl uppercase tracking-widest hover:bg-[#128C7E] transition-all active:scale-95 shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-[#25D366] text-white text-[9px] sm:text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-[#128C7E] transition-all active:scale-95 shadow-lg shadow-green-500/10"
           >
-            <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <MessageCircle className="w-3.5 h-3.5" />
             <span>WhatsApp</span>
           </button>
         </div>

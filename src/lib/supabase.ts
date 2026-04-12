@@ -23,6 +23,7 @@ export interface Business {
   };
   description?: string;
   descriptionAr?: string;
+  descriptionKu?: string;
   openingHours?: string;
   ownerId?: string;
   lat?: number;

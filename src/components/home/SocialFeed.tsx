@@ -1,7 +1,7 @@
 import React from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { motion } from 'motion/react';
-import { Smartphone, Heart, MessageCircle, Share2, MapPin, MoreHorizontal, Bookmark, ArrowRight, Loader2, Eye, Star, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Smartphone, Heart, MessageCircle, Share2, MapPin, MoreHorizontal, Bookmark, ArrowRight, Loader2, Eye, Star, CheckCircle2, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
 import { usePosts } from '@/hooks/usePosts';
 import { useBusinesses } from '@/hooks/useBusinesses';
@@ -174,16 +174,12 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
     const seedPosts = async () => {
       if (postsLoading || bizLoading || realPosts.length >= 50 || isSeeding) return;
       
-      // If we have some posts but less than 50, we might want to seed more, 
-      // but the requirement is "initially load 50".
-      // Let's only seed if it's empty or very low.
       if (realPosts.length > 5) return;
 
       setIsSeeding(true);
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
         
-        // Fetch businesses to link posts to
         const availableBusinesses = businesses.length > 0 ? businesses : [];
         const targetCount = 50;
         const postsToCreate = [];
@@ -196,21 +192,18 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
           const city = biz?.city || ['Baghdad', 'Erbil', 'Basra', 'Sulaymaniyah', 'Najaf'][Math.floor(Math.random() * 5)];
           const bizName = biz?.name || (language === 'ar' ? `مؤسسة ${category} العراقية` : `Iraqi ${category} Co.`);
 
-          // Generate Caption using Gemini
           const captionResponse = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `Generate a unique, natural, business-like social media caption in Iraqi Arabic dialect for a ${category} named "${bizName}" located in ${city}. The tone should be inviting and authentic. Include a light call to action like "زورونا" or "احجز الآن". Max 120 characters. No hashtags.`,
           });
           const caption = captionResponse.text?.trim() || "أهلاً بكم في مشروعنا الجديد!";
 
-          // Generate Image Prompt using Gemini
           const promptResponse = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `Generate a short, descriptive English image generation prompt for a ${category} in Iraq. Focus on high quality, realistic lighting, and local atmosphere. Example: "luxury hotel lobby in Erbil, warm lighting, modern design, Iraqi style, high quality". Return ONLY the prompt.`,
           });
           const imagePrompt = promptResponse.text?.trim() || `${category} in ${city} Iraq, high quality`;
 
-          // Use Pollinations.ai for unique AI image generation
           const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1080&height=1080&seed=${Math.random()}&nologo=true`;
 
           postsToCreate.push({
@@ -226,7 +219,6 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
             createdAt: new Date(Date.now() - (targetCount - i) * 3600000).toISOString()
           });
 
-          // Create post in Supabase
           await createPost(caption, imageUrl, {
             businessName: bizName,
             businessAvatar: biz?.image,
@@ -405,7 +397,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                     {post.authorName}
                   </button>
                   {((post as any).isVerified || (post as any).isHotel) && (
-                    <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-accent fill-accent/10" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-4 h-4 text-accent fill-accent/10" />
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 mt-1 sm:mt-2">
@@ -413,15 +405,6 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                     <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>{language === 'ar' ? 'العراق' : 'Iraq'}</span>
                   </div>
-                  {(post as any).isHotel && (
-                    <>
-                      <span className="text-[8px] sm:text-[10px] text-slate-300">•</span>
-                      <div className="flex items-center gap-1 text-[8px] sm:text-[10px] font-black text-accent uppercase tracking-widest">
-                        <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        <span>{language === 'ar' ? 'فندق فاخر' : 'Luxury Hotel'}</span>
-                      </div>
-                    </>
-                  )}
                   <span className="text-[8px] sm:text-[10px] text-slate-300">•</span>
                   <span className="text-[8px] sm:text-[10px] font-bold text-slate-400">
                     {new Date(post.createdAt).toLocaleDateString(language === 'ar' ? 'ar-IQ' : 'en-US', { month: 'short', day: 'numeric' })}
@@ -443,46 +426,49 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 referrerPolicy="no-referrer"
               />
+              {/* Post Type Badge */}
+              <div className="absolute bottom-4 right-4">
+                <div className="px-3 py-1.5 bg-bg-dark/80 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
+                  <TrendingUp className="w-3 h-3 text-accent" />
+                  <span className="text-[8px] font-black text-white uppercase tracking-widest">
+                    {language === 'ar' ? 'تحديث العمل' : 'Business Update'}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Post Actions */}
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-6">
                 <button 
                   onClick={() => handleLike(post.id)}
-                  className="flex items-center gap-1.5 sm:gap-2 group"
+                  className="flex items-center gap-2 group"
                 >
-                  <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all ${
-                    (post as any).isLiked ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-400 group-hover:bg-red-50 group-hover:text-red-500'
-                  }`}>
-                    <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${(post as any).isLiked ? 'fill-current' : ''}`} />
-                  </div>
-                  <span className="text-[10px] sm:text-[12px] font-black text-slate-500">{formatMetric(post.likes)}</span>
+                  <Heart className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${
+                    (post as any).isLiked ? 'text-red-500 fill-current' : 'text-slate-400 group-hover:text-red-500'
+                  }`} />
+                  <span className="text-[11px] sm:text-[13px] font-black text-slate-600">{formatMetric(post.likes)}</span>
                 </button>
                 <button 
                   onClick={() => toggleComments(post.id)}
-                  className="flex items-center gap-1.5 sm:gap-2 group"
+                  className="flex items-center gap-2 group"
                 >
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
-                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <span className="text-[10px] sm:text-[12px] font-black text-slate-500">{formatMetric(post.commentsCount || 0)}</span>
+                  <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  <span className="text-[11px] sm:text-[13px] font-black text-slate-600">{formatMetric(post.commentsCount || 0)}</span>
                 </button>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
-                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <span className="text-[10px] sm:text-[12px] font-black text-slate-500">{formatMetric((post as any).views || 0)}</span>
+                <div className="flex items-center gap-2">
+                  <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
+                  <span className="text-[11px] sm:text-[13px] font-black text-slate-600">{formatMetric((post as any).views || 0)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-accent/10 hover:text-accent transition-all">
-                  <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="flex items-center gap-3">
+                <button className="text-slate-400 hover:text-accent transition-colors">
+                  <Bookmark className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
-                <button className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-accent/10 hover:text-accent transition-all">
-                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                <button className="text-slate-400 hover:text-accent transition-colors">
+                  <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>

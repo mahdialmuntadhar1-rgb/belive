@@ -47,6 +47,6 @@ export const mapBusinessToCard = (biz: Business, language: 'en' | 'ar' | 'ku'): 
     isVerified: biz.isVerified || false,
     isFeatured: biz.isFeatured || false,
     phone: biz.phone,
-    description: language === 'ar' ? biz.descriptionAr : biz.description
+    description: language === 'ar' ? biz.descriptionAr : language === 'ku' ? biz.descriptionKu : biz.description
   };
 };

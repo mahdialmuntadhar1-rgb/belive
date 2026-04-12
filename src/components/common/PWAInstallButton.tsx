@@ -2,57 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { Download, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from '@/stores/homeStore';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { isIOS } from '@/utils/isIOS';
 
 export default function PWAInstallButton() {
-  const { install, isInstallable, isInstalled } = usePWAInstall();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isVisible, setIsVisible] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const { language } = useHomeStore();
 
   useEffect(() => {
-    if (isInstalled) {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsVisible(false);
     }
-  }, [isInstalled]);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   const handleInstall = async () => {
-    if (isInstallable) {
-      const success = await install();
-      if (success) {
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-      }
-    } else {
+    if (!deferredPrompt) {
       setShowInstructions(true);
+      return;
     }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setIsVisible(false);
+    }
+    setDeferredPrompt(null);
   };
 
-  // Don't show button if already installed or not installable
-  if (isInstalled || (!isInstallable && !isIOS())) return null;
+  if (!isVisible) return null;
 
   return (
     <>
-      <AnimatePresence>
-        {showSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-[100] bg-green-500 text-white px-6 py-3 rounded-2xl shadow-lg"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              <span className="text-sm font-medium">
-                {language === 'ar' ? 'APP INSTALLED' : 'App installed successfully!'}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {showInstructions && (
           <motion.div
@@ -85,53 +75,11 @@ export default function PWAInstallButton() {
                   <h3 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
                     {language === 'ar' ? 'تثبيت التطبيق' : 'Install App'}
                   </h3>
-                  {isIOS() ? (
-                    <div className="ios-install-box space-y-4">
-                      <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                        {language === 'ar' 
-                          ? 'To install Shaku Maku on your iPhone:' 
-                          : 'To install Shaku Maku on your iPhone:'}
-                      </p>
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-600 font-bold text-sm">1</span>
-                          </div>
-                          <p className="text-slate-700 text-sm">
-                            {language === 'ar' 
-                              ? 'Open this page in Safari browser' 
-                              : 'Open this page in Safari browser'}
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-600 font-bold text-sm">2</span>
-                          </div>
-                          <p className="text-slate-700 text-sm">
-                            {language === 'ar' 
-                              ? 'Tap the Share button <span class="font-semibold">[icon]</span>' 
-                              : 'Tap the Share button <span class="font-semibold">[icon]</span>'}
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-600 font-bold text-sm">3</span>
-                          </div>
-                          <p className="text-slate-700 text-sm">
-                            {language === 'ar' 
-                              ? 'Scroll down and tap \"Add to Home Screen\"' 
-                              : 'Scroll down and tap \"Add to Home Screen\"'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                      {language === 'ar' 
-                        ? 'For the best experience, please click the share icon in your browser and select \"Add to Home Screen\".' 
-                        : 'For the best experience, please click the share icon in your browser and select \"Add to Home Screen\".'}
-                    </p>
-                  )}
+                  <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                    {language === 'ar' 
+                      ? 'للحصول على أفضل تجربة، يرجى النقر على أيقونة المشاركة في متصفحك واختيار "إضافة إلى الشاشة الرئيسية".' 
+                      : 'For the best experience, please click the share icon in your browser and select "Add to Home Screen".'}
+                  </p>
                 </div>
 
                 <div className="w-full p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
@@ -207,7 +155,7 @@ export default function PWAInstallButton() {
               <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
             </div>
             <span className="text-lg font-black poppins-bold tracking-tight">
-              {language === 'ar' ? 'تثبيت شكو ماكو' : 'Install Shaku Maku'}
+              {language === 'ar' ? 'تحميل شكو ماكو' : 'Download Shaku Maku'}
             </span>
           </div>
 

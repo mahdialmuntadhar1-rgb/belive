@@ -133,7 +133,7 @@ export default function HomePage() {
                 {language === 'ar' ? 'تطبيق الهاتف' : 'Mobile App'}
               </h4>
               <p className="text-sm text-slate-500 mb-8 font-medium">
-                {language === 'ar' ? 'Install the Shaku Maku app for the best experience on the go.' : 'Install the Shaku Maku app for the best experience on the go.'}
+                {language === 'ar' ? 'قم بتحميل تطبيق شكو ماكو للحصول على أفضل تجربة.' : 'Download the Shaku Maku app for the best experience on the go.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 group hover:bg-white/10 transition-all cursor-pointer">

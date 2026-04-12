@@ -51,6 +51,20 @@ export default function DirectoryTabPanel({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      {/* Intro Text */}
+      <div className="mb-12 text-center max-w-3xl mx-auto">
+        <h2 className="text-2xl sm:text-4xl font-black text-primary poppins-bold uppercase tracking-tight mb-4">
+          {language === 'ar' ? 'اكتشف أفضل ما في مدينتك' : language === 'ku' ? 'باشترینەکانی شارەکەت بدۆزەرەوە' : 'Discover the Best in Your City'}
+        </h2>
+        <p className="text-sm sm:text-lg text-slate-500 font-medium leading-relaxed">
+          {language === 'ar' 
+            ? 'تصفح آلاف الشركات المحلية، المطاعم، والخدمات الموثوقة في جميع أنحاء العراق.' 
+            : language === 'ku'
+            ? 'هەزاران کۆمپانیای ناوخۆیی، چێشتخانە و خزمەتگوزارییە باوەڕپێکراوەکان لە سەرانسەری عێراق بگەڕێ.'
+            : 'Browse thousands of local businesses, restaurants, and trusted services across Iraq.'}
+        </p>
+      </div>
+
       {/* 1.5 Sticky Search Bar */}
       <div className="sticky top-[124px] sm:top-[169px] z-40 py-2 sm:py-4 bg-white/95 backdrop-blur-xl -mx-4 px-4 mb-6 sm:mb-12 border-b border-slate-100 shadow-sm transition-all duration-300">
         <div className="max-w-2xl mx-auto relative group">

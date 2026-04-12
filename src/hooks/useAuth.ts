@@ -40,10 +40,18 @@ export function useAuth() {
         .single();
 
       if (error) {
-        // Profile creation is now handled by database trigger
-        // If profile doesn't exist yet, it might be due to timing
-        // We'll just log and try again on next auth state change
-        console.error('Profile fetch error (will retry):', error);
+        if (error.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{ id: userId, created_at: new Date().toISOString() }])
+            .select()
+            .single();
+          
+          if (!createError) setProfile(newProfile);
+        } else {
+          throw error;
+        }
       } else {
         setProfile(data);
       }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
   Store, 
@@ -17,11 +17,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Star,
-  Heart,
-  X,
-  Lightbulb,
-  Upload,
-  Check
+  Heart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
@@ -48,11 +44,6 @@ export default function BusinessDashboard() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
-  // Onboarding State
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [onboardingStep, setOnboardingStep] = useState(0);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
   useEffect(() => {
     const fetchOwned = async () => {
       const data = await getOwnedBusinesses();
@@ -63,14 +54,6 @@ export default function BusinessDashboard() {
       }
     };
     fetchOwned();
-  }, []);
-
-  // Check if onboarding should be shown
-  useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem('onboardingCompleted');
-    if (hasCompletedOnboarding) {
-      setShowOnboarding(false);
-    }
   }, []);
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -112,64 +95,6 @@ export default function BusinessDashboard() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingPhoto(true);
-    try {
-      // For now, we'll use a placeholder URL. In production, you'd upload to Supabase Storage
-      const imageUrl = URL.createObjectURL(file);
-      setEditForm({ ...editForm, image: imageUrl });
-    } catch (err) {
-      console.error('Failed to upload photo:', err);
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const onboardingSteps = [
-    {
-      title: 'Welcome to Your Business Dashboard',
-      description: 'This is your control center for managing your business listing on our directory.',
-      icon: <Store className="w-8 h-8" />
-    },
-    {
-      title: 'Update Your Business Information',
-      description: 'Go to Profile Settings to update your phone number, address, and business description.',
-      icon: <Settings className="w-8 h-8" />
-    },
-    {
-      title: 'Add Your Business Photos',
-      description: 'Upload high-quality photos of your business to attract more customers.',
-      icon: <ImageIcon className="w-8 h-8" />
-    },
-    {
-      title: 'Create Posts to Engage Customers',
-      description: 'Share updates, promotions, and news with your followers through posts.',
-      icon: <Send className="w-8 h-8" />
-    },
-    {
-      title: 'You\'re All Set!',
-      description: 'Your business is now live on our directory. Start managing your listing!',
-      icon: <CheckCircle2 className="w-8 h-8" />
-    }
-  ];
-
-  const handleNextOnboarding = () => {
-    if (onboardingStep < onboardingSteps.length - 1) {
-      setOnboardingStep(onboardingStep + 1);
-    } else {
-      setShowOnboarding(false);
-      localStorage.setItem('onboardingCompleted', 'true');
-    }
-  };
-
-  const handleSkipOnboarding = () => {
-    setShowOnboarding(false);
-    localStorage.setItem('onboardingCompleted', 'true');
-  };
-
   if (profile?.role !== 'business_owner') {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
@@ -180,72 +105,6 @@ export default function BusinessDashboard() {
           <h2 className="text-2xl font-bold text-[#2B2F33] mb-2">Access Denied</h2>
           <p className="text-[#6B7280]">Only business owners can access the dashboard.</p>
         </div>
-      </div>
-    );
-  }
-
-  // Show onboarding modal for new users
-  if (showOnboarding && ownedBusinesses.length > 0) {
-    const currentStep = onboardingSteps[onboardingStep];
-    return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-        <AnimatePresence>
-          <motion.div
-            key={onboardingStep}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -20 }}
-            className="max-w-lg w-full bg-white rounded-[40px] shadow-2xl overflow-hidden"
-          >
-            <div className="p-8">
-              <button
-                onClick={handleSkipOnboarding}
-                className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-
-              <div className="flex flex-col items-center text-center mb-8">
-                <div className="w-20 h-20 bg-[#2CA6A4]/10 rounded-[32px] flex items-center justify-center mb-6 text-[#2CA6A4]">
-                  {currentStep.icon}
-                </div>
-                <h2 className="text-2xl font-bold text-[#2B2F33] mb-3 poppins-bold">{currentStep.title}</h2>
-                <p className="text-[#6B7280] leading-relaxed">{currentStep.description}</p>
-              </div>
-
-              {/* Progress indicator */}
-              <div className="flex justify-center gap-2 mb-8">
-                {onboardingSteps.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-2 rounded-full transition-all ${
-                      index === onboardingStep ? 'w-8 bg-[#2CA6A4]' : 'w-2 bg-gray-200'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={handleSkipOnboarding}
-                  className="flex-1 py-4 border-2 border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-all"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={handleNextOnboarding}
-                  className="flex-1 py-4 bg-[#2CA6A4] text-white font-bold rounded-2xl hover:bg-[#1e7a78] transition-all flex items-center justify-center gap-2"
-                >
-                  {onboardingStep === onboardingSteps.length - 1 ? (
-                    <>Get Started <Check className="w-4 h-4" /></>
-                  ) : (
-                    <>Next <ChevronRight className="w-4 h-4" /></>
-                  )}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
       </div>
     );
   }
@@ -559,45 +418,6 @@ export default function BusinessDashboard() {
                         className="w-full p-4 bg-[#F5F7F9] border border-[#E5E7EB] rounded-2xl focus:ring-2 focus:ring-[#2CA6A4] min-h-[100px]"
                         dir="rtl"
                       />
-                    </div>
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="block text-[10px] font-black text-[#6B7280] uppercase tracking-widest">Business Photo</label>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          id="photo-upload"
-                        />
-                        <label
-                          htmlFor="photo-upload"
-                          className="flex items-center gap-4 p-6 bg-[#F5F7F9] border-2 border-dashed border-[#E5E7EB] rounded-2xl cursor-pointer hover:border-[#2CA6A4] hover:bg-[#2CA6A4]/5 transition-all"
-                        >
-                          {uploadingPhoto ? (
-                            <Loader2 className="w-8 h-8 text-[#2CA6A4] animate-spin" />
-                          ) : editForm.image ? (
-                            <>
-                              <img src={editForm.image} alt="Business" className="w-16 h-16 object-cover rounded-xl" />
-                              <div className="flex-1">
-                                <p className="text-sm font-bold text-[#2B2F33]">Photo uploaded</p>
-                                <p className="text-xs text-[#6B7280]">Click to change</p>
-                              </div>
-                              <Upload className="w-5 h-5 text-[#6B7280]" />
-                            </>
-                          ) : (
-                            <>
-                              <div className="w-12 h-12 bg-[#2CA6A4]/10 rounded-xl flex items-center justify-center">
-                                <Upload className="w-6 h-6 text-[#2CA6A4]" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-bold text-[#2B2F33]">Upload business photo</p>
-                                <p className="text-xs text-[#6B7280]">Click or drag and drop</p>
-                              </div>
-                            </>
-                          )}
-                        </label>
-                      </div>
                     </div>
                   </div>
 

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Maskable icon with safe zone padding -->
-  <rect width="512" height="512" rx="102" fill="#00BFA5"/>
-  <!-- Content in safe zone (center 80% of icon) -->
-  <text x="256" y="256" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="245" fill="white" font-weight="bold">S</text>
-</svg>

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, ShieldCheck, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useHomeStore } from '@/stores/homeStore';
-import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,6 +12,7 @@ interface AuthModalProps {
   initialMode?: 'login' | 'signup' | 'forgot';
 }
 
+type UserRole = 'user' | 'business_owner';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
@@ -30,17 +30,29 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   }, [isOpen, initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<UserRole>('user');
   
+  // Business Owner Fields
+  const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [governorate, setGovernorate] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [description, setDescription] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { language } = useHomeStore();
 
-  const navigate = useNavigate();
-
   const translations = {
+    businessName: { en: 'Business Name', ar: 'اسم العمل التجاري', ku: 'ناوی کار' },
+    phone: { en: 'Phone Number', ar: 'رقم الهاتف', ku: 'ژمارەی تەلەفۆن' },
+    governorate: { en: 'Governorate', ar: 'المحافظة', ku: 'پارێزگا' },
+    category: { en: 'Category', ar: 'التصنيف', ku: 'پۆلێن' },
+    city: { en: 'City', ar: 'المدينة', ku: 'شار' },
+    description: { en: 'Short Description', ar: 'وصف قصير', ku: 'وەسفێکی کورت' },
     forgotTitle: {
       en: 'Reset Password',
       ar: 'إعادة تعيين كلمة المرور',
@@ -77,19 +89,19 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       ku: 'دروستکردنی هەژمار'
     },
     loginDesc: {
-      en: 'Log in to access your business dashboard.',
-      ar: 'سجل الدخول للوصول إلى لوحة التحكم الخاصة بك.',
-      ku: 'بچۆ ژوورەوە بۆ دەستگەیشتن بە داشبۆردی کارەکەت.'
+      en: 'Log in to access your saved places and reviews.',
+      ar: 'سجل الدخول للوصول إلى الأماكن المحفوظة والمراجعات.',
+      ku: 'بچۆ ژوورەوە بۆ دەستگەیشتن بە شوێنە پاشەکەوتکراوەکان و پێداچوونەوەکان.'
     },
     signupDesc: {
-      en: 'Create your business owner account to manage your listings.',
-      ar: 'أنشئ حساب صاحب العمل لإدارة قوائمك.',
-      ku: 'هەژماری خاوەنی کار دروست بکە بۆ بەڕێوەبردنی لیستەکانت.'
+      en: 'Join Saku Maku to discover and share the best of Iraq.',
+      ar: 'انضم إلى شکو ماکو لاكتشاف ومشاركة الأفضل في العراق.',
+      ku: 'ببە بە ئەندام لە شکو ماکو بۆ دۆزینەوە و هاوبەشکردنی باشترینەکانی عێراق.'
     },
-    phone: {
-      en: 'Phone Number',
-      ar: 'رقم الهاتف',
-      ku: 'ژمارەی تەلەفۆن'
+    fullName: {
+      en: 'Full Name',
+      ar: 'الاسم الكامل',
+      ku: 'ناوی تەواو'
     },
     email: {
       en: 'Email Address',
@@ -100,6 +112,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       en: 'Password',
       ar: 'كلمة المرور',
       ku: 'وشەی نهێنی'
+    },
+    normalUser: {
+      en: 'Normal User',
+      ar: 'مستخدم عادي',
+      ku: 'بەکارهێنەری ئاسایی'
+    },
+    businessOwner: {
+      en: 'Business Owner',
+      ar: 'صاحب عمل',
+      ku: 'خاوەن کار'
     },
     login: {
       en: 'Log In',
@@ -115,6 +137,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       en: 'Forgot Password?',
       ar: 'نسيت كلمة المرور؟',
       ku: 'وشەی نهێنیت لەبیرچووە؟'
+    },
+    or: {
+      en: 'Or continue with',
+      ar: 'أو استمر بواسطة',
+      ku: 'یان بەردەوام بە لەڕێگەی'
     },
     noAccount: {
       en: "Don't have an account?",
@@ -150,16 +177,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
       if (isLogin) {
         await signIn(email, password);
-        // After successful login, redirect to dashboard
-        onClose();
-        navigate('/dashboard');
       } else {
         await signUp(email, password, {
-          phone: phone,
+          full_name: name,
+          role: role,
+          business_name: role === 'business_owner' ? businessName : undefined,
+          phone: role === 'business_owner' ? phone : undefined,
+          governorate: role === 'business_owner' ? governorate : undefined,
+          category: role === 'business_owner' ? category : undefined,
+          city: role === 'business_owner' ? city : undefined,
+          description: role === 'business_owner' ? description : undefined,
         });
         setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
         return;
       }
+      onClose();
     } catch (err) {
       console.error('Auth error:', err);
       let message = 'An error occurred during authentication';
@@ -240,19 +272,126 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && !isForgot && (
-                  <div className="relative">
-                    <div className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#6B7280]`}>
-                      <Phone className="w-4 h-4" />
+                  <>
+                    <div className="relative">
+                      <div className={`absolute ${language === 'en' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[#6B7280]`}>
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder={translations.fullName[language]}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
+                        required={!isLogin && !isForgot}
+                      />
                     </div>
-                    <input
-                      type="tel"
-                      placeholder={translations.phone[language]}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={`w-full ${language === 'en' ? 'pl-11 pr-4' : 'pr-11 pl-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
-                      required={!isLogin && !isForgot}
-                    />
-                  </div>
+
+                    {/* Role Selection */}
+                    <div className="grid grid-cols-2 gap-3 p-1 bg-[#F5F7F9] rounded-2xl border border-[#E5E7EB]">
+                      <button
+                        type="button"
+                        onClick={() => setRole('user')}
+                        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                          role === 'user' 
+                            ? 'bg-white text-accent shadow-sm' 
+                            : 'text-[#6B7280] hover:text-[#2B2F33]'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {translations.normalUser[language]}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole('business_owner')}
+                        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                          role === 'business_owner' 
+                            ? 'bg-white text-accent shadow-sm' 
+                            : 'text-[#6B7280] hover:text-[#2B2F33]'
+                        }`}
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        {translations.businessOwner[language]}
+                      </button>
+                    </div>
+
+                    {/* Business Owner Specific Fields */}
+                    {role === 'business_owner' && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-4 pt-2"
+                      >
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder={translations.businessName[language]}
+                            value={businessName}
+                            onChange={(e) => setBusinessName(e.target.value)}
+                            className={`w-full ${language === 'en' ? 'px-4' : 'px-4'} py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
+                            required={role === 'business_owner'}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder={translations.phone[language]}
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          />
+                          <select
+                            value={governorate}
+                            onChange={(e) => setGovernorate(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          >
+                            <option value="">{translations.governorate[language]}</option>
+                            <option value="Baghdad">Baghdad</option>
+                            <option value="Erbil">Erbil</option>
+                            <option value="Basra">Basra</option>
+                            <option value="Sulaymaniyah">Sulaymaniyah</option>
+                            <option value="Najaf">Najaf</option>
+                            <option value="Karbala">Karbala</option>
+                            <option value="Dohuk">Dohuk</option>
+                            <option value="Kirkuk">Kirkuk</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          >
+                            <option value="">{translations.category[language]}</option>
+                            <option value="hotels">Hotels</option>
+                            <option value="dining">Restaurants</option>
+                            <option value="cafe">Cafes</option>
+                            <option value="gym">Gyms</option>
+                            <option value="hospitals">Hospitals</option>
+                            <option value="shopping">Shopping</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder={translations.city[language]}
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          />
+                        </div>
+                        <textarea
+                          placeholder={translations.description[language]}
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm min-h-[80px] resize-none"
+                          required={role === 'business_owner'}
+                        />
+                      </motion.div>
+                    )}
+                  </>
                 )}
 
                 <div className="relative">
@@ -320,6 +459,51 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   )}
                 </button>
 
+                {isLogin && !isForgot && (
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-slate-500 font-bold tracking-widest">
+                        {language === 'ar' ? 'أو' : language === 'ku' ? 'یان' : 'OR'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {isLogin && !isForgot && (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={async () => {
+                      if (!email) {
+                        setError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني أولاً' : 'Please enter your email first');
+                        return;
+                      }
+                      setLoading(true);
+                      setError(null);
+                      try {
+                        const { error: magicError } = await supabase.auth.signInWithOtp({
+                          email,
+                          options: {
+                            emailRedirectTo: window.location.origin,
+                          },
+                        });
+                        if (magicError) throw magicError;
+                        setSuccess(language === 'ar' ? 'تم إرسال رابط تسجيل الدخول إلى بريدك الإلكتروني' : 'Magic link sent to your email');
+                      } catch (err: any) {
+                        setError(err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="w-full py-3.5 bg-white border-2 border-slate-200 hover:border-primary text-bg-dark font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Mail className="w-4 h-4 text-primary" />
+                    {language === 'ar' ? 'تسجيل الدخول برابط سحري' : language === 'ku' ? 'چوونەژوورەوە بە لینکی سیحراوی' : 'Sign in with Magic Link'}
+                  </button>
+                )}
               </form>
 
               {isForgot && (
