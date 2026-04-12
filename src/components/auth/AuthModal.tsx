@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -42,9 +42,19 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [description, setDescription] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { language } = useHomeStore();
+
+  // Cooldown timer for rate limit
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown(c => c > 0 ? c - 1 : 0);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const translations = {
     businessName: { en: 'Business Name', ar: 'اسم العمل التجاري', ku: 'ناوی کار' },
@@ -199,6 +209,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         message = err.message;
         if (message.includes('Failed to fetch')) {
           message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
+        } else if (message.toLowerCase().includes('rate limit')) {
+          setCooldown(60);
+          const cooldownMessage = language === 'ar'
+            ? `تم تجاوز الحد المسموح. يرجى الانتظار ${cooldown} ثانية قبل المحاولة مرة أخرى.`
+            : language === 'ku'
+            ? `سنوور تێپەڕ کرا. تکایە ${cooldown} چرکە چاوەڕێک بکە پێش ئەوەی دووبارە هەوڵ بدەیتەوە.`
+            : `Rate limit exceeded. Please wait ${cooldown} seconds before trying again.`;
+          setError(cooldownMessage);
+          setLoading(false);
+          return;
         }
       }
       setError(message);
@@ -413,17 +433,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || cooldown > 0}
                   className="w-full py-3.5 bg-primary hover:bg-bg-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : cooldown > 0 ? (
+                    <>
+                      {language === 'ar'
+                        ? `انتظار ${cooldown} ثانية`
+                        : language === 'ku'
+                        ? `چاوەڕێک ${cooldown} چرکە`
+                        : `Wait ${cooldown}s`}
+                    </>
                   ) : (
                     <>
-                      {isForgot 
-                        ? translations.sendReset[language] 
-                        : isLogin 
-                          ? translations.login[language] 
+                      {isForgot
+                        ? translations.sendReset[language]
+                        : isLogin
+                          ? translations.login[language]
                           : translations.signup[language]}
                       <ArrowRight className={`w-4 h-4 ${language === 'en' ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
                     </>
