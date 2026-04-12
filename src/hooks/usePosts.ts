@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Post } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 
 export function usePosts(businessId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -9,6 +10,7 @@ export function usePosts(businessId?: string) {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 10;
+  const { profile } = useAuthStore();
 
   const fetchPosts = useCallback(async (isLoadMore = false, isTrending = false) => {
     setError(null);
@@ -91,20 +93,21 @@ export function usePosts(businessId?: string) {
   };
 
   const createPost = async (content: string, imageUrl?: string, metadata?: { businessName?: string, businessAvatar?: string, isVerified?: boolean }) => {
+    // Role enforcement: Only business owners can create posts
+    if (profile?.role !== 'business_owner') {
+      throw new Error('Only business owners can create posts');
+    }
+
     try {
       const { data, error: insertError } = await supabase
         .from('posts')
         .insert([
           {
-            businessId: businessId || `fallback-${Math.random().toString(36).substr(2, 9)}`,
+            business_id: businessId,
+            created_by: profile.id,
             content,
-            caption: content,
             image_url: imageUrl,
-            imageUrl: imageUrl,
-            likes: Math.floor(Math.random() * 100),
-            businessName: metadata?.businessName,
-            businessAvatar: metadata?.businessAvatar,
-            isVerified: metadata?.isVerified || false,
+            likes: 0,
             created_at: new Date().toISOString()
           }
         ])
