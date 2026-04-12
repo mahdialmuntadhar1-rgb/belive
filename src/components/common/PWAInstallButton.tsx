@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Smartphone } from 'lucide-react';
+import { Download, Smartphone, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from '@/stores/homeStore';
+
+// iOS Safari detection
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+};
+
+const isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
 
 export default function PWAInstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [installFailed, setInstallFailed] = useState(false);
   const { language } = useHomeStore();
+
+  const isIOSSafari = isIOS() && isSafari();
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -25,18 +37,50 @@ export default function PWAInstallButton() {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) {
+    // iOS Safari: show instructions (no native install)
+    if (isIOSSafari) {
       setShowInstructions(true);
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setIsVisible(false);
+    // Android/Desktop: use native install prompt
+    if (!deferredPrompt) {
+      // No install prompt available - show clear message
+      setInstallFailed(true);
+      setTimeout(() => setInstallFailed(false), 5000);
+      return;
     }
-    setDeferredPrompt(null);
+
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        setIsVisible(false);
+      } else if (outcome === 'dismissed') {
+        // User dismissed - clear the prompt so they can try again later
+        setDeferredPrompt(null);
+      }
+    } catch (error) {
+      // Install failed - show clear message
+      setInstallFailed(true);
+      setTimeout(() => setInstallFailed(false), 5000);
+    }
+  };
+
+  // Platform-specific button text
+  const getButtonText = () => {
+    if (isIOSSafari) {
+      return language === 'ar' ? 'إضافة للشاشة الرئيسية' : 'Add to Home Screen';
+    }
+    return language === 'ar' ? 'تثبيت التطبيق' : 'Install App';
+  };
+
+  const getSubButtonText = () => {
+    if (isIOSSafari) {
+      return 'Shaku Maku';
+    }
+    return 'Shaku Maku';
   };
 
   if (!isVisible) return null;
@@ -49,62 +93,72 @@ export default function PWAInstallButton() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-bg-dark/80 backdrop-blur-md"
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowInstructions(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
                 onClick={() => setShowInstructions(false)}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-primary transition-colors"
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 transition-colors"
               >
-                <div className="w-6 h-6 flex items-center justify-center font-black">✕</div>
+                <X className="w-5 h-5" />
               </button>
 
-              <div className="flex flex-col items-center text-center gap-6">
-                <div className="w-20 h-20 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary">
-                  <Download className="w-10 h-10" />
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <Download className="w-8 h-8 text-primary" />
                 </div>
                 
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black text-primary poppins-bold uppercase tracking-tight">
-                    {language === 'ar' ? 'تثبيت التطبيق' : 'Install App'}
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {language === 'ar' ? 'إضافة للشاشة الرئيسية' : 'Add to Home Screen'}
                   </h3>
-                  <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  <p className="text-sm text-slate-600">
                     {language === 'ar' 
-                      ? 'للحصول على أفضل تجربة، يرجى النقر على أيقونة المشاركة في متصفحك واختيار "إضافة إلى الشاشة الرئيسية".' 
-                      : 'For the best experience, please click the share icon in your browser and select "Add to Home Screen".'}
+                      ? 'لإضافة التطبيق، اتبع الخطوات التالية:' 
+                      : 'To add the app, follow these steps:'}
                   </p>
                 </div>
 
-                <div className="w-full p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-xl">
-                    📤
+                <div className="w-full space-y-3 text-left">
+                  <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
+                      <span className="text-lg">📤</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {language === 'ar' ? 'اضغط على أيقونة المشاركة' : 'Tap the Share button'}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {language === 'ar' ? 'في أسفل الشاشة' : 'At the bottom of the screen'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 1</p>
-                    <p className="text-xs font-bold text-slate-600">Tap Share Icon</p>
-                  </div>
-                </div>
 
-                <div className="w-full p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-xl">
-                    ➕
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 2</p>
-                    <p className="text-xs font-bold text-slate-600">Add to Home Screen</p>
+                  <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
+                      <span className="text-lg">➕</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {language === 'ar' ? 'اختر "إضافة للشاشة الرئيسية"' : 'Tap "Add to Home Screen"'}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {language === 'ar' ? 'من القائمة المنبثقة' : 'From the menu'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => setShowInstructions(false)}
-                  className="w-full py-4 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-premium hover:scale-[1.02] active:scale-95 transition-all"
+                  className="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
                 >
                   {language === 'ar' ? 'فهمت' : 'Got it'}
                 </button>
@@ -115,56 +169,43 @@ export default function PWAInstallButton() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {installFailed && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-28 right-4 sm:right-6 z-[100] bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg text-sm"
+          >
+            {language === 'ar' 
+              ? 'غير متاح للتثبيت حالياً' 
+              : 'Install not available right now'}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.8 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
           className="fixed bottom-24 right-4 sm:right-6 z-[100]"
         >
           <button
             onClick={handleInstall}
-            className="group relative flex items-center gap-2 sm:gap-4 bg-primary text-white px-4 sm:px-8 py-3 sm:py-5 rounded-2xl sm:rounded-[32px] shadow-[0_0_30px_rgba(255,159,28,0.6)] hover:shadow-[0_0_50px_rgba(255,159,28,0.8)] hover:scale-105 active:scale-95 transition-all duration-500 overflow-hidden border-2 border-white/20"
+            className="flex items-center gap-3 bg-primary text-white px-5 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all"
           >
-          {/* Intense Glowing Animation */}
-          <motion.div
-            animate={{ 
-              opacity: [0.4, 0.8, 0.4],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute inset-0 bg-accent/20 blur-xl"
-          />
-          
-          {/* Scanning Light Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] transition-transform" />
-          
-          <div className="relative flex items-center justify-center w-12 h-12 bg-white/20 rounded-2xl backdrop-blur-md">
-            <Download className="w-6 h-6 animate-bounce" />
-            <motion.div
-              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 rounded-2xl border-2 border-white"
-            />
-          </div>
-
-          <div className="relative flex flex-col items-start">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent animate-pulse">
-                {language === 'ar' ? 'تثبيت الآن' : 'Install Now'}
+            <Download className="w-5 h-5" />
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-semibold">
+                {getButtonText()}
               </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+              <span className="text-xs opacity-90">
+                {getSubButtonText()}
+              </span>
             </div>
-            <span className="text-lg font-black poppins-bold tracking-tight">
-              {language === 'ar' ? 'تحميل شكو ماكو' : 'Download Shaku Maku'}
-            </span>
-          </div>
-
-          <div className="relative ml-2 p-2 bg-accent rounded-xl text-primary">
-            <Smartphone className="w-5 h-5" />
-          </div>
-        </button>
-      </motion.div>
-    </AnimatePresence>
-  </>
-);
+          </button>
+        </motion.div>
+      </AnimatePresence>
+    </>
+  );
 }
