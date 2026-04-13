@@ -23,7 +23,7 @@ export default function CategoryGrid() {
 
   return (
     <div className="w-full mb-12">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-6">
         <AnimatePresence mode="popLayout">
           {categoriesToDisplay.map((cat, idx) => {
             const isActive = selectedCategory === cat.id;
@@ -33,65 +33,60 @@ export default function CategoryGrid() {
               <motion.button
                 key={cat.id}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: idx * 0.03 }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                transition={{ delay: idx * 0.05 }}
+                whileHover={{ y: -12, scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`group relative flex flex-col items-center justify-center aspect-square rounded-[24px] overflow-hidden border-2 transition-all duration-500 ${
+                className={`group relative flex flex-col items-center justify-center aspect-square rounded-[32px] overflow-hidden transition-all duration-500 ${
                   isActive 
-                    ? 'border-primary shadow-2xl shadow-primary/20' 
-                    : 'border-white shadow-card hover:border-slate-200'
+                    ? 'shadow-[0_20px_50px_rgba(15,123,108,0.3)] ring-4 ring-[#0F7B6C]' 
+                    : 'shadow-xl hover:shadow-2xl'
                 }`}
               >
-                {/* Background Image */}
+                {/* Background Image with Parallax-like effect */}
                 <div className="absolute inset-0 z-0">
                   <img 
                     src={cat.image || `https://picsum.photos/seed/${cat.id}/400/400`}
                     alt={cat.name[language]}
-                    className={`w-full h-full object-cover transition-all duration-700 ${
-                      isActive ? 'scale-110 blur-[2px] brightness-50' : 'group-hover:scale-110 brightness-[0.85] group-hover:brightness-75'
+                    className={`w-full h-full object-cover transition-all duration-1000 ${
+                      isActive ? 'scale-125 blur-[1px]' : 'group-hover:scale-110'
                     }`}
                     referrerPolicy="no-referrer"
                   />
-                  {/* Overlay Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-t transition-opacity duration-500 ${
-                    isActive ? 'from-primary/90 via-primary/40 to-transparent opacity-100' : 'from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-90'
+                  {/* Glossy Overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500 ${
+                    isActive ? 'from-[#0F7B6C]/90 via-[#0F7B6C]/40 to-transparent opacity-100' : 'from-black/60 via-black/20 to-transparent opacity-40 group-hover:opacity-70'
                   }`} />
                 </div>
 
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center justify-center p-4 text-center h-full w-full">
-                  <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 ${
-                    isActive ? 'bg-accent text-white scale-110 rotate-12 shadow-lg' : 'bg-white/20 backdrop-blur-md text-white group-hover:bg-accent group-hover:text-white group-hover:rotate-12'
-                  }`}>
-                    <Icon className="w-5 h-5 sm:w-7 sm:h-7" strokeWidth={2.5} />
-                  </div>
+                {/* Content Layered */}
+                <div className="relative z-10 flex flex-col items-center justify-center p-2 sm:p-4 text-center h-full w-full">
+                  <motion.div 
+                    animate={isActive ? { y: [0, -5, 0] } : {}}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className={`w-10 h-10 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 transition-all duration-500 ${
+                      isActive ? 'bg-[#C8A96A] text-white shadow-lg' : 'bg-white/10 backdrop-blur-md text-white group-hover:bg-[#C8A96A]'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 sm:w-8 sm:h-8" strokeWidth={2.5} />
+                  </motion.div>
 
-                  <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                    <h3 className={`text-xs sm:text-lg font-black uppercase tracking-tight text-white drop-shadow-lg transition-all duration-300 ${
-                      isActive ? 'scale-105' : 'group-hover:scale-105'
+                  <div className="px-2 py-1 rounded-lg">
+                    <h3 className={`text-[10px] sm:text-sm font-black uppercase tracking-tighter text-white drop-shadow-md transition-all duration-300 ${
+                      isActive ? 'scale-110' : 'group-hover:scale-105'
                     }`}>
                       {cat.name[language]}
                     </h3>
                   </div>
-                  
-                  {isActive && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-2 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(200,169,106,1)]"
-                    />
-                  )}
                 </div>
               </motion.button>
             );
           })}
         </AnimatePresence>
       </div>
-
       {CATEGORIES.length > 6 && (
         <div className="mt-8 flex justify-center">
           <button

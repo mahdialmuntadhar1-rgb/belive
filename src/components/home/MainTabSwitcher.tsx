@@ -16,7 +16,7 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
       label: language === 'ar' ? 'اكتشف الشركات' : language === 'ku' ? 'کۆمپانیاکان بدۆزەرەوە' : 'Discover Businesses',
       sublabel: language === 'ar' ? 'دليل المدن' : language === 'ku' ? 'ڕێبەری شارەکان' : 'City Directory',
       icon: '🏙️',
-      activeColor: 'bg-primary',
+      activeColor: 'bg-[#0F7B6C]',
       activeText: 'text-white'
     },
     {
@@ -24,46 +24,44 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
       label: language === 'ar' ? 'آخر التحديثات' : language === 'ku' ? 'نوێترین نوێکارییەکان' : 'Latest Updates',
       sublabel: language === 'ar' ? 'شكو ماكو' : language === 'ku' ? 'چی هەیە چی نیە' : 'Shaku Maku',
       icon: '📱',
-      activeColor: 'bg-accent',
-      activeText: 'text-bg-dark'
+      activeColor: 'bg-[#C8A96A]',
+      activeText: 'text-[#0F7B6C]'
     }
   ];
 
   return (
-    <div className="sticky top-[60px] sm:top-[73px] z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="flex justify-center items-center h-16 sm:h-20 gap-2 sm:gap-4">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`flex-1 relative flex items-center justify-center gap-3 px-4 py-2 sm:py-3 rounded-2xl transition-all duration-300 ${
-                  isActive 
-                    ? `${tab.activeColor} ${tab.activeText} shadow-lg scale-[1.02]` 
-                    : 'bg-slate-50 text-slate-400 hover:bg-white hover:text-primary'
-                }`}
-              >
-                <span className="text-lg sm:text-xl">{tab.icon}</span>
-                <div className="flex flex-col items-start text-left">
-                  <span className={`text-[7px] sm:text-[9px] font-black uppercase tracking-widest leading-none mb-1 ${isActive ? 'opacity-70' : 'text-slate-400'}`}>
-                    {tab.sublabel}
-                  </span>
-                  <span className="text-[10px] sm:text-sm font-black uppercase tracking-tight leading-none">
-                    {tab.label}
-                  </span>
-                </div>
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeTabIndicator"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-current rounded-full opacity-50"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
+    <div className="w-full">
+      <div className="flex bg-white/50 backdrop-blur-xl p-1.5 rounded-[32px] border border-slate-200/50 shadow-xl">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`flex-1 relative flex items-center justify-center gap-4 px-6 py-4 rounded-[24px] transition-all duration-500 ${
+                isActive 
+                  ? `${tab.activeColor} ${tab.activeText} shadow-2xl scale-[1.02]` 
+                  : 'text-slate-400 hover:text-[#0F7B6C] hover:bg-white'
+              }`}
+            >
+              <span className="text-xl sm:text-2xl">{tab.icon}</span>
+              <div className="flex flex-col items-start text-left">
+                <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1.5 ${isActive ? 'opacity-70' : 'text-slate-400'}`}>
+                  {tab.sublabel}
+                </span>
+                <span className="text-[11px] sm:text-base font-black uppercase tracking-tight leading-none">
+                  {tab.label}
+                </span>
+              </div>
+              {isActive && (
+                <motion.div 
+                  layoutId="activeTabIndicator"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1 bg-current rounded-full opacity-30"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

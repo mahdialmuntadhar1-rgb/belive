@@ -258,8 +258,8 @@ export default function AdminDashboard() {
               {activeTab === 'posts' && <ContentManager admin={admin} />}
               {activeTab === 'media' && <MediaManager />}
               {activeTab === 'featured' && <FeaturedManager />}
-              {activeTab === 'content' && <TextContentManager admin={admin} />}
-              {activeTab === 'settings' && <SettingsManager admin={admin} />}
+              {activeTab === 'content' && <TextContentManager />}
+              {activeTab === 'settings' && <SettingsManager />}
             </AnimatePresence>
           </div>
         </div>
@@ -591,7 +591,7 @@ function BusinessManager({ admin }: { admin: any }) {
 
 function MediaManager() {
   const [media, setMedia] = useState([
-    { id: '1', type: 'hero', title: 'Main Hero Image', url: 'https://picsum.photos/seed/iraq/1920/1080' },
+    { id: '1', type: 'hero', title: 'Main Hero Image (Where to go?)', url: 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=1200&auto=format&fit=crop' },
     { id: '2', type: 'postcard', title: 'Restaurant Postcard', url: 'https://picsum.photos/seed/food/800/600' },
     { id: '3', type: 'category', title: 'Shopping Category', url: 'https://picsum.photos/seed/shop/400/400' },
   ]);
@@ -691,53 +691,14 @@ function FeaturedManager() {
   );
 }
 
-function TextContentManager({ admin }: { admin: any }) {
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    const data = await admin.fetchAppSettings();
-    setSettings(data);
-    setLoading(false);
-  };
-
-  const handleSave = async () => {
-    if (!settings) return;
-    setSaving(true);
-    try {
-      await admin.updateAppSettings({
-        hero_title_ar: settings.hero_title_ar,
-        hero_title_ku: settings.hero_title_ku,
-        hero_title_en: settings.hero_title_en,
-        hero_subtitle_ar: settings.hero_subtitle_ar,
-        hero_subtitle_ku: settings.hero_subtitle_ku,
-        hero_subtitle_en: settings.hero_subtitle_en,
-        featured_label: settings.featured_label,
-        trending_label: settings.trending_label,
-      });
-      setMessage('Changes published successfully!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setMessage('Failed to save changes');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !settings) {
-    return (
-      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+function TextContentManager() {
+  const [content, setContent] = useState({
+    heroTitle: 'وين تروح؟',
+    heroSubtitle: 'محتار وين تروح؟ كل الخيارات صارت بيدك',
+    featuredLabel: 'مختارات لك',
+    trendingLabel: 'الأكثر تداولاً الآن',
+    footerText: '© 2024 شكو ماكو. جميع الحقوق محفوظة.'
+  });
 
   return (
     <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium space-y-10">
@@ -746,14 +707,12 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <LayoutDashboard className="w-6 h-6 text-primary" /> Homepage Hero
           </h3>
-          <FormInput label="Main Title (Arabic)" value={settings.hero_title_ar || ''} onChange={v => setSettings({...settings, hero_title_ar: v})} />
-          <FormInput label="Main Title (Kurdish)" value={settings.hero_title_ku || ''} onChange={v => setSettings({...settings, hero_title_ku: v})} />
-          <FormInput label="Main Title (English)" value={settings.hero_title_en || ''} onChange={v => setSettings({...settings, hero_title_en: v})} />
+          <FormInput label="Main Title" value={content.heroTitle} onChange={v => setContent({...content, heroTitle: v})} />
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle</label>
-            <textarea
-              value={settings.hero_subtitle_ar || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ar: e.target.value})}
+            <textarea 
+              value={content.heroSubtitle}
+              onChange={e => setContent({...content, heroSubtitle: e.target.value})}
               className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
             />
           </div>
@@ -762,38 +721,13 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <Star className="w-6 h-6 text-accent" /> Section Labels
           </h3>
-          <FormInput label="Featured Section Label" value={settings.featured_label || ''} onChange={v => setSettings({...settings, featured_label: v})} />
-          <FormInput label="Trending Section Label" value={settings.trending_label || ''} onChange={v => setSettings({...settings, trending_label: v})} />
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (Kurdish)</label>
-            <textarea
-              value={settings.hero_subtitle_ku || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ku: e.target.value})}
-              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (English)</label>
-            <textarea
-              value={settings.hero_subtitle_en || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_en: e.target.value})}
-              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
-            />
-          </div>
+          <FormInput label="Featured Section Label" value={content.featuredLabel} onChange={v => setContent({...content, featuredLabel: v})} />
+          <FormInput label="Trending Section Label" value={content.trendingLabel} onChange={v => setContent({...content, trendingLabel: v})} />
+          <FormInput label="Footer Copyright" value={content.footerText} onChange={v => setContent({...content, footerText: v})} />
         </div>
       </div>
-      {message && (
-        <div className={`p-4 rounded-2xl text-center font-bold text-sm ${message.includes('success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-          {message}
-        </div>
-      )}
       <div className="pt-10 border-t border-slate-50 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        <button className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px]">
           Publish Changes
         </button>
       </div>
@@ -801,44 +735,7 @@ function TextContentManager({ admin }: { admin: any }) {
   );
 }
 
-function SettingsManager({ admin }: { admin: any }) {
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    const data = await admin.fetchAppSettings();
-    setSettings(data);
-    setLoading(false);
-  };
-
-  const toggleSetting = async (key: 'maintenance_mode' | 'registration_enabled') => {
-    if (!settings || saving) return;
-    const newValue = !settings[key];
-    setSettings({ ...settings, [key]: newValue });
-    setSaving(true);
-    try {
-      await admin.updateAppSettings({ [key]: newValue });
-    } catch (err) {
-      setSettings({ ...settings, [key]: !newValue });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !settings) {
-    return (
-      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+function SettingsManager() {
   return (
     <div className="max-w-3xl space-y-8">
       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium space-y-8">
@@ -849,12 +746,8 @@ function SettingsManager({ admin }: { admin: any }) {
               <p className="text-sm font-black uppercase tracking-widest">Maintenance Mode</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Take the site offline for updates</p>
             </div>
-            <button
-              onClick={() => toggleSetting('maintenance_mode')}
-              disabled={saving}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.maintenance_mode ? 'bg-rose-500' : 'bg-slate-200'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.maintenance_mode ? 'right-1' : 'left-1'}`} />
+            <button className="w-12 h-6 bg-slate-200 rounded-full relative">
+              <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
             </button>
           </div>
           <div className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl">
@@ -862,12 +755,8 @@ function SettingsManager({ admin }: { admin: any }) {
               <p className="text-sm font-black uppercase tracking-widest">New User Registration</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Allow new users to create accounts</p>
             </div>
-            <button
-              onClick={() => toggleSetting('registration_enabled')}
-              disabled={saving}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.registration_enabled ? 'bg-primary' : 'bg-slate-200'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.registration_enabled ? 'right-1' : 'left-1'}`} />
+            <button className="w-12 h-6 bg-primary rounded-full relative">
+              <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
             </button>
           </div>
         </div>

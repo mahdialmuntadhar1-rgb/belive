@@ -52,36 +52,45 @@ export default function DirectoryTabPanel({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
       {/* Intro Text */}
-      <div className="mb-12 text-center max-w-3xl mx-auto">
-        <h2 className="text-2xl sm:text-4xl font-black text-primary poppins-bold uppercase tracking-tight mb-4">
+      <div className="mb-16 text-center max-w-4xl mx-auto">
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          className="text-3xl sm:text-6xl font-black text-[#111827] poppins-bold uppercase tracking-tighter mb-6 leading-[1.1]"
+        >
           {language === 'ar' ? 'اكتشف أفضل ما في مدينتك' : language === 'ku' ? 'باشترینەکانی شارەکەت بدۆزەرەوە' : 'Discover the Best in Your City'}
-        </h2>
-        <p className="text-sm sm:text-lg text-slate-500 font-medium leading-relaxed">
+        </motion.h2>
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-base sm:text-xl text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto"
+        >
           {language === 'ar' 
             ? 'تصفح آلاف الشركات المحلية، المطاعم، والخدمات الموثوقة في جميع أنحاء العراق.' 
             : language === 'ku'
             ? 'هەزاران کۆمپانیای ناوخۆیی، چێشتخانە و خزمەتگوزارییە باوەڕپێکراوەکان لە سەرانسەری عێراق بگەڕێ.'
             : 'Browse thousands of local businesses, restaurants, and trusted services across Iraq.'}
-        </p>
+        </motion.p>
       </div>
 
       {/* 1.5 Sticky Search Bar */}
-      <div className="sticky top-[124px] sm:top-[169px] z-40 py-2 sm:py-4 bg-white/95 backdrop-blur-xl -mx-4 px-4 mb-6 sm:mb-12 border-b border-slate-100 shadow-sm transition-all duration-300">
-        <div className="max-w-2xl mx-auto relative group">
-          <div className="relative flex items-center bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl overflow-hidden p-1 sm:p-1.5 border border-slate-200">
+      <div className="sticky top-[64px] sm:top-[73px] z-40 py-4 sm:py-6 bg-[#F7F7F5]/80 backdrop-blur-xl -mx-4 px-4 mb-12 border-b border-slate-200/50 transition-all duration-300">
+        <div className="max-w-3xl mx-auto relative group">
+          <div className="relative flex items-center bg-white rounded-3xl shadow-2xl overflow-hidden p-1.5 sm:p-2 border border-slate-200/50">
             <div className={`flex items-center flex-1 ${language === 'ar' || language === 'ku' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className="px-2 sm:px-4 text-slate-400">
-                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="px-4 sm:px-6 text-[#0F7B6C]">
+                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <input 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={language === 'ar' ? 'ابحث عن أي شيء...' : language === 'ku' ? 'بگەڕێ بۆ هەر شتێک...' : 'Search for anything...'}
-                className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-bold text-bg-dark focus:outline-none bg-transparent placeholder:text-slate-400 ${language === 'ar' || language === 'ku' ? 'text-right' : 'text-left'}`}
+                className={`flex-1 py-3 sm:py-4 text-sm sm:text-lg font-bold text-[#111827] focus:outline-none bg-transparent placeholder:text-slate-400 ${language === 'ar' || language === 'ku' ? 'text-right' : 'text-left'}`}
               />
             </div>
-            <button className="px-4 sm:px-6 py-2 sm:py-3 bg-primary text-bg-dark font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl hover:bg-accent transition-all active:scale-95">
+            <button className="px-8 sm:px-12 py-3 sm:py-4 bg-[#0F7B6C] text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-[#C8A96A] hover:text-[#0F7B6C] transition-all active:scale-95 shadow-lg">
               {language === 'ar' ? 'بحث' : language === 'ku' ? 'گەڕان' : 'Search'}
             </button>
           </div>
@@ -93,29 +102,31 @@ export default function DirectoryTabPanel({
 
       {/* 3. Main Category Selector */}
       <div className="mb-20">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-1.5 h-6 bg-accent rounded-full" />
-          <h2 className="text-xl font-black text-primary poppins-bold uppercase tracking-tight">
-            {translations.exploreCategories[language]}
-          </h2>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-6 bg-[#C8A96A] rounded-full" />
+            <h2 className="text-xl sm:text-2xl font-black text-[#111827] poppins-bold uppercase tracking-tight">
+              {translations.exploreCategories[language]}
+            </h2>
+          </div>
         </div>
         <CategoryGrid />
       </div>
 
       {/* 2. View Toggle & Directory Header */}
-      <div className="flex items-center justify-between mb-16">
+      <div className="flex items-center justify-between mb-12">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-primary rounded-full" />
-          <h2 className="text-xl font-black text-primary poppins-bold uppercase tracking-tight">
+          <div className="w-1.5 h-6 bg-[#0F7B6C] rounded-full" />
+          <h2 className="text-xl sm:text-2xl font-black text-[#111827] poppins-bold uppercase tracking-tight">
             {translations.businessDirectory[language]}
           </h2>
         </div>
         
-        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
+        <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
           <button
             onClick={() => setViewMode('grid')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              viewMode === 'grid' ? 'bg-white text-accent shadow-sm' : 'text-slate-400 hover:text-primary'
+              viewMode === 'grid' ? 'bg-[#0F7B6C] text-white shadow-md' : 'text-slate-400 hover:text-[#0F7B6C]'
             }`}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -124,7 +135,7 @@ export default function DirectoryTabPanel({
           <button
             onClick={() => setViewMode('map')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              viewMode === 'map' ? 'bg-white text-accent shadow-sm' : 'text-slate-400 hover:text-primary'
+              viewMode === 'map' ? 'bg-[#0F7B6C] text-white shadow-md' : 'text-slate-400 hover:text-[#0F7B6C]'
             }`}
           >
             <MapIcon className="w-4 h-4" />

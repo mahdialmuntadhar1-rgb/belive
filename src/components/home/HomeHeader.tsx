@@ -30,77 +30,92 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-[60] bg-white/95 backdrop-blur-2xl border-b border-slate-100 shadow-premium">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-3 flex flex-col gap-2 sm:gap-3">
-        {/* Top Row: Logo & Auth */}
-        <div className="flex items-center justify-between gap-2 sm:gap-6">
-          {/* Left: Brand */}
-          <div 
-            className="flex items-center gap-2 sm:gap-3 group cursor-pointer shrink-0" 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xl group-hover:rotate-[10deg] transition-all duration-500 border border-white/10">
-              <span className="text-accent font-black text-xl sm:text-2xl">ش</span>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-sm sm:text-xl font-black text-text-main poppins-bold tracking-tighter leading-none uppercase">
-                {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
-              </h1>
-              <p className="text-[7px] sm:text-[9px] text-accent font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-0.5 sm:mt-1">
-                {language === 'ar' ? 'دليل العراق' : 'Iraq Directory'}
-              </p>
-            </div>
+    <header className="sticky top-0 z-[60] bg-white/80 backdrop-blur-xl border-b border-slate-100/50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-4">
+        {/* Left: Brand */}
+        <div 
+          className="flex items-center gap-2 group cursor-pointer shrink-0" 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#0F7B6C] rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-[10deg] transition-all duration-500 border border-white/10">
+            <span className="text-[#C8A96A] font-black text-lg sm:text-xl">ش</span>
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-xs sm:text-lg font-black text-[#111827] poppins-bold tracking-tighter leading-none uppercase">
+              {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
+            </h1>
+          </div>
+        </div>
+
+        {/* Center: Language Selection (Small buttons side by side) */}
+        <div className="hidden sm:flex items-center bg-slate-100/50 p-1 rounded-full border border-slate-200/50">
+          {[
+            { id: 'ar', label: 'AR' },
+            { id: 'en', label: 'EN' },
+            { id: 'ku', label: 'KU' }
+          ].map((lang) => (
+            <button 
+              key={lang.id}
+              onClick={() => setLanguage(lang.id as any)}
+              className={`px-3 py-1 rounded-full text-[9px] font-black transition-all duration-300 ${
+                language === lang.id 
+                  ? 'bg-[#0F7B6C] text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-[#0F7B6C]'
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: User Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile Language Toggle (Minimal) */}
+          <div className="flex sm:hidden items-center bg-slate-100/50 p-0.5 rounded-lg border border-slate-200/50 mr-1">
+            {['ar', 'en'].map((lang) => (
+              <button 
+                key={lang}
+                onClick={() => setLanguage(lang as any)}
+                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${
+                  language === lang ? 'bg-[#0F7B6C] text-white' : 'text-slate-400'
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
           </div>
 
-          {/* Right: User Actions */}
-          <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-            {authLoading ? (
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-50 animate-pulse" />
-            ) : (
-              <>
-                {!user ? (
-                  <div className="flex items-center gap-1">
-                    <Link 
-                      to="/claim"
-                      className="hidden sm:flex items-center gap-3 px-6 py-3 bg-white border border-slate-100 text-text-main text-[10px] font-black rounded-2xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest shadow-sm mr-2"
-                    >
-                      <ShieldCheck className="w-5 h-5" />
-                      <span>{translations.claim[language]}</span>
-                    </Link>
-                    <button 
-                      onClick={() => onAuth('login')}
-                      className="px-2 sm:px-4 py-2 sm:py-3 text-text-muted text-[9px] sm:text-[10px] font-black rounded-xl hover:text-primary transition-all uppercase tracking-widest"
-                    >
-                      {translations.login[language]}
-                    </button>
-                    <button 
-                      onClick={() => onAuth('signup')}
-                      className="flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 bg-primary text-white text-[9px] sm:text-[10px] font-black rounded-xl sm:rounded-2xl shadow-premium hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
-                    >
-                      <User className="w-4 h-4 sm:w-5 h-5" />
-                      <span className="hidden sm:inline">{translations.register[language]}</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <button 
-                      onClick={onAddBusiness}
-                      className="hidden sm:flex items-center gap-3 px-6 py-3 bg-white border border-slate-100 text-text-main text-[10px] font-black rounded-2xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest shadow-sm"
-                    >
-                      <PlusCircle className="w-5 h-5" />
-                      <span>{translations.addBusiness[language]}</span>
-                    </button>
-
-                    <div className="relative">
-                      <button 
-                        onClick={() => setShowUserMenu(!showUserMenu)}
-                        className="flex items-center gap-3 p-1 rounded-2xl bg-white border border-slate-100 hover:border-primary transition-all shadow-sm group"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white text-[12px] font-black">
-                          {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
-                        </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-                      </button>
+          {authLoading ? (
+            <div className="w-8 h-8 rounded-lg bg-slate-50 animate-pulse" />
+          ) : (
+            <>
+              {!user ? (
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => onAuth('login')}
+                    className="px-3 py-2 text-[#111827] text-[9px] font-black rounded-xl hover:text-[#0F7B6C] transition-all uppercase tracking-widest"
+                  >
+                    {translations.login[language]}
+                  </button>
+                  <button 
+                    onClick={() => onAuth('signup')}
+                    className="px-4 py-2 bg-[#0F7B6C] text-white text-[9px] font-black rounded-xl shadow-md hover:bg-[#0d6b5e] transition-all uppercase tracking-widest"
+                  >
+                    {translations.register[language]}
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 p-1 rounded-xl bg-white border border-slate-100 hover:border-[#0F7B6C] transition-all shadow-sm group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-[#0F7B6C] flex items-center justify-center text-white text-[10px] font-black">
+                      {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                    </div>
+                    <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  </button>
+                  {/* ... menu content ... */}
 
                       <AnimatePresence>
                         {showUserMenu && (
@@ -154,37 +169,11 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                         )}
                       </AnimatePresence>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Bottom Row: Language Selection (Separate buttons below logo and registration) */}
-        <div className="flex justify-center border-t border-slate-50 pt-2 pb-1">
-          <div className="flex items-center gap-2 sm:gap-4">
-            {[
-              { id: 'en', label: 'English', flag: '🇬🇧' },
-              { id: 'ar', label: 'العربية', flag: '🇮🇶' },
-              { id: 'ku', label: 'کوردی', flag: '☀️' }
-            ].map((lang) => (
-              <button 
-                key={lang.id}
-                onClick={() => setLanguage(lang.id as any)}
-                className={`px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black transition-all duration-300 uppercase flex items-center gap-2 border ${
-                  language === lang.id 
-                    ? 'bg-primary text-white border-primary shadow-md scale-105' 
-                    : 'bg-white text-slate-500 border-slate-100 hover:border-primary/30 hover:text-primary'
-                }`}
-              >
-                <span className="text-sm sm:text-base">{lang.flag}</span>
-                <span>{lang.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
     </header>
   );
 }

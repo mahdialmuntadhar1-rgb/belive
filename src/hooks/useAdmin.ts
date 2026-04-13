@@ -299,60 +299,11 @@ export function useAdmin() {
       const { error: uploadError } = await supabase
         .from('businesses')
         .insert(businesses);
-
+      
       if (uploadError) throw uploadError;
       return true;
     } catch (err) {
       console.error('Error bulk uploading:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // App Settings Functions
-  const fetchAppSettings = async () => {
-    setLoading(true);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('app_settings')
-        .select('*')
-        .single();
-
-      if (fetchError) throw fetchError;
-      return data;
-    } catch (err) {
-      console.error('Error fetching app settings:', err);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateAppSettings = async (updates: Partial<{
-    hero_title_ar: string;
-    hero_title_ku: string;
-    hero_title_en: string;
-    hero_subtitle_ar: string;
-    hero_subtitle_ku: string;
-    hero_subtitle_en: string;
-    hero_image_url: string;
-    featured_label: string;
-    trending_label: string;
-    maintenance_mode: boolean;
-    registration_enabled: boolean;
-  }>) => {
-    setLoading(true);
-    try {
-      const { error: updateError } = await supabase
-        .from('app_settings')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', '00000000-0000-0000-0000-000000000001');
-
-      if (updateError) throw updateError;
-      return true;
-    } catch (err) {
-      console.error('Error updating app settings:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -371,8 +322,6 @@ export function useAdmin() {
     fetchPosts,
     updatePost,
     createPost,
-    bulkUploadBusinesses,
-    fetchAppSettings,
-    updateAppSettings
+    bulkUploadBusinesses
   };
 }

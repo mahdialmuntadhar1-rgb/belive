@@ -26,8 +26,15 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'guide' | 'social'>('guide');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  const { language } = useHomeStore();
+  const { language, setLanguage } = useHomeStore();
   
+  // Set Arabic as default on first load if not set
+  useEffect(() => {
+    if (!language) {
+      setLanguage('ar');
+    }
+  }, [language, setLanguage]);
+
   const { 
     businesses, 
     loading: businessesLoading, 
@@ -51,7 +58,7 @@ export default function HomePage() {
   const isRTL = language === 'ar' || language === 'ku';
 
   return (
-    <div className="min-h-screen bg-bg-warm selection:bg-primary/20" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-[#F7F7F5] selection:bg-[#0F7B6C]/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <HomeHeader 
         onAddBusiness={() => setIsAddBusinessModalOpen(true)}
         onAuth={(mode) => {
@@ -60,7 +67,7 @@ export default function HomePage() {
         }}
       />
 
-      <main className="pt-[60px] sm:pt-[73px]">
+      <main className="pt-4 sm:pt-8">
         <HeroSection 
           businesses={businesses} 
           onBusinessClick={setSelectedBusiness}
@@ -68,73 +75,58 @@ export default function HomePage() {
           setSearchQuery={setSearchQuery}
         />
 
-        <MainTabSwitcher 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <div className="max-w-7xl mx-auto px-4 mb-12">
+          <MainTabSwitcher 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
 
         <div className="pb-24">
           <AnimatePresence mode="wait">
             {activeTab === 'guide' ? (
               <motion.div
                 key="guide"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                <DirectoryTabPanel 
-                  businesses={businesses}
-                  loading={businessesLoading}
-                  hasMore={hasMore}
-                  totalCount={totalCount}
-                  loadMore={loadMore}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  onBusinessClick={setSelectedBusiness}
-                  viewMode={viewMode}
-                  setViewMode={setViewMode}
-                />
-
-                {/* Social Preview Section */}
-                <div className="max-w-7xl mx-auto px-4 py-24 border-t border-slate-200/50">
-                  <div className="flex flex-col items-center text-center mb-12">
-                    <div className="w-20 h-20 bg-primary/5 rounded-[40px] flex items-center justify-center text-primary mb-8 shadow-inner border border-primary/10">
-                      <TrendingUp className="w-10 h-10" />
-                    </div>
-                    <h2 className="text-3xl sm:text-5xl font-black text-text-main poppins-bold uppercase tracking-tighter mb-6">
-                      {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
-                    </h2>
-                    <p className="text-text-muted font-medium max-w-2xl leading-relaxed text-base sm:text-lg">
-                      {language === 'ar' 
-                        ? 'اكتشف آخر العروض والإعلانات من الشركات الموثقة في العراق مباشرة من خلال منصتنا الاجتماعية.' 
-                        : 'Discover the latest offers and announcements from verified businesses in Iraq directly through our social platform.'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={() => {
-                        setActiveTab('social');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="group flex items-center gap-6 px-14 py-6 bg-primary text-white rounded-[24px] text-[11px] sm:text-xs font-black uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-premium"
-                    >
-                      <span>{language === 'ar' ? 'تصفح المنشورات' : 'Browse Social Feed'}</span>
-                      <ArrowRight className={`w-5 h-5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
-                    </button>
-                  </div>
+                <div className="relative z-10">
+                  <DirectoryTabPanel 
+                    businesses={businesses}
+                    loading={businessesLoading}
+                    hasMore={hasMore}
+                    totalCount={totalCount}
+                    loadMore={loadMore}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    onBusinessClick={setSelectedBusiness}
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
+                  />
                 </div>
               </motion.div>
             ) : (
               <motion.div
                 key="social"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="bg-white/50 backdrop-blur-sm py-12 sm:py-20"
               >
-                <SocialFeed onBusinessClick={setSelectedBusiness} />
+                <div className="max-w-4xl mx-auto px-4">
+                  <div className="text-center mb-16">
+                    <h2 className="text-4xl sm:text-6xl font-black text-[#111827] poppins-bold uppercase tracking-tighter mb-4">
+                      {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
+                    </h2>
+                    <p className="text-slate-500 font-medium text-lg">
+                      {language === 'ar' ? 'آخر أخبار وعروض الشركات في العراق' : 'Latest news and offers from businesses in Iraq'}
+                    </p>
+                  </div>
+                  <SocialFeed onBusinessClick={setSelectedBusiness} />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
