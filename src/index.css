@@ -6,46 +6,44 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-poppins: "Poppins", sans-serif;
   
-  /* B-CREATIVE PREMIUM PALETTE - SHAKU MAKU UPGRADE */
-  --color-primary: #0F172A; /* Deep Navy - Midnight Blue */
-  --color-primary-light: #1E293B;
-  --color-accent: #F59E0B; /* Warm Orange / Amber - Energetic & Premium */
-  --color-accent-light: #FBBF24;
-  --color-secondary: #64748B; /* Slate - Professional Neutral */
-  --color-bg-light: #F8FAFC; /* Clean Light Gray */
-  --color-bg-dark: #0F172A;
-  --color-text-main: #0F172A;
-  --color-text-muted: #64748B;
+  /* PREMIUM IRAQI DIRECTORY PALETTE */
+  --color-primary: #0F7B6C; /* Deep Emerald Green - Main Accent */
+  --color-primary-dark: #0A5A4F;
+  --color-accent: #C8A96A; /* Soft Gold - Luxury Accent */
+  --color-accent-light: #D4BC8A;
+  --color-bg-warm: #F7F7F5; /* Off-White / Light Warm Gray */
+  --color-text-main: #111827; /* Very Dark Gray */
+  --color-text-muted: #6B7280;
   
-  --shadow-premium: 0 10px 30px -10px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
-  --shadow-card: 0 20px 40px -15px rgba(15, 23, 42, 0.08);
-  --shadow-gold: 0 10px 20px -5px rgba(245, 158, 11, 0.15);
+  --shadow-premium: 0 10px 30px -10px rgba(15, 123, 108, 0.1), 0 4px 6px -4px rgba(15, 123, 108, 0.05);
+  --shadow-card: 0 20px 40px -15px rgba(17, 24, 39, 0.06);
+  --shadow-gold: 0 10px 20px -5px rgba(200, 169, 106, 0.15);
 }
 
 @utility glass {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 @utility glass-dark {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @utility neon-border {
   border: 1px solid var(--color-primary);
-  box-shadow: var(--shadow-neon);
+  box-shadow: 0 0 15px rgba(15, 123, 108, 0.2);
 }
 
 @utility text-gradient {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  background-image: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+  background-image: linear-gradient(to right, var(--color-primary), var(--color-accent));
 }
 
 .poppins-bold {
@@ -68,11 +66,11 @@
 
 /* Global Transitions */
 * {
-  @apply transition-colors duration-200;
+  @apply transition-colors duration-300;
 }
 
 body {
-  @apply bg-bg-light text-text-main font-sans antialiased text-[15px] sm:text-base;
+  @apply bg-bg-warm text-text-main font-sans antialiased text-[15px] sm:text-base;
 }
 
 h1, h2, h3, h4, h5, h6 {

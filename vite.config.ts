@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png', 'favicon-16x16.png', 'favicon-32x32.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'icon.svg'],
         manifest: {
           name: 'Shakumaku Iraqi Directory',
           short_name: 'Shakumaku',
@@ -20,23 +20,21 @@ export default defineConfig(({mode}) => {
           theme_color: '#00BFA5',
           background_color: '#F8FAFC',
           display: 'standalone',
-          start_url: '/',
-          scope: '/',
           icons: [
             {
-              src: 'icon-192.png',
+              src: 'icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml'
             },
             {
-              src: 'icon-512.png',
+              src: 'icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml'
             },
             {
-              src: 'icon-512-maskable.png',
+              src: 'icon.svg',
               sizes: '512x512',
-              type: 'image/png',
+              type: 'image/svg+xml',
               purpose: 'any maskable'
             }
           ]

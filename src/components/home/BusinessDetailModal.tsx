@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
 import { Business } from '@/lib/supabase';
 import { CATEGORIES } from '@/constants';
 import { useHomeStore } from '@/stores/homeStore';
@@ -17,11 +17,13 @@ interface BusinessDetailModalProps {
 export default function BusinessDetailModal({ business, onClose }: BusinessDetailModalProps) {
   const { language } = useHomeStore();
   const { user, profile } = useAuthStore();
-  const { claimBusiness, loading: claimLoading } = useBusinessManagement();
+  const { claimBusiness, submitClaimRequest, loading: claimLoading } = useBusinessManagement();
   const { reviews, loading: reviewsLoading, hasMore: reviewsHasMore, loadMore: reviewsLoadMore } = useReviews(business?.id);
   const { posts: businessPosts, loading: postsLoading } = usePosts(business?.id);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimPhone, setClaimPhone] = useState('');
+  const [showClaimForm, setShowClaimForm] = useState(false);
 
   if (!business) return null;
 
@@ -148,13 +150,20 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
     }
   };
 
-  const handleClaim = async () => {
+  const handleClaim = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
+    if (!claimPhone) {
+      setShowClaimForm(true);
+      return;
+    }
+
+    setClaimError(null);
     try {
-      await claimBusiness(business.id);
+      await submitClaimRequest(business.id, claimPhone);
       setClaimSuccess(true);
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : 'Failed to claim business');
+      setClaimError(err instanceof Error ? err.message : 'Failed to submit claim request');
     }
   };
 
@@ -268,23 +277,92 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                     <motion.div 
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-10 bg-secondary/5 border-2 border-secondary/10 rounded-[48px] flex flex-col sm:flex-row items-center gap-10 shadow-sm relative overflow-hidden group"
+                      className="p-10 bg-gradient-to-br from-secondary/5 to-accent/5 border-2 border-secondary/10 rounded-[48px] flex flex-col gap-10 shadow-sm relative overflow-hidden group"
                     >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-                      <div className="w-24 h-24 bg-secondary/10 rounded-[32px] flex items-center justify-center text-secondary shrink-0 shadow-inner relative z-10">
-                        <ShieldAlert className="w-12 h-12" />
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+                      
+                      <div className="flex flex-col sm:flex-row items-center gap-10 relative z-10">
+                        <div className="w-24 h-24 bg-secondary/10 rounded-[32px] flex items-center justify-center text-secondary shrink-0 shadow-inner relative">
+                          <ShieldAlert className="w-12 h-12" />
+                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-accent rounded-full flex items-center justify-center text-bg-dark shadow-lg animate-bounce">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="text-2xl sm:text-3xl font-black text-bg-dark mb-3 poppins-bold uppercase tracking-tight">
+                            {language === 'ar' ? 'هل هذا عملك التجاري؟' : 'Is this your business?'}
+                          </h4>
+                          <p className="text-base text-slate-500 leading-relaxed font-medium">
+                            {language === 'ar' 
+                              ? 'عملك مدرج بالفعل في دليلنا. طالب بالصفحة الآن للوصول إلى المميزات الحصرية:' 
+                              : 'Your business is already listed. Claim it now to access exclusive features:'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 text-center sm:text-left relative z-10">
-                        <h4 className="text-2xl font-black text-bg-dark mb-3 poppins-bold uppercase tracking-tight">{translations.claim[language]}</h4>
-                        <p className="text-base text-slate-500 leading-relaxed font-medium">{translations.claimDesc[language]}</p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
+                        {[
+                          { ar: 'نشر العروض والتحديثات', en: 'Post offers & updates' },
+                          { ar: 'الظهور بشكل مميز في البحث', en: 'Appear featured in search' },
+                          { ar: 'تلقي رسائل واتساب مباشرة', en: 'Direct WhatsApp contact' },
+                          { ar: 'إحصائيات زيارات الصفحة', en: 'Page visit analytics' }
+                        ].map((benefit, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center text-secondary">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                            <span className="text-sm font-bold text-slate-600">{benefit[language === 'en' ? 'en' : 'ar']}</span>
+                          </div>
+                        ))}
                       </div>
-                      <button 
-                        onClick={handleClaim}
-                        disabled={claimLoading}
-                        className="px-12 py-5 bg-secondary text-white font-black rounded-2xl shadow-2xl shadow-secondary/30 hover:bg-secondary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest text-[11px] disabled:opacity-50 flex items-center gap-4 relative z-10"
-                      >
-                        {claimLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : translations.claim[language]}
-                      </button>
+
+                      {showClaimForm ? (
+                        <form onSubmit={handleClaim} className="space-y-6 relative z-10">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              {language === 'ar' ? 'رقم الهاتف للتواصل' : 'Contact Phone Number'}
+                            </label>
+                            <input 
+                              type="tel"
+                              value={claimPhone}
+                              onChange={(e) => setClaimPhone(e.target.value)}
+                              className="w-full px-6 py-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-secondary text-bg-dark font-bold"
+                              placeholder="07XXXXXXXX"
+                              required
+                            />
+                          </div>
+                          {claimError && (
+                            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
+                              <AlertCircle className="w-4 h-4" />
+                              {claimError}
+                            </div>
+                          )}
+                          <div className="flex gap-4">
+                            <button 
+                              type="button"
+                              onClick={() => setShowClaimForm(false)}
+                              className="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+                            >
+                              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button 
+                              type="submit"
+                              disabled={claimLoading}
+                              className="flex-[2] py-4 bg-secondary text-white font-black rounded-2xl shadow-xl shadow-secondary/20 hover:bg-secondary-dark transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-[10px]"
+                            >
+                              {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'ar' ? 'إرسال طلب المطالبة' : 'Submit Claim Request')}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button 
+                          onClick={() => setShowClaimForm(true)}
+                          className="w-full py-6 bg-secondary text-white font-black rounded-2xl shadow-2xl shadow-secondary/30 hover:bg-secondary-dark hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-[12px] disabled:opacity-50 flex items-center justify-center gap-4 relative z-10"
+                        >
+                          <ShieldCheck className="w-6 h-6" />
+                          <span>{language === 'ar' ? 'طالب بصفحتك الآن' : 'Claim Your Page Now'}</span>
+                        </button>
+                      )}
                     </motion.div>
                   )}
 
@@ -292,12 +370,21 @@ export default function BusinessDetailModal({ business, onClose }: BusinessDetai
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-10 bg-accent/5 border-2 border-accent/10 rounded-[48px] flex items-center gap-8 shadow-sm"
+                      className="p-10 bg-accent/5 border-2 border-accent/10 rounded-[48px] flex flex-col items-center gap-6 shadow-sm text-center"
                     >
                       <div className="w-16 h-16 bg-accent/10 rounded-[24px] flex items-center justify-center text-accent shadow-inner">
                         <CheckCircle2 className="w-8 h-8" />
                       </div>
-                      <p className="text-xl font-black text-accent uppercase tracking-tight">{translations.claimSuccess[language]}</p>
+                      <div>
+                        <p className="text-xl font-black text-accent uppercase tracking-tight mb-2">
+                          {language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request Submitted Successfully!'}
+                        </p>
+                        <p className="text-sm text-slate-500 font-medium">
+                          {language === 'ar' 
+                            ? 'لقد استلمنا طلبك وسنقوم بمراجعته قريباً.' 
+                            : 'We have received your request and will review it shortly.'}
+                        </p>
+                      </div>
                     </motion.div>
                   )}
 

@@ -87,14 +87,6 @@ export function useAuth() {
     clearStore();
   };
 
-  const resendConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email
-    });
-    if (error) throw error;
-  };
-
   return {
     user,
     profile,
@@ -102,7 +94,6 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
-    resendConfirmation,
     isAuthenticated: !!user
   };
 }

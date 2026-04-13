@@ -162,5 +162,35 @@ export function useBusinessManagement() {
     }
   };
 
-  return { claimBusiness, updateBusinessProfile, getOwnedBusinesses, createBusiness, loading, error };
+  const submitClaimRequest = async (businessId: string, phone: string) => {
+    if (!user) throw new Error('Not authenticated');
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: insertError } = await supabase
+        .from('claim_requests')
+        .insert([
+          {
+            business_id: businessId,
+            user_id: user.id,
+            phone: phone,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (insertError) throw insertError;
+      
+      return true;
+    } catch (err) {
+      console.error('Error submitting claim request:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit claim request');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { claimBusiness, submitClaimRequest, updateBusinessProfile, getOwnedBusinesses, createBusiness, loading, error };
 }

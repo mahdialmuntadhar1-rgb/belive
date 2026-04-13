@@ -9,11 +9,14 @@ export interface Business {
   neighborhood?: string;
   address: string;
   phone: string;
+  phone_1?: string;
+  phone_2?: string;
   rating?: number;
   reviewCount?: number;
   isFeatured?: boolean;
   isVerified?: boolean;
   image?: string;
+  image_url?: string;
   website?: string;
   socialLinks?: {
     facebook?: string;
@@ -35,8 +38,11 @@ export interface Business {
 export interface Post {
   id: string;
   businessId: string;
+  title?: string;
   content: string;
+  caption?: string;
   image?: string;
+  image_url?: string;
   likes: number;
   views?: number;
   commentsCount?: number;
@@ -44,4 +50,5 @@ export interface Post {
   authorName?: string;
   authorAvatar?: string;
   isVerified?: boolean;
+  status?: 'visible' | 'hidden';
 }

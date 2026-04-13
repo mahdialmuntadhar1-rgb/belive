@@ -337,14 +337,14 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-white rounded-[24px] sm:rounded-[40px] border border-slate-100 shadow-card overflow-hidden"
+          className="bg-white rounded-[24px] sm:rounded-[32px] border border-slate-100 shadow-card overflow-hidden"
         >
           {/* Post Header */}
-          <div className="p-4 sm:p-6 flex items-center justify-between">
+          <div className="p-4 sm:p-5 flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
               <button 
                 onClick={() => onBusinessClick?.({ id: post.businessId, name: post.authorName } as any)}
-                className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner hover:scale-105 transition-transform"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 overflow-hidden border border-slate-50 shadow-inner hover:scale-105 transition-transform"
               >
                 {post.authorAvatar ? (
                   <img 
@@ -354,7 +354,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary text-white font-black text-sm sm:text-xl">
+                  <div className="w-full h-full flex items-center justify-center bg-primary text-white font-black text-sm sm:text-base">
                     {post.authorName?.charAt(0) || 'B'}
                   </div>
                 )}
@@ -363,83 +363,96 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => onBusinessClick?.({ id: post.businessId, name: post.authorName } as any)}
-                    className="text-sm sm:text-base font-black text-bg-dark poppins-bold leading-none hover:text-accent transition-colors block"
+                    className="text-sm sm:text-base font-black text-text-main poppins-bold leading-none hover:text-primary transition-colors block"
                   >
                     {post.authorName}
                   </button>
                   {((post as any).isVerified || (post as any).isHotel) && (
-                    <CheckCircle2 className="w-3 h-3 sm:w-4 h-4 text-accent fill-accent/10" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 mt-1 sm:mt-2">
-                  <div className="flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-slate-400">
-                    <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    <span>{language === 'ar' ? 'العراق' : 'Iraq'}</span>
-                  </div>
-                  <span className="text-[8px] sm:text-[10px] text-slate-300">•</span>
-                  <span className="text-[8px] sm:text-[10px] font-bold text-slate-400">
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
                     {new Date(post.createdAt).toLocaleDateString(language === 'ar' ? 'ar-IQ' : 'en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               </div>
             </div>
-            <button className="p-2 text-slate-400 hover:text-bg-dark transition-colors">
-              <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button className="p-2 text-slate-400 hover:text-text-main transition-colors">
+              <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
 
           {/* Post Image */}
           {post.image && (
-            <div className="aspect-square sm:aspect-video bg-slate-50 relative overflow-hidden group">
+            <div className="aspect-square bg-slate-50 relative overflow-hidden group">
               <img 
                 src={post.image} 
                 alt="Post content" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover transition-transform duration-700"
                 referrerPolicy="no-referrer"
               />
+              
               {/* Post Type Badge */}
-              <div className="absolute bottom-4 right-4">
-                <div className="px-3 py-1.5 bg-bg-dark/80 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
+              <div className="absolute top-4 right-4">
+                <div className="px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-xl shadow-lg border border-white/10 flex items-center gap-2">
                   <TrendingUp className="w-3 h-3 text-accent" />
                   <span className="text-[8px] font-black text-white uppercase tracking-widest">
-                    {language === 'ar' ? 'تحديث العمل' : 'Business Update'}
+                    {language === 'ar' ? 'تحديث' : 'Update'}
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Post Actions - Simplified */}
-          <div className="p-4 sm:p-6">
+          {/* Post Actions */}
+          <div className="p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    {language === 'ar' ? 'تحديث رسمي' : 'Official Update'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="text-slate-400 hover:text-accent transition-colors">
-                  <Share2 className="w-5 h-5" />
+              <div className="flex items-center gap-5">
+                <button 
+                  onClick={() => handleLike(post.id)}
+                  className="flex items-center gap-1.5 group"
+                >
+                  <Heart className={`w-6 h-6 transition-all ${post.likes > 500 ? 'fill-red-500 text-red-500' : 'text-text-main group-hover:text-red-500'}`} />
+                  <span className="text-xs font-black text-text-main">{formatMetric(post.likes)}</span>
                 </button>
+                <button 
+                  onClick={() => toggleComments(post.id)}
+                  className="flex items-center gap-1.5 group"
+                >
+                  <MessageCircle className="w-6 h-6 text-text-main group-hover:text-primary transition-colors" />
+                  <span className="text-xs font-black text-text-main">12</span>
+                </button>
+                <button className="group">
+                  <Share2 className="w-6 h-6 text-text-main group-hover:text-primary transition-colors" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 text-text-muted">
+                <Eye className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">{Math.floor(post.likes * 4.5)} {language === 'ar' ? 'مشاهدة' : 'views'}</span>
               </div>
             </div>
 
             {/* Caption */}
-            <div className="mb-6">
-              <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium">
+            <div className="space-y-2 mb-6">
+              <p className="text-sm sm:text-base text-text-main leading-relaxed font-medium">
+                <span className="font-black mr-2">{post.authorName}</span>
                 {post.content}
               </p>
+              <button 
+                onClick={() => toggleComments(post.id)}
+                className="text-xs font-bold text-text-muted hover:text-primary transition-colors"
+              >
+                {language === 'ar' ? 'عرض جميع التعليقات' : 'View all comments'}
+              </button>
             </div>
 
             {/* CTA Button */}
             <button 
               onClick={() => onBusinessClick?.({ id: post.businessId, name: post.authorName } as any)}
-              className="w-full py-4 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-accent hover:text-bg-dark transition-all group shadow-lg shadow-primary/10"
+              className="w-full py-4 bg-bg-warm text-primary border border-primary/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-primary hover:text-white transition-all group"
             >
-              <span>{language === 'ar' ? 'عرض التفاصيل' : language === 'ku' ? 'بینینی زانیارییەکان' : 'View Details'}</span>
+              <span>{language === 'ar' ? 'زيارة الملف الشخصي' : 'Visit Profile'}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>

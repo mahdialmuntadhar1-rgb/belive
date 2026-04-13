@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -35,37 +35,24 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   
   // Business Owner Fields
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [governorate, setGovernorate] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [description, setDescription] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showResendButton, setShowResendButton] = useState(false);
   const { language } = useHomeStore();
-
-  // Cooldown timer for rate limit
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => {
-      setCooldown(c => c > 0 ? c - 1 : 0);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown(c => c > 0 ? c - 1 : 0);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   const translations = {
     businessName: { en: 'Business Name', ar: 'اسم العمل التجاري', ku: 'ناوی کار' },
+    phone: { en: 'Phone Number', ar: 'رقم الهاتف', ku: 'ژمارەی تەلەفۆن' },
     governorate: { en: 'Governorate', ar: 'المحافظة', ku: 'پارێزگا' },
+    category: { en: 'Category', ar: 'التصنيف', ku: 'پۆلێن' },
+    city: { en: 'City', ar: 'المدينة', ku: 'شار' },
+    description: { en: 'Short Description', ar: 'وصف قصير', ku: 'وەسفێکی کورت' },
     forgotTitle: {
       en: 'Reset Password',
       ar: 'إعادة تعيين كلمة المرور',
@@ -151,31 +138,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       ar: 'نسيت كلمة المرور؟',
       ku: 'وشەی نهێنیت لەبیرچووە؟'
     },
-    accountExists: {
-      en: 'Account already exists. Please log in.',
-      ar: 'الحساب موجود بالفعل. يرجى تسجيل الدخول.',
-      ku: 'هەژمار پێشتر هەبووە. تکایە بچۆ ژوورەوە.'
-    },
-    accountUnconfirmed: {
-      en: 'Account exists but is not confirmed. Please check your email or resend confirmation.',
-      ar: 'الحساب موجود لكن لم يتم تأكيده. يرجى التحقق من بريدك الإلكتروني أو إعادة إرسال التأكيد.',
-      ku: 'هەژمار هەیە بەڵام پشتڕاست نەکراوەتەوە. تکایە سەیری ئیمەیڵەکەت بکە یان دووبارە ناردنەوەی پشتڕاستکردنەوە.'
-    },
-    resendConfirmation: {
-      en: 'Resend Confirmation Email',
-      ar: 'إعادة إرسال بريد التأكيد',
-      ku: 'دووبارە ناردنی ئیمەیڵی پشتڕاستکردنەوە'
-    },
-    confirmationSent: {
-      en: 'Confirmation email sent. Please check your inbox.',
-      ar: 'تم إرسال بريد التأكيد. يرجى التحقق من صندوق الوارد.',
-      ku: 'ئیمەیڵی پشتڕاستکردنەوە نێردرا. تکایە سەیری ئینبۆکسەکەت بکە.'
-    },
-    checkEmailVerify: {
-      en: 'Check your email to verify your account.',
-      ar: 'تحقق من بريدك الإلكتروني لتأكيد حسابك.',
-      ku: 'سەیری ئیمەیڵەکەت بکە بۆ پشتڕاستکردنەوەی هەژمارەکەت.'
-    },
     or: {
       en: 'Or continue with',
       ar: 'أو استمر بواسطة',
@@ -216,48 +178,18 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       if (isLogin) {
         await signIn(email, password);
       } else {
-        // Signup with proper error handling
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              role,
-              business_name: role === 'business_owner' ? businessName : undefined,
-              governorate: role === 'business_owner' ? governorate : undefined
-            },
-            emailRedirectTo: window.location.origin
-          }
+        await signUp(email, password, {
+          full_name: name,
+          role: role,
+          business_name: role === 'business_owner' ? businessName : undefined,
+          phone: role === 'business_owner' ? phone : undefined,
+          governorate: role === 'business_owner' ? governorate : undefined,
+          category: role === 'business_owner' ? category : undefined,
+          city: role === 'business_owner' ? city : undefined,
+          description: role === 'business_owner' ? description : undefined,
         });
-
-        if (error) {
-          // Handle specific error cases
-          if (error.message.includes('User already registered')) {
-            setError(translations.accountExists[language]);
-            setIsLogin(true);
-            setShowResendButton(false);
-          } else {
-            setError(error.message);
-          }
-          setLoading(false);
-          return;
-        }
-
-        // User created but not confirmed (no session)
-        if (data.user && !data.session) {
-          setSuccess(translations.checkEmailVerify[language]);
-          setShowResendButton(false);
-          setLoading(false);
-          return;
-        }
-
-        // User created and auto-confirmed (has session)
-        if (data.user && data.session) {
-          setSuccess(language === 'ar' ? 'تم إنشاء الحساب بنجاح!' : 'Account created successfully!');
-          setLoading(false);
-          return;
-        }
+        setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
+        return;
       }
       onClose();
     } catch (err) {
@@ -267,21 +199,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         message = err.message;
         if (message.includes('Failed to fetch')) {
           message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
-        } else if (message.toLowerCase().includes('rate limit')) {
-          setCooldown(60);
-          const cooldownMessage = language === 'ar'
-            ? `تم تجاوز الحد المسموح. يرجى الانتظار ${cooldown} ثانية قبل المحاولة مرة أخرى.`
-            : language === 'ku'
-            ? `سنوور تێپەڕ کرا. تکایە ${cooldown} چرکە چاوەڕێک بکە پێش ئەوەی دووبارە هەوڵ بدەیتەوە.`
-            : `Rate limit exceeded. Please wait ${cooldown} seconds before trying again.`;
-          setError(cooldownMessage);
-          setLoading(false);
-          return;
-        } else if (message.includes('Email not confirmed')) {
-          setError(translations.accountUnconfirmed[language]);
-          setShowResendButton(true);
-          setLoading(false);
-          return;
         }
       }
       setError(message);
@@ -344,29 +261,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               {success && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl text-xs text-green-600 font-bold">
                   {success}
-                </div>
-              )}
-
-              {showResendButton && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                  <button
-                    onClick={async () => {
-                      if (resendCooldown > 0) return;
-                      try {
-                        await supabase.auth.resend({ type: 'signup', email });
-                        setSuccess(translations.confirmationSent[language]);
-                        setResendCooldown(60);
-                      } catch (err: any) {
-                        setError(err.message);
-                      }
-                    }}
-                    disabled={resendCooldown > 0}
-                    className="w-full py-2.5 bg-accent text-white rounded-xl text-sm font-bold disabled:opacity-50 transition-all"
-                  >
-                    {resendCooldown > 0
-                      ? (language === 'ar' ? `انتظار ${resendCooldown} ثانية` : language === 'ku' ? `چاوەڕێ ${resendCooldown} چرکە` : `Wait ${resendCooldown}s`)
-                      : translations.resendConfirmation[language]}
-                  </button>
                 </div>
               )}
 
@@ -440,22 +334,32 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             required={role === 'business_owner'}
                           />
                         </div>
-                        <select
-                          value={governorate}
-                          onChange={(e) => setGovernorate(e.target.value)}
-                          className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
-                          required={role === 'business_owner'}
-                        >
-                          <option value="">{translations.governorate[language]}</option>
-                          <option value="Baghdad">Baghdad</option>
-                          <option value="Erbil">Erbil</option>
-                          <option value="Basra">Basra</option>
-                          <option value="Sulaymaniyah">Sulaymaniyah</option>
-                          <option value="Najaf">Najaf</option>
-                          <option value="Karbala">Karbala</option>
-                          <option value="Dohuk">Dohuk</option>
-                          <option value="Kirkuk">Kirkuk</option>
-                        </select>
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder={translations.phone[language]}
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          />
+                          <select
+                            value={governorate}
+                            onChange={(e) => setGovernorate(e.target.value)}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
+                            required={role === 'business_owner'}
+                          >
+                            <option value="">{translations.governorate[language]}</option>
+                            <option value="Baghdad">Baghdad</option>
+                            <option value="Erbil">Erbil</option>
+                            <option value="Basra">Basra</option>
+                            <option value="Sulaymaniyah">Sulaymaniyah</option>
+                            <option value="Najaf">Najaf</option>
+                            <option value="Karbala">Karbala</option>
+                            <option value="Dohuk">Dohuk</option>
+                            <option value="Kirkuk">Kirkuk</option>
+                          </select>
+                        </div>
                       </motion.div>
                     )}
                   </>
@@ -509,25 +413,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                 <button
                   type="submit"
-                  disabled={loading || cooldown > 0}
+                  disabled={loading}
                   className="w-full py-3.5 bg-primary hover:bg-bg-dark text-white font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : cooldown > 0 ? (
-                    <>
-                      {language === 'ar'
-                        ? `انتظار ${cooldown} ثانية`
-                        : language === 'ku'
-                        ? `چاوەڕێک ${cooldown} چرکە`
-                        : `Wait ${cooldown}s`}
-                    </>
                   ) : (
                     <>
-                      {isForgot
-                        ? translations.sendReset[language]
-                        : isLogin
-                          ? translations.login[language]
+                      {isForgot 
+                        ? translations.sendReset[language] 
+                        : isLogin 
+                          ? translations.login[language] 
                           : translations.signup[language]}
                       <ArrowRight className={`w-4 h-4 ${language === 'en' ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
                     </>

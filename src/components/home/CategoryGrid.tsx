@@ -40,9 +40,9 @@ export default function CategoryGrid() {
                 whileHover={{ y: -8, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`group relative flex flex-col items-center justify-center aspect-square rounded-[32px] overflow-hidden border-2 transition-all duration-500 ${
+                className={`group relative flex flex-col items-center justify-center aspect-square rounded-[24px] overflow-hidden border-2 transition-all duration-500 ${
                   isActive 
-                    ? 'border-accent shadow-2xl shadow-accent/20' 
+                    ? 'border-primary shadow-2xl shadow-primary/20' 
                     : 'border-white shadow-card hover:border-slate-200'
                 }`}
               >
@@ -65,7 +65,7 @@ export default function CategoryGrid() {
                 {/* Content */}
                 <div className="relative z-10 flex flex-col items-center justify-center p-4 text-center h-full w-full">
                   <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 ${
-                    isActive ? 'bg-accent text-bg-dark scale-110 rotate-12 shadow-lg' : 'bg-white/20 backdrop-blur-md text-white group-hover:bg-accent group-hover:text-bg-dark group-hover:rotate-12'
+                    isActive ? 'bg-accent text-white scale-110 rotate-12 shadow-lg' : 'bg-white/20 backdrop-blur-md text-white group-hover:bg-accent group-hover:text-white group-hover:rotate-12'
                   }`}>
                     <Icon className="w-5 h-5 sm:w-7 sm:h-7" strokeWidth={2.5} />
                   </div>
@@ -82,7 +82,7 @@ export default function CategoryGrid() {
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-2 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(245,158,11,1)]"
+                      className="mt-2 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(200,169,106,1)]"
                     />
                   )}
                 </div>

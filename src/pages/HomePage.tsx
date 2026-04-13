@@ -13,6 +13,9 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
 import type { Business } from "@/lib/supabase";
 
+import { ArrowRight, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -48,7 +51,7 @@ export default function HomePage() {
   const isRTL = language === 'ar' || language === 'ku';
 
   return (
-    <div className="min-h-screen bg-bg-light selection:bg-accent/30" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-bg-warm selection:bg-primary/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <HomeHeader 
         onAddBusiness={() => setIsAddBusinessModalOpen(true)}
         onAuth={(mode) => {
@@ -57,35 +60,85 @@ export default function HomePage() {
         }}
       />
 
-      <HeroSection 
-        businesses={businesses} 
-        onBusinessClick={setSelectedBusiness}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
+      <main className="pt-[60px] sm:pt-[73px]">
+        <HeroSection 
+          businesses={businesses} 
+          onBusinessClick={setSelectedBusiness}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
 
-      <MainTabSwitcher 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+        <MainTabSwitcher 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      <main className="pb-24">
-        {activeTab === 'guide' ? (
-          <DirectoryTabPanel 
-            businesses={businesses}
-            loading={businessesLoading}
-            hasMore={hasMore}
-            totalCount={totalCount}
-            loadMore={loadMore}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onBusinessClick={setSelectedBusiness}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-          />
-        ) : (
-          <SocialFeed onBusinessClick={setSelectedBusiness} />
-        )}
+        <div className="pb-24">
+          <AnimatePresence mode="wait">
+            {activeTab === 'guide' ? (
+              <motion.div
+                key="guide"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DirectoryTabPanel 
+                  businesses={businesses}
+                  loading={businessesLoading}
+                  hasMore={hasMore}
+                  totalCount={totalCount}
+                  loadMore={loadMore}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onBusinessClick={setSelectedBusiness}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                />
+
+                {/* Social Preview Section */}
+                <div className="max-w-7xl mx-auto px-4 py-24 border-t border-slate-200/50">
+                  <div className="flex flex-col items-center text-center mb-12">
+                    <div className="w-20 h-20 bg-primary/5 rounded-[40px] flex items-center justify-center text-primary mb-8 shadow-inner border border-primary/10">
+                      <TrendingUp className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-3xl sm:text-5xl font-black text-text-main poppins-bold uppercase tracking-tighter mb-6">
+                      {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
+                    </h2>
+                    <p className="text-text-muted font-medium max-w-2xl leading-relaxed text-base sm:text-lg">
+                      {language === 'ar' 
+                        ? 'اكتشف آخر العروض والإعلانات من الشركات الموثقة في العراق مباشرة من خلال منصتنا الاجتماعية.' 
+                        : 'Discover the latest offers and announcements from verified businesses in Iraq directly through our social platform.'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={() => {
+                        setActiveTab('social');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="group flex items-center gap-6 px-14 py-6 bg-primary text-white rounded-[24px] text-[11px] sm:text-xs font-black uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-premium"
+                    >
+                      <span>{language === 'ar' ? 'تصفح المنشورات' : 'Browse Social Feed'}</span>
+                      <ArrowRight className={`w-5 h-5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="social"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SocialFeed onBusinessClick={setSelectedBusiness} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* Modals */}
@@ -109,19 +162,19 @@ export default function HomePage() {
       <PWAInstallButton />
 
       {/* Footer */}
-      <footer className="bg-primary text-white pt-24 pb-12">
+      <footer className="bg-text-main text-white pt-32 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-            <div className="lg:col-span-4">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center shadow-xl">
-                  <span className="text-bg-dark font-black text-2xl poppins-bold">S</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
+            <div className="lg:col-span-5">
+              <div className="flex items-center gap-4 mb-10">
+                <div className="w-14 h-14 bg-primary rounded-[20px] flex items-center justify-center shadow-xl border border-white/10">
+                  <span className="text-accent font-black text-3xl poppins-bold">ش</span>
                 </div>
-                <h3 className="text-3xl font-black poppins-bold tracking-tighter uppercase">
+                <h3 className="text-4xl font-black poppins-bold tracking-tighter uppercase">
                   {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
                 </h3>
               </div>
-              <p className="text-slate-400 leading-relaxed mb-10 text-base max-w-sm">
+              <p className="text-slate-400 leading-relaxed mb-12 text-lg max-w-md">
                 {language === 'ar' 
                   ? 'دليل الأعمال الأكثر ثقة في العراق. نربط الملايين من المستخدمين بالشركات المحلية في جميع المحافظات.'
                   : 'Iraq\'s most trusted business discovery platform. Connecting millions of users with local businesses across all 19 governorates.'}
@@ -129,34 +182,34 @@ export default function HomePage() {
             </div>
             
             <div className="lg:col-span-4 lg:col-start-9">
-              <h4 className="text-xs font-black text-accent uppercase tracking-[0.3em] mb-8">
+              <h4 className="text-[10px] font-black text-accent uppercase tracking-[0.4em] mb-10">
                 {language === 'ar' ? 'تطبيق الهاتف' : 'Mobile App'}
               </h4>
-              <p className="text-sm text-slate-500 mb-8 font-medium">
+              <p className="text-base text-slate-500 mb-10 font-medium leading-relaxed">
                 {language === 'ar' ? 'قم بتحميل تطبيق شكو ماكو للحصول على أفضل تجربة.' : 'Download the Shaku Maku app for the best experience on the go.'}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 group hover:bg-white/10 transition-all cursor-pointer">
-                  <div className="text-3xl">🍎</div>
+              <div className="flex flex-col sm:flex-row gap-5">
+                <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-[24px] flex items-center gap-5 group hover:bg-white/10 transition-all cursor-pointer">
+                  <div className="text-4xl">🍎</div>
                   <div>
-                    <p className="text-[8px] uppercase font-black text-slate-500 tracking-widest">Available on</p>
-                    <p className="text-sm font-black">App Store</p>
+                    <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest mb-1">Available on</p>
+                    <p className="text-base font-black">App Store</p>
                   </div>
                 </div>
-                <div className="flex-1 bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 group hover:bg-white/10 transition-all cursor-pointer">
-                  <div className="text-3xl">🤖</div>
+                <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-[24px] flex items-center gap-5 group hover:bg-white/10 transition-all cursor-pointer">
+                  <div className="text-4xl">🤖</div>
                   <div>
-                    <p className="text-[8px] uppercase font-black text-slate-500 tracking-widest">Get it on</p>
-                    <p className="text-sm font-black">Google Play</p>
+                    <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest mb-1">Get it on</p>
+                    <p className="text-base font-black">Google Play</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="border-t border-white/5 mt-24 pt-12 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] text-slate-500 font-black uppercase tracking-[0.3em]">
+          <div className="border-t border-white/5 mt-32 pt-16 flex flex-col md:flex-row justify-between items-center gap-10 text-[11px] text-slate-500 font-black uppercase tracking-[0.4em]">
             <p>&copy; {new Date().getFullYear()} Shaku Maku. ALL RIGHTS RESERVED.</p>
-            <div className="flex gap-12">
+            <div className="flex gap-16">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
             </div>

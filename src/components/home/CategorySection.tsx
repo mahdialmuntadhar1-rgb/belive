@@ -25,40 +25,57 @@ export default function CategorySection({ category, businesses, loading, onBusin
   const initialCount = 3;
   const visibleBusinesses = isExpanded ? businesses : businesses.slice(0, initialCount);
 
+  const getCategoryStyles = (cat: string) => {
+    const c = cat.toLowerCase();
+    if (c.includes('rest') || c.includes('food')) return { bg: 'bg-orange-50/50', text: 'text-orange-600', iconBg: 'bg-orange-100', iconText: 'text-orange-600' };
+    if (c.includes('cafe') || c.includes('coffee')) return { bg: 'bg-amber-50/50', text: 'text-amber-700', iconBg: 'bg-amber-100', iconText: 'text-amber-700' };
+    if (c.includes('hotel')) return { bg: 'bg-blue-50/50', text: 'text-blue-700', iconBg: 'bg-blue-100', iconText: 'text-blue-700' };
+    if (c.includes('med') || c.includes('pharm') || c.includes('hosp')) return { bg: 'bg-cyan-50/50', text: 'text-cyan-700', iconBg: 'bg-cyan-100', iconText: 'text-cyan-700' };
+    return { bg: 'bg-slate-50/50', text: 'text-primary', iconBg: 'bg-primary/10', iconText: 'text-primary' };
+  };
+
+  const styles = getCategoryStyles(category.name.en);
+
   if (businesses.length === 0 && !loading) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Category Header - Right Aligned like the image */}
-      <div className="flex items-center justify-end gap-4 px-1">
-        <div className="text-right">
-          <h2 className="text-2xl font-black text-bg-dark poppins-bold leading-tight uppercase tracking-tight">
+    <div className={`py-12 sm:py-16 px-4 sm:px-6 rounded-[40px] ${styles.bg} border border-white/50 space-y-10`}>
+      {/* Category Header - Centered */}
+      <div className="flex flex-col items-center text-center space-y-4">
+        <div className={`w-16 h-16 ${styles.iconBg} rounded-[24px] flex items-center justify-center ${styles.iconText} shadow-sm border border-white/20`}>
+          <category.icon className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className={`text-3xl sm:text-4xl font-black ${styles.text} poppins-bold leading-tight uppercase tracking-tighter`}>
             {category.name[language]}
           </h2>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-            {businesses.length} {language === 'ar' ? 'منشأة متوفرة' : language === 'ku' ? 'شوێنی بەردەست' : 'establishments available'}
-          </p>
-        </div>
-        <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20 shadow-sm">
-          <category.icon className="w-6 h-6" />
+          <div className="flex items-center justify-center gap-3 mt-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${styles.iconBg}`} />
+            <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em]">
+              {businesses.length} {language === 'ar' ? 'منشأة متوفرة' : language === 'ku' ? 'شوێنی بەردەست' : 'establishments available'}
+            </p>
+            <div className={`w-1.5 h-1.5 rounded-full ${styles.iconBg}`} />
+          </div>
         </div>
       </div>
       
       {/* Business Grid - Shows 3 initially */}
-      <BusinessGrid 
-        businesses={visibleBusinesses} 
-        loading={loading}
-        onBusinessClick={onBusinessClick}
-      />
+      <div className="max-w-7xl mx-auto">
+        <BusinessGrid 
+          businesses={visibleBusinesses} 
+          loading={loading}
+          onBusinessClick={onBusinessClick}
+        />
+      </div>
 
-      {/* Independent Load More / Less Button - "Stuck" to the section */}
+      {/* Independent Load More / Less Button */}
       {businesses.length > initialCount && (
-        <div className="flex justify-center -mt-6 relative z-10">
+        <div className="flex justify-center relative z-10">
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="group flex items-center gap-3 px-8 py-3 bg-white border border-slate-200 rounded-full text-[11px] font-black text-slate-500 uppercase tracking-widest hover:border-accent hover:text-accent transition-all duration-300 shadow-sm active:scale-95"
+            className="group flex items-center gap-4 px-10 py-4 bg-white border border-slate-100 rounded-2xl text-[11px] font-black text-text-main uppercase tracking-[0.2em] hover:border-primary hover:text-primary transition-all duration-500 shadow-premium active:scale-95"
           >
-            <div className={`w-1.5 h-1.5 rounded-full bg-accent ${!isExpanded ? 'animate-pulse' : ''}`} />
+            <div className={`w-2 h-2 rounded-full bg-primary ${!isExpanded ? 'animate-pulse' : ''}`} />
             <span>
               {isExpanded 
                 ? (language === 'ar' ? 'عرض أقل' : language === 'ku' ? 'بینینی کەمتر' : 'Show Less')

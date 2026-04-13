@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { User, PlusCircle, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { User, PlusCircle, LogOut, Settings, ChevronDown, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useHomeStore } from '@/stores/homeStore';
@@ -24,7 +24,8 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
     signOut: { en: 'Sign Out', ar: 'تسجيل الخروج', ku: 'چوونەدەرەوە' },
     owner: { en: 'Owner', ar: 'مالك', ku: 'خاوەن' },
     login: { en: 'Login', ar: 'دخول', ku: 'چوونەژوورەوە' },
-    register: { en: 'Register', ar: 'تۆمارکردن', ku: 'تۆمارکردن' }
+    register: { en: 'Register', ar: 'تۆمارکردن', ku: 'تۆمارکردن' },
+    claim: { en: 'Claim Business', ar: 'طالب بعملك', ku: 'داوای کارەکەت بکە' }
   };
 
   return (
@@ -41,7 +42,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
               <span className="text-accent font-black text-xl sm:text-2xl">ش</span>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm sm:text-xl font-black text-primary poppins-bold tracking-tighter leading-none uppercase">
+              <h1 className="text-sm sm:text-xl font-black text-text-main poppins-bold tracking-tighter leading-none uppercase">
                 {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
               </h1>
               <p className="text-[7px] sm:text-[9px] text-accent font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-0.5 sm:mt-1">
@@ -58,6 +59,13 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
               <>
                 {!user ? (
                   <div className="flex items-center gap-1">
+                    <Link 
+                      to="/claim"
+                      className="hidden sm:flex items-center gap-3 px-6 py-3 bg-white border border-slate-100 text-text-main text-[10px] font-black rounded-2xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest shadow-sm mr-2"
+                    >
+                      <ShieldCheck className="w-5 h-5" />
+                      <span>{translations.claim[language]}</span>
+                    </Link>
                     <button 
                       onClick={() => onAuth('login')}
                       className="px-2 sm:px-4 py-2 sm:py-3 text-text-muted text-[9px] sm:text-[10px] font-black rounded-xl hover:text-primary transition-all uppercase tracking-widest"
@@ -66,7 +74,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                     </button>
                     <button 
                       onClick={() => onAuth('signup')}
-                      className="flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 bg-primary text-white text-[9px] sm:text-[10px] font-black rounded-xl sm:rounded-2xl shadow-premium hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                      className="flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 bg-primary text-white text-[9px] sm:text-[10px] font-black rounded-xl sm:rounded-2xl shadow-premium hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
                     >
                       <User className="w-4 h-4 sm:w-5 h-5" />
                       <span className="hidden sm:inline">{translations.register[language]}</span>
@@ -76,7 +84,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                   <div className="flex items-center gap-4">
                     <button 
                       onClick={onAddBusiness}
-                      className="hidden sm:flex items-center gap-3 px-6 py-3 bg-white border border-slate-100 text-primary text-[10px] font-black rounded-2xl hover:border-accent hover:text-accent transition-all uppercase tracking-widest shadow-sm"
+                      className="hidden sm:flex items-center gap-3 px-6 py-3 bg-white border border-slate-100 text-text-main text-[10px] font-black rounded-2xl hover:border-primary hover:text-primary transition-all uppercase tracking-widest shadow-sm"
                     >
                       <PlusCircle className="w-5 h-5" />
                       <span>{translations.addBusiness[language]}</span>
