@@ -22,10 +22,9 @@ const isAndroid = () => {
 
 export default function PWAInstallButton() {
   const deferredPrompt = useRef<any>(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showUnsupportedMessage, setShowUnsupportedMessage] = useState(false);
-  const [showAndroidNotAvailable, setShowAndroidNotAvailable] = useState(false);
   const { language } = useHomeStore();
 
   const isIOSSafari = isIOS() && isSafari();
@@ -38,17 +37,30 @@ export default function PWAInstallButton() {
       e.preventDefault();
       deferredPrompt.current = e;
       console.log('[PWA Install] Deferred prompt stored');
+
+      // Show button when deferred prompt is available for Android/Desktop
+      if (isAndroidChrome || (!isIOSSafari && !isFirefoxBrowser)) {
+        console.log('[PWA Install] Showing install button (deferred prompt available)');
+        setIsVisible(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Show button immediately for iOS Safari (manual instructions)
+    if (isIOSSafari) {
+      console.log('[PWA Install] iOS Safari detected - showing install button');
+      setIsVisible(true);
+    }
+
+    // Hide button if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       console.log('[PWA Install] App already installed (standalone mode)');
       setIsVisible(false);
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  }, [isIOSSafari, isAndroidChrome, isFirefoxBrowser]);
 
   const handleInstall = async () => {
     console.log('[PWA Install] Button clicked');
@@ -71,14 +83,8 @@ export default function PWAInstallButton() {
 
     // Android/Desktop: use native install prompt
     if (!deferredPrompt.current) {
-      console.log('[PWA Install] No deferred prompt available');
-      if (isAndroidChrome) {
-        console.log('[PWA Install] Android but no prompt available');
-        setShowAndroidNotAvailable(true);
-        return;
-      }
-      // Desktop fallback: show instructions
-      setShowInstructions(true);
+      console.log('[PWA Install] No deferred prompt available - hiding button');
+      setIsVisible(false);
       return;
     }
 
@@ -249,57 +255,6 @@ export default function PWAInstallButton() {
 
                 <button 
                   onClick={() => setShowUnsupportedMessage(false)}
-                  className="w-full py-3 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-900 transition-colors"
-                >
-                  {language === 'ar' ? 'فهمت' : 'Got it'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAndroidNotAvailable && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowAndroidNotAvailable(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button 
-                onClick={() => setShowAndroidNotAvailable(false)}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex flex-col items-center text-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
-                  <Smartphone className="w-8 h-8" />
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-slate-900">
-                    {language === 'ar' ? 'التثبيت غير متاح حالياً' : 'Install not available yet'}
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    {language === 'ar' 
-                      ? 'يرجى استخدام متصفح كروم والتفاعل مع التطبيق لعدة ثوانٍ.' 
-                      : 'Please use Chrome and interact with the app for a few seconds.'}
-                  </p>
-                </div>
-
-                <button 
-                  onClick={() => setShowAndroidNotAvailable(false)}
                   className="w-full py-3 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-900 transition-colors"
                 >
                   {language === 'ar' ? 'فهمت' : 'Got it'}
