@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, X, Chrome as ChromeIcon, Safari as SafariIcon } from 'lucide-react';
+import { Download, X, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from '@/stores/homeStore';
 
@@ -226,7 +226,7 @@ export default function PWAInstallButton() {
 
               <div className="flex flex-col items-center text-center gap-4">
                 <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
-                  <SafariIcon className="w-8 h-8" />
+                  <Smartphone className="w-8 h-8" />
                 </div>
                 
                 <div className="space-y-2">
