@@ -25,7 +25,8 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
     owner: { en: 'Owner', ar: 'مالك', ku: 'خاوەن' },
     login: { en: 'Login', ar: 'دخول', ku: 'چوونەژوورەوە' },
     register: { en: 'Register', ar: 'تۆمارکردن', ku: 'تۆمارکردن' },
-    claim: { en: 'Claim Business', ar: 'طالب بعملك', ku: 'داوای کارەکەت بکە' }
+    claim: { en: 'Claim Business', ar: 'طالب بعملك', ku: 'داوای کارەکەت بکە' },
+    admin: { en: 'Admin Dashboard', ar: 'لوحة الإدارة', ku: 'داشبۆردی بەڕێوەبەر' }
   };
 
   return (
@@ -121,6 +122,16 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                                 className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-accent flex items-center gap-3 transition-colors"
                               >
                                 <LayoutDashboard className="w-4 h-4" /> {translations.dashboard[language]}
+                              </Link>
+                            )}
+
+                            {(profile?.role === 'admin' || user?.email === 'safaribosafar@gmail.com') && (
+                              <Link 
+                                to="/admin"
+                                onClick={() => setShowUserMenu(false)}
+                                className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center gap-3 transition-colors"
+                              >
+                                <ShieldCheck className="w-4 h-4" /> {translations.admin[language]}
                               </Link>
                             )}
 
