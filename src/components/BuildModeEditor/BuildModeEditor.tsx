@@ -190,7 +190,7 @@ export default function BuildModeEditor() {
             {/* Footer */}
             <div className="p-8 border-t border-slate-100 bg-slate-50/50 space-y-4">
               <p className="text-[10px] text-slate-400 font-medium italic text-center">
-                Changes are saved to local storage for this session.
+                Changes are synced directly to the repository source files.
               </p>
               {!import.meta.env.DEV && (
                 <button 

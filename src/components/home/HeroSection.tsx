@@ -4,8 +4,6 @@ import { Search, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboa
 import { Link } from 'react-router-dom';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { useAuthStore } from '@/stores/authStore';
-import { heroService, HeroSlide as DbHeroSlide } from '@/lib/heroService';
 import { useBuildMode } from '@/hooks/useBuildMode';
 import { heroContent } from '@/data/heroContent';
 
@@ -18,55 +16,15 @@ interface HeroSectionProps {
 
 export default function HeroSection({ businesses, onBusinessClick, searchQuery, setSearchQuery }: HeroSectionProps) {
   const { language } = useHomeStore();
-  const { profile } = useAuthStore();
   const { buildModeEnabled, heroSlides: playgroundSlides, activeSlideId } = useBuildMode();
-  const [dbSlides, setDbSlides] = useState<DbHeroSlide[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   const isRTL = language === 'ar' || language === 'ku';
 
-  useEffect(() => {
-    const fetchSlides = async () => {
-      try {
-        const data = await heroService.getActiveSlides();
-        setDbSlides(data);
-      } catch (error) {
-        console.error('Error fetching hero slides:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSlides();
-  }, []);
-
-  // Use playground slides if build mode is enabled, otherwise use DB slides (or fallback to heroContent)
+  // Single Source of Truth: Use playground slides in Build Mode, otherwise use heroContent.ts
   const slidesToUse = buildModeEnabled && playgroundSlides.length > 0
-    ? playgroundSlides.map(s => ({
-        id: s.id,
-        title: s.title,
-        subtitle: s.subtitle,
-        ctaText: s.buttonText,
-        ctaLink: s.buttonLink,
-        image: s.image
-      }))
-    : dbSlides.length > 0 
-      ? dbSlides.map(s => ({
-          id: s.id,
-          title: language === 'ar' ? s.title_ar : language === 'ku' ? s.title_ku : s.title_en,
-          subtitle: language === 'ar' ? s.subtitle_ar : language === 'ku' ? s.subtitle_ku : s.subtitle_en,
-          ctaText: language === 'ar' ? s.cta_text_ar : language === 'ku' ? s.cta_text_ku : s.cta_text_en,
-          ctaLink: s.cta_link,
-          image: s.image_url
-        }))
-      : heroContent.map(s => ({
-          id: s.id,
-          title: s.title,
-          subtitle: s.subtitle,
-          ctaText: s.buttonText,
-          ctaLink: s.buttonLink,
-          image: s.image
-        }));
+    ? playgroundSlides
+    : heroContent;
 
   // Sync currentIndex with activeSlideId in Build Mode
   useEffect(() => {
@@ -89,18 +47,6 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
 
-  if (loading && dbSlides.length === 0 && playgroundSlides.length === 0) {
-    return (
-      <div className="w-full px-4 mb-12 sm:mb-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden bg-slate-100 rounded-[48px] min-h-[450px] sm:min-h-[550px] flex items-center justify-center">
-            <Loader2 className="w-10 h-10 animate-spin text-primary/20" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Fallback if no slides
   if (slidesToUse.length === 0) {
     return null;
@@ -110,7 +56,8 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   
   const title = currentSlide.title;
   const subtitle = currentSlide.subtitle;
-  const ctaText = currentSlide.ctaText;
+  const buttonText = currentSlide.buttonText;
+  const buttonLink = currentSlide.buttonLink;
 
   return (
     <div className="w-full px-4 mb-12 sm:mb-20">
@@ -130,7 +77,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 animate={{ scale: 1 }}
                 transition={{ duration: 10 }}
                 src={currentSlide.image} 
-                alt={title as string}
+                alt={title || 'Hero Image'}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -162,32 +109,36 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight poppins-bold leading-[1.1] uppercase drop-shadow-lg mb-3 sm:mb-4">
-                    {title as string}
-                  </h1>
-                  <p className="text-sm sm:text-lg lg:text-xl font-medium text-white/90 leading-relaxed max-w-lg drop-shadow-md">
-                    {subtitle as string}
-                  </p>
+                  {title && (
+                    <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight poppins-bold leading-[1.1] uppercase drop-shadow-lg mb-3 sm:mb-4">
+                      {title}
+                    </h1>
+                  )}
+                  {subtitle && (
+                    <p className="text-sm sm:text-lg lg:text-xl font-medium text-white/90 leading-relaxed max-w-lg drop-shadow-md">
+                      {subtitle}
+                    </p>
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
 
             {/* Action Area */}
-            {currentSlide.ctaLink && (
+            {buttonLink && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
                 <Link 
-                  to={currentSlide.ctaLink}
+                  to={buttonLink}
                   className="group flex items-center gap-3 sm:gap-4 px-6 py-3 sm:px-8 sm:py-4 bg-[#C8A96A] text-[#0F7B6C] rounded-2xl transition-all duration-500 shadow-xl hover:scale-105 hover:bg-white active:scale-95"
                 >
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#0F7B6C]/10 flex items-center justify-center group-hover:bg-[#0F7B6C]/20 transition-colors">
                     <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">
-                    {ctaText as string || (language === 'ar' ? 'اكتشف المزيد' : language === 'ku' ? 'زیاتر بدۆزەرەوە' : 'Discover More')}
+                    {buttonText || (language === 'ar' ? 'اكتشف المزيد' : language === 'ku' ? 'زیاتر بدۆزەرەوە' : 'Discover More')}
                   </span>
                   <ArrowRight className={`w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
                 </Link>
