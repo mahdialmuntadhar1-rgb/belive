@@ -4,6 +4,7 @@ import { User, PlusCircle, LogOut, Settings, ChevronDown, LayoutDashboard, Shiel
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useHomeStore } from '@/stores/homeStore';
+import { useBuildMode } from '@/hooks/useBuildMode';
 
 interface HomeHeaderProps {
   onAddBusiness: () => void;
@@ -14,6 +15,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const { language, setLanguage } = useHomeStore();
+  const { buildModeEnabled, toggleBuildMode } = useBuildMode();
 
   const isRTL = language === 'ar' || language === 'ku';
 
@@ -48,24 +50,38 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
         </div>
 
         {/* Center: Language Selection (Small buttons side by side) */}
-        <div className="hidden sm:flex items-center bg-slate-100/50 p-1 rounded-full border border-slate-200/50">
-          {[
-            { id: 'ar', label: 'AR' },
-            { id: 'en', label: 'EN' },
-            { id: 'ku', label: 'KU' }
-          ].map((lang) => (
-            <button 
-              key={lang.id}
-              onClick={() => setLanguage(lang.id as any)}
-              className={`px-3 py-1 rounded-full text-[9px] font-black transition-all duration-300 ${
-                language === lang.id 
-                  ? 'bg-[#0F7B6C] text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-[#0F7B6C]'
-              }`}
-            >
-              {lang.label}
-            </button>
-          ))}
+        <div className="hidden sm:flex items-center gap-4">
+          <div className="flex items-center bg-slate-100/50 p-1 rounded-full border border-slate-200/50">
+            {[
+              { id: 'ar', label: 'AR' },
+              { id: 'en', label: 'EN' },
+              { id: 'ku', label: 'KU' }
+            ].map((lang) => (
+              <button 
+                key={lang.id}
+                onClick={() => setLanguage(lang.id as any)}
+                className={`px-3 py-1 rounded-full text-[9px] font-black transition-all duration-300 ${
+                  language === lang.id 
+                    ? 'bg-[#0F7B6C] text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-[#0F7B6C]'
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+
+          {/* BUILD MODE ONLY - Toggle Button */}
+          <button 
+            onClick={toggleBuildMode}
+            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+              buildModeEnabled 
+                ? 'bg-primary text-white border-primary shadow-lg' 
+                : 'bg-white text-slate-400 border-slate-100 hover:border-primary hover:text-primary'
+            }`}
+          >
+            Build Mode
+          </button>
         </div>
 
         {/* Right: User Actions */}

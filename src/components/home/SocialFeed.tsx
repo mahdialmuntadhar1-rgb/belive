@@ -207,7 +207,9 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
     seedPosts();
   }, [realPosts, businesses, postsLoading, bizLoading, isSeeding]);
 
+  // Use real posts only
   const displayPosts = realPosts;
+
   const isLoading = postsLoading || (realPosts.length === 0 && bizLoading);
 
   if (isSeeding) {

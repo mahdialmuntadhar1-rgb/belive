@@ -12,6 +12,7 @@ import ClaimPage from '@/pages/ClaimPage';
 import AdminDashboard from '@/pages/AdminDashboard';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AdminRoute from '@/components/auth/AdminRoute';
+import BuildModeEditor from '@/components/BuildModeEditor/BuildModeEditor';
 import { useAuthStore } from '@/stores/authStore';
 import { ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -58,6 +59,9 @@ export default function App() {
         {/* Catch-all 404 route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Build Mode Editor - Build Mode Only */}
+      <BuildModeEditor />
 
       {/* Global Admin Access FAB */}
       <AnimatePresence>

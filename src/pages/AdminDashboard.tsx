@@ -30,12 +30,17 @@ import {
   Upload,
   FileText,
   Send,
-  Trash2
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  RefreshCw,
+  Save
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useAdmin, ClaimRequest } from '@/hooks/useAdmin';
 import { Business, Post } from '@/lib/supabase';
+import { heroService, HeroSlide } from '@/lib/heroService';
 import { CATEGORIES, GOVERNORATES } from '@/constants';
 
 export default function AdminDashboard() {
@@ -43,7 +48,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const admin = useAdmin();
   
-  const [activeTab, setActiveTab] = useState<'summary' | 'businesses' | 'posts' | 'media' | 'featured' | 'content' | 'settings'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'businesses' | 'posts' | 'media' | 'hero' | 'featured' | 'content' | 'settings'>('summary');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const isAdmin = profile?.role === 'admin';
@@ -136,6 +141,13 @@ export default function AdminDashboard() {
             collapsed={!isSidebarOpen}
           />
           <NavItem 
+            icon={<Plus />} 
+            label="Hero Manager" 
+            active={activeTab === 'hero'} 
+            onClick={() => setActiveTab('hero')}
+            collapsed={!isSidebarOpen}
+          />
+          <NavItem 
             icon={<Star />} 
             label="Featured" 
             active={activeTab === 'featured'} 
@@ -174,6 +186,7 @@ export default function AdminDashboard() {
             {activeTab === 'businesses' && 'Business Management'}
             {activeTab === 'posts' && 'Feed & Post Control'}
             {activeTab === 'media' && 'Media Management'}
+            {activeTab === 'hero' && 'Hero Section Manager'}
             {activeTab === 'featured' && 'Featured & Trending'}
             {activeTab === 'content' && 'Content Editor'}
             {activeTab === 'settings' && 'System Settings'}
@@ -257,9 +270,10 @@ export default function AdminDashboard() {
               {activeTab === 'businesses' && <BusinessManager admin={admin} />}
               {activeTab === 'posts' && <ContentManager admin={admin} />}
               {activeTab === 'media' && <MediaManager />}
+              {activeTab === 'hero' && <HeroManager />}
               {activeTab === 'featured' && <FeaturedManager />}
-              {activeTab === 'content' && <TextContentManager admin={admin} />}
-              {activeTab === 'settings' && <SettingsManager admin={admin} />}
+              {activeTab === 'content' && <TextContentManager />}
+              {activeTab === 'settings' && <SettingsManager />}
             </AnimatePresence>
           </div>
         </div>
@@ -589,6 +603,335 @@ function BusinessManager({ admin }: { admin: any }) {
   );
 }
 
+function HeroManager() {
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const loadSlides = async () => {
+    setLoading(true);
+    try {
+      const data = await heroService.getAllSlides();
+      setSlides(data);
+    } catch (error) {
+      console.error('Error loading slides:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSlides();
+  }, []);
+
+  const handleToggleActive = async (slide: HeroSlide) => {
+    try {
+      await heroService.updateSlide(slide.id, { is_active: !slide.is_active });
+      loadSlides();
+    } catch (error) {
+      alert('Failed to update slide status');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this slide?')) return;
+    try {
+      await heroService.deleteSlide(id);
+      loadSlides();
+    } catch (error) {
+      alert('Failed to delete slide');
+    }
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    const newSlides = [...slides];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newSlides.length) return;
+
+    const temp = newSlides[index];
+    newSlides[index] = newSlides[targetIndex];
+    newSlides[targetIndex] = temp;
+
+    // Update display_order for all affected slides
+    try {
+      await Promise.all(newSlides.map((slide, idx) => 
+        heroService.updateSlide(slide.id, { display_order: idx })
+      ));
+      loadSlides();
+    } catch (error) {
+      alert('Failed to reorder slides');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!editingSlide) return;
+    try {
+      if (editingSlide.id) {
+        await heroService.updateSlide(editingSlide.id, editingSlide);
+      } else {
+        await heroService.createSlide({
+          ...editingSlide,
+          display_order: slides.length
+        });
+      }
+      setEditingSlide(null);
+      loadSlides();
+    } catch (error) {
+      alert('Failed to save slide');
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const url = await heroService.uploadImage(file);
+      setEditingSlide(prev => ({ ...prev, image_url: url }));
+    } catch (error) {
+      alert('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={loadSlides}
+            className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary transition-all shadow-sm"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <p className="text-sm font-medium text-slate-500">Manage your homepage hero slides</p>
+        </div>
+        <button 
+          onClick={() => setEditingSlide({ is_active: true, title_en: '', title_ar: '', title_ku: '', subtitle_en: '', subtitle_ar: '', subtitle_ku: '', cta_text_en: '', cta_text_ar: '', cta_text_ku: '', cta_link: '', image_url: '' })}
+          className="px-8 py-4 bg-primary text-white font-black rounded-2xl hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] flex items-center gap-3 shadow-xl shadow-primary/20"
+        >
+          <Plus className="w-4 h-4" /> Add New Slide
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {slides.map((slide, index) => (
+          <div key={slide.id} className={`bg-white rounded-[40px] border border-slate-100 shadow-premium overflow-hidden flex flex-col md:flex-row ${!slide.is_active ? 'opacity-60' : ''}`}>
+            <div className="w-full md:w-72 aspect-video md:aspect-auto relative overflow-hidden bg-slate-100 shrink-0">
+              <img src={slide.image_url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+              <div className="absolute top-4 left-4">
+                <div className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest shadow-lg ${slide.is_active ? 'bg-green-500 text-white' : 'bg-slate-500 text-white'}`}>
+                  {slide.is_active ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 p-8 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-lg font-black poppins-bold">{slide.title_en || 'Untitled Slide'}</h4>
+                    <p className="text-sm text-slate-500 line-clamp-1">{slide.subtitle_en}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleMove(index, 'up')}
+                      disabled={index === 0}
+                      className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 disabled:opacity-20"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleMove(index, 'down')}
+                      disabled={index === slides.length - 1}
+                      className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 disabled:opacity-20"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-bold uppercase">EN</span>
+                  <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-bold uppercase">AR</span>
+                  <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[9px] font-bold uppercase">KU</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => handleToggleActive(slide)}
+                    className={`p-2.5 rounded-xl transition-all ${slide.is_active ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                    title={slide.is_active ? 'Deactivate' : 'Activate'}
+                  >
+                    {slide.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  <button 
+                    onClick={() => setEditingSlide(slide)}
+                    className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-primary transition-all"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(slide.id)}
+                    className="p-2.5 bg-red-50 text-red-400 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                  Order: {slide.display_order}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {slides.length === 0 && !loading && (
+          <div className="py-20 text-center bg-white rounded-[40px] border border-dashed border-slate-200 text-slate-400 font-medium italic">
+            No hero slides found. Create your first one to get started.
+          </div>
+        )}
+      </div>
+
+      {/* Edit Slide Modal */}
+      <AnimatePresence>
+        {editingSlide && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingSlide(null)}
+              className="absolute inset-0 bg-primary-dark/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-5xl bg-white rounded-[48px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-10 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <h3 className="text-2xl font-black poppins-bold uppercase tracking-tight">
+                  {editingSlide.id ? 'Edit Hero Slide' : 'Create New Hero Slide'}
+                </h3>
+                <button onClick={() => setEditingSlide(null)} className="p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+                  <XCircle className="w-6 h-6 text-slate-300" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-10 space-y-12">
+                {/* Image Upload Section */}
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slide Background Image</label>
+                  <div className="flex flex-col md:flex-row items-center gap-8">
+                    <div className="w-full md:w-80 aspect-video rounded-3xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center relative group">
+                      {editingSlide.image_url ? (
+                        <img src={editingSlide.image_url} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <ImageIcon className="w-12 h-12 text-slate-200" />
+                      )}
+                      {uploading && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-4 w-full">
+                      <div className="flex gap-4">
+                        <label className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 cursor-pointer">
+                          <Upload className="w-4 h-4" />
+                          {uploading ? 'Uploading...' : 'Upload Image'}
+                          <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+                        </label>
+                      </div>
+                      <FormInput label="Or Image URL" value={editingSlide.image_url || ''} onChange={(v: string) => setEditingSlide({...editingSlide, image_url: v})} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Sections */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* English */}
+                  <div className="space-y-6 p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 bg-primary text-white rounded text-[9px] font-bold uppercase">English</span>
+                    </div>
+                    <FormInput label="Title (EN)" value={editingSlide.title_en || ''} onChange={(v: string) => setEditingSlide({...editingSlide, title_en: v})} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (EN)</label>
+                      <textarea 
+                        value={editingSlide.subtitle_en || ''}
+                        onChange={e => setEditingSlide({...editingSlide, subtitle_en: e.target.value})}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[80px]"
+                      />
+                    </div>
+                    <FormInput label="CTA Text (EN)" value={editingSlide.cta_text_en || ''} onChange={(v: string) => setEditingSlide({...editingSlide, cta_text_en: v})} />
+                  </div>
+
+                  {/* Arabic */}
+                  <div className="space-y-6 p-6 bg-slate-50 rounded-[32px] border border-slate-100" dir="rtl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 bg-[#0F7B6C] text-white rounded text-[9px] font-bold uppercase">العربية</span>
+                    </div>
+                    <FormInput label="العنوان (AR)" value={editingSlide.title_ar || ''} onChange={(v: string) => setEditingSlide({...editingSlide, title_ar: v})} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الوصف (AR)</label>
+                      <textarea 
+                        value={editingSlide.subtitle_ar || ''}
+                        onChange={e => setEditingSlide({...editingSlide, subtitle_ar: e.target.value})}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[80px]"
+                      />
+                    </div>
+                    <FormInput label="نص الزر (AR)" value={editingSlide.cta_text_ar || ''} onChange={(v: string) => setEditingSlide({...editingSlide, cta_text_ar: v})} />
+                  </div>
+
+                  {/* Kurdish */}
+                  <div className="space-y-6 p-6 bg-slate-50 rounded-[32px] border border-slate-100" dir="rtl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 bg-[#C8A96A] text-[#0F7B6C] rounded text-[9px] font-bold uppercase">Kurdî</span>
+                    </div>
+                    <FormInput label="ناونیشان (KU)" value={editingSlide.title_ku || ''} onChange={(v: string) => setEditingSlide({...editingSlide, title_ku: v})} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">وەسف (KU)</label>
+                      <textarea 
+                        value={editingSlide.subtitle_ku || ''}
+                        onChange={e => setEditingSlide({...editingSlide, subtitle_ku: e.target.value})}
+                        className="w-full p-4 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[80px]"
+                      />
+                    </div>
+                    <FormInput label="دەقی دوگمە (KU)" value={editingSlide.cta_text_ku || ''} onChange={(v: string) => setEditingSlide({...editingSlide, cta_text_ku: v})} />
+                  </div>
+                </div>
+
+                <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Action Link</h4>
+                  <FormInput label="CTA Link (e.g. /claim or https://...)" value={editingSlide.cta_link || ''} onChange={(v: string) => setEditingSlide({...editingSlide, cta_link: v})} />
+                </div>
+              </div>
+              <div className="p-10 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-4 shrink-0">
+                <button 
+                  onClick={() => setEditingSlide(null)}
+                  className="px-8 py-4 text-slate-400 font-black uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={!editingSlide.image_url}
+                  className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] flex items-center gap-3 disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Slide
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function MediaManager() {
   const [media, setMedia] = useState([
     { id: '1', type: 'hero', title: 'Main Hero Image (Where to go?)', url: 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=1200&auto=format&fit=crop' },
@@ -691,53 +1034,14 @@ function FeaturedManager() {
   );
 }
 
-function TextContentManager({ admin }: { admin: any }) {
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    const data = await admin.fetchAppSettings();
-    setSettings(data);
-    setLoading(false);
-  };
-
-  const handleSave = async () => {
-    if (!settings) return;
-    setSaving(true);
-    try {
-      await admin.updateAppSettings({
-        hero_title_ar: settings.hero_title_ar,
-        hero_title_ku: settings.hero_title_ku,
-        hero_title_en: settings.hero_title_en,
-        hero_subtitle_ar: settings.hero_subtitle_ar,
-        hero_subtitle_ku: settings.hero_subtitle_ku,
-        hero_subtitle_en: settings.hero_subtitle_en,
-        featured_label: settings.featured_label,
-        trending_label: settings.trending_label,
-      });
-      setMessage('Changes published successfully!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setMessage('Failed to save changes');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !settings) {
-    return (
-      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+function TextContentManager() {
+  const [content, setContent] = useState({
+    heroTitle: 'وين تروح؟',
+    heroSubtitle: 'محتار وين تروح؟ كل الخيارات صارت بيدك',
+    featuredLabel: 'مختارات لك',
+    trendingLabel: 'الأكثر تداولاً الآن',
+    footerText: '© 2024 شكو ماكو. جميع الحقوق محفوظة.'
+  });
 
   return (
     <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium space-y-10">
@@ -746,14 +1050,12 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <LayoutDashboard className="w-6 h-6 text-primary" /> Homepage Hero
           </h3>
-          <FormInput label="Main Title (Arabic)" value={settings.hero_title_ar || ''} onChange={v => setSettings({...settings, hero_title_ar: v})} />
-          <FormInput label="Main Title (Kurdish)" value={settings.hero_title_ku || ''} onChange={v => setSettings({...settings, hero_title_ku: v})} />
-          <FormInput label="Main Title (English)" value={settings.hero_title_en || ''} onChange={v => setSettings({...settings, hero_title_en: v})} />
+          <FormInput label="Main Title" value={content.heroTitle} onChange={v => setContent({...content, heroTitle: v})} />
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (Arabic)</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle</label>
             <textarea 
-              value={settings.hero_subtitle_ar || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ar: e.target.value})}
+              value={content.heroSubtitle}
+              onChange={e => setContent({...content, heroSubtitle: e.target.value})}
               className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
             />
           </div>
@@ -762,38 +1064,13 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <Star className="w-6 h-6 text-accent" /> Section Labels
           </h3>
-          <FormInput label="Featured Section Label" value={settings.featured_label || ''} onChange={v => setSettings({...settings, featured_label: v})} />
-          <FormInput label="Trending Section Label" value={settings.trending_label || ''} onChange={v => setSettings({...settings, trending_label: v})} />
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (Kurdish)</label>
-            <textarea 
-              value={settings.hero_subtitle_ku || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ku: e.target.value})}
-              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (English)</label>
-            <textarea 
-              value={settings.hero_subtitle_en || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_en: e.target.value})}
-              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
-            />
-          </div>
+          <FormInput label="Featured Section Label" value={content.featuredLabel} onChange={v => setContent({...content, featuredLabel: v})} />
+          <FormInput label="Trending Section Label" value={content.trendingLabel} onChange={v => setContent({...content, trendingLabel: v})} />
+          <FormInput label="Footer Copyright" value={content.footerText} onChange={v => setContent({...content, footerText: v})} />
         </div>
       </div>
-      {message && (
-        <div className={`p-4 rounded-2xl text-center font-bold text-sm ${message.includes('success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-          {message}
-        </div>
-      )}
       <div className="pt-10 border-t border-slate-50 flex justify-end">
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        <button className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px]">
           Publish Changes
         </button>
       </div>
@@ -801,44 +1078,7 @@ function TextContentManager({ admin }: { admin: any }) {
   );
 }
 
-function SettingsManager({ admin }: { admin: any }) {
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    const data = await admin.fetchAppSettings();
-    setSettings(data);
-    setLoading(false);
-  };
-
-  const toggleSetting = async (key: 'maintenance_mode' | 'registration_enabled') => {
-    if (!settings || saving) return;
-    const newValue = !settings[key];
-    setSettings({ ...settings, [key]: newValue });
-    setSaving(true);
-    try {
-      await admin.updateAppSettings({ [key]: newValue });
-    } catch (err) {
-      setSettings({ ...settings, [key]: !newValue });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !settings) {
-    return (
-      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+function SettingsManager() {
   return (
     <div className="max-w-3xl space-y-8">
       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium space-y-8">
@@ -849,12 +1089,8 @@ function SettingsManager({ admin }: { admin: any }) {
               <p className="text-sm font-black uppercase tracking-widest">Maintenance Mode</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Take the site offline for updates</p>
             </div>
-            <button
-              onClick={() => toggleSetting('maintenance_mode')}
-              disabled={saving}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.maintenance_mode ? 'bg-rose-500' : 'bg-slate-200'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.maintenance_mode ? 'right-1' : 'left-1'}`} />
+            <button className="w-12 h-6 bg-slate-200 rounded-full relative">
+              <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
             </button>
           </div>
           <div className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl">
@@ -862,12 +1098,8 @@ function SettingsManager({ admin }: { admin: any }) {
               <p className="text-sm font-black uppercase tracking-widest">New User Registration</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Allow new users to create accounts</p>
             </div>
-            <button
-              onClick={() => toggleSetting('registration_enabled')}
-              disabled={saving}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.registration_enabled ? 'bg-primary' : 'bg-slate-200'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.registration_enabled ? 'right-1' : 'left-1'}`} />
+            <button className="w-12 h-6 bg-primary rounded-full relative">
+              <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
             </button>
           </div>
         </div>
