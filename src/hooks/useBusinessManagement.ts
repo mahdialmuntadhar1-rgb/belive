@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/stores/authStore';
+import { normalizeIraqiPhone, generatePhoneVariations } from '@/lib/phoneUtils';
 import type { Business } from '@/lib/supabase';
 
 export function useBusinessManagement() {
@@ -192,5 +193,85 @@ export function useBusinessManagement() {
     }
   };
 
-  return { claimBusiness, submitClaimRequest, updateBusinessProfile, getOwnedBusinesses, createBusiness, loading, error };
+  // Alias for consistency with ClaimBusinessPage
+  const createClaimRequest = submitClaimRequest;
+
+  /**
+   * Search businesses by phone number (phone-only matching, no governorate filter)
+   * Returns all businesses with matching normalized phone
+   */
+  const searchBusinessByPhone = async (phone: string): Promise<Business[]> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const normalizedInput = normalizeIraqiPhone(phone);
+      const phoneVariations = generatePhoneVariations(phone);
+      
+      console.log('[Business Search] Input:', phone);
+      console.log('[Business Search] Normalized:', normalizedInput);
+      console.log('[Business Search] Variations:', phoneVariations);
+
+      // Fetch ALL businesses (no governorate filter - phone is the key)
+      const { data, error: queryError } = await supabase
+        .from('businesses')
+        .select('*');
+
+      if (queryError) throw queryError;
+
+      console.log('[Business Search] Total rows checked:', data?.length || 0);
+
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Filter in code by normalized phone match
+      const matches = data.filter((business: any) => {
+        if (!business.phone) return false;
+        const normalizedDb = normalizeIraqiPhone(business.phone);
+        const match = normalizedDb === normalizedInput;
+        if (match) {
+          console.log('[Business Search] Match found:', business.name, '- Phone:', business.phone);
+        }
+        return match;
+      });
+
+      console.log('[Business Search] Phone matches found:', matches.length);
+
+      // Map to Business type
+      return matches.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        nameAr: item.name_ar,
+        nameKu: item.name_ku,
+        category: item.category,
+        governorate: item.governorate,
+        city: item.city,
+        address: item.address,
+        phone: item.phone,
+        rating: item.rating || 0,
+        reviewCount: item.review_count || 0,
+        isFeatured: item.is_featured || false,
+        isVerified: item.is_verified || false,
+        image: item.image_url || item.image,
+        website: item.website,
+        socialLinks: item.social_links || {},
+        description: item.description,
+        descriptionAr: item.description_ar,
+        openingHours: item.opening_hours,
+        ownerId: item.owner_id,
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at || item.created_at)
+      })) as Business[];
+
+    } catch (err) {
+      console.error('[Business Search] Error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to search businesses');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { claimBusiness, submitClaimRequest, createClaimRequest, searchBusinessByPhone, updateBusinessProfile, getOwnedBusinesses, createBusiness, loading, error };
 }

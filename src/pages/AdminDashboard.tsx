@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Papa from 'papaparse';
 import { 
@@ -692,8 +692,10 @@ function FeaturedManager() {
 }
 
 function TextContentManager({ admin }: { admin: any }) {
+  const [originalSettings, setOriginalSettings] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -702,17 +704,56 @@ function TextContentManager({ admin }: { admin: any }) {
   }, []);
 
   const loadSettings = async () => {
+    console.log('[TextContentManager] Loading app settings...');
     setLoading(true);
-    const data = await admin.fetchAppSettings();
-    setSettings(data);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const data = await admin.fetchAppSettings();
+      console.log('[TextContentManager] Loaded settings:', data);
+      setOriginalSettings(data);
+      setSettings(data);
+    } catch (err: any) {
+      console.error('[TextContentManager] Failed to load settings:', err);
+      setLoadError(err?.message || 'Failed to load settings. Please refresh.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check if any field is dirty (changed from original)
+  const isDirty = useMemo(() => {
+    if (!originalSettings || !settings) return false;
+    const fields = [
+      'hero_title_ar', 'hero_title_ku', 'hero_title_en',
+      'hero_subtitle_ar', 'hero_subtitle_ku', 'hero_subtitle_en',
+      'featured_label', 'trending_label'
+    ];
+    const dirty = fields.some(key => (originalSettings[key] || '') !== (settings[key] || ''));
+    console.log('[TextContentManager] isDirty check:', { dirty, original: originalSettings, current: settings });
+    return dirty;
+  }, [originalSettings, settings]);
+
+  const handleFieldChange = (field: string, value: string) => {
+    console.log(`[TextContentManager] Field changed: ${field} = "${value}"`);
+    setSettings((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
-    if (!settings) return;
+    console.log('[TextContentManager] PUBLISH CLICKED');
+    alert('Publish clicked - saving...');
+    
+    if (!settings) {
+      console.error('[TextContentManager] ERROR: No settings loaded');
+      alert('ERROR: Settings not loaded');
+      return;
+    }
+    
+    console.log('[TextContentManager] Starting save with settings:', settings);
     setSaving(true);
+    setMessage('');
+    
     try {
-      await admin.updateAppSettings({
+      const result = await admin.updateAppSettings({
         hero_title_ar: settings.hero_title_ar,
         hero_title_ku: settings.hero_title_ku,
         hero_title_en: settings.hero_title_en,
@@ -722,22 +763,51 @@ function TextContentManager({ admin }: { admin: any }) {
         featured_label: settings.featured_label,
         trending_label: settings.trending_label,
       });
+      console.log('[TextContentManager] Save SUCCESS:', result);
+      setOriginalSettings(settings);
       setMessage('Changes published successfully!');
+      alert('Save SUCCESS!');
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setMessage('Failed to save changes');
+    } catch (err: any) {
+      console.error('[TextContentManager] Save FAILED:', err);
+      setMessage(`Failed to save: ${err?.message || 'Unknown error'}`);
+      alert(`Save FAILED: ${err?.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading || !settings) {
+  if (loading) {
     return (
       <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
+
+  if (loadError) {
+    return (
+      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600 font-bold">{loadError}</p>
+        <button 
+          onClick={loadSettings}
+          className="px-6 py-3 bg-primary text-white font-black rounded-xl"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium flex items-center justify-center min-h-[400px]">
+        <p className="text-slate-400">No settings found</p>
+      </div>
+    );
+  }
+
+  console.log('[TextContentManager] Rendering form, isDirty:', isDirty, 'saving:', saving);
 
   return (
     <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-premium space-y-10">
@@ -746,14 +816,14 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <LayoutDashboard className="w-6 h-6 text-primary" /> Homepage Hero
           </h3>
-          <FormInput label="Main Title (Arabic)" value={settings.hero_title_ar || ''} onChange={v => setSettings({...settings, hero_title_ar: v})} />
-          <FormInput label="Main Title (Kurdish)" value={settings.hero_title_ku || ''} onChange={v => setSettings({...settings, hero_title_ku: v})} />
-          <FormInput label="Main Title (English)" value={settings.hero_title_en || ''} onChange={v => setSettings({...settings, hero_title_en: v})} />
+          <FormInput label="Main Title (Arabic)" value={settings.hero_title_ar || ''} onChange={v => handleFieldChange('hero_title_ar', v)} />
+          <FormInput label="Main Title (Kurdish)" value={settings.hero_title_ku || ''} onChange={v => handleFieldChange('hero_title_ku', v)} />
+          <FormInput label="Main Title (English)" value={settings.hero_title_en || ''} onChange={v => handleFieldChange('hero_title_en', v)} />
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (Arabic)</label>
             <textarea 
               value={settings.hero_subtitle_ar || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ar: e.target.value})}
+              onChange={e => handleFieldChange('hero_subtitle_ar', e.target.value)}
               className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
             />
           </div>
@@ -762,13 +832,13 @@ function TextContentManager({ admin }: { admin: any }) {
           <h3 className="text-xl font-black poppins-bold uppercase tracking-tight flex items-center gap-3">
             <Star className="w-6 h-6 text-accent" /> Section Labels
           </h3>
-          <FormInput label="Featured Section Label" value={settings.featured_label || ''} onChange={v => setSettings({...settings, featured_label: v})} />
-          <FormInput label="Trending Section Label" value={settings.trending_label || ''} onChange={v => setSettings({...settings, trending_label: v})} />
+          <FormInput label="Featured Section Label" value={settings.featured_label || ''} onChange={v => handleFieldChange('featured_label', v)} />
+          <FormInput label="Trending Section Label" value={settings.trending_label || ''} onChange={v => handleFieldChange('trending_label', v)} />
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (Kurdish)</label>
             <textarea 
               value={settings.hero_subtitle_ku || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_ku: e.target.value})}
+              onChange={e => handleFieldChange('hero_subtitle_ku', e.target.value)}
               className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
             />
           </div>
@@ -776,7 +846,7 @@ function TextContentManager({ admin }: { admin: any }) {
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtitle (English)</label>
             <textarea 
               value={settings.hero_subtitle_en || ''}
-              onChange={e => setSettings({...settings, hero_subtitle_en: e.target.value})}
+              onChange={e => handleFieldChange('hero_subtitle_en', e.target.value)}
               className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-sm font-medium min-h-[100px]"
             />
           </div>
@@ -787,14 +857,17 @@ function TextContentManager({ admin }: { admin: any }) {
           {message}
         </div>
       )}
-      <div className="pt-10 border-t border-slate-50 flex justify-end">
+      <div className="pt-10 border-t border-slate-50 flex justify-end items-center gap-4">
+        {isDirty && !saving && (
+          <span className="text-xs text-amber-600 font-bold">Unsaved changes</span>
+        )}
         <button 
           onClick={handleSave}
           disabled={saving}
           className="px-12 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Publish Changes
+          {saving ? 'Publishing...' : 'Publish Changes'}
         </button>
       </div>
     </div>
