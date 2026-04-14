@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchAppSettings, updateAppSettings } from '@/lib/adminApi';
 import type { Business, Post } from '@/lib/supabase';
 
 export interface ClaimRequest {
