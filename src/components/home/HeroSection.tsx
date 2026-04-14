@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useAdmin } from '@/hooks/useAdmin';
 
 interface HeroSectionProps {
   businesses: Business[];
@@ -41,36 +40,9 @@ const HERO_CONTENT = {
 export default function HeroSection({ businesses, onBusinessClick, searchQuery, setSearchQuery }: HeroSectionProps) {
   const { language } = useHomeStore();
   const { profile } = useAuthStore();
-  const admin = useAdmin();
-  const [appSettings, setAppSettings] = useState<any>(null);
-
-  useEffect(() => {
-    const loadSettings = async () => {
-      const settings = await admin.fetchAppSettings();
-      setAppSettings(settings);
-    };
-    loadSettings();
-  }, []);
 
   const isRTL = language === 'ar' || language === 'ku';
-  
-  // Use admin-controlled values from app_settings, fallback to hardcoded
-  const getTitle = () => {
-    if (!appSettings) return HERO_CONTENT[language].title;
-    if (language === 'ar') return appSettings.hero_title_ar || HERO_CONTENT[language].title;
-    if (language === 'ku') return appSettings.hero_title_ku || HERO_CONTENT[language].title;
-    return appSettings.hero_title_en || HERO_CONTENT[language].title;
-  };
-
-  const getSubtitle = () => {
-    if (!appSettings) return HERO_CONTENT[language].subtitle;
-    if (language === 'ar') return appSettings.hero_subtitle_ar || HERO_CONTENT[language].subtitle;
-    if (language === 'ku') return appSettings.hero_subtitle_ku || HERO_CONTENT[language].subtitle;
-    return appSettings.hero_subtitle_en || HERO_CONTENT[language].subtitle;
-  };
-
-  const title = getTitle();
-  const subtitle = getSubtitle();
+  const content = HERO_CONTENT[language];
   
   return (
     <div className="w-full px-4 mb-12 sm:mb-20">
@@ -124,7 +96,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 animate={{ opacity: 1, x: 0 }}
                 className="text-4xl sm:text-7xl font-black text-white tracking-tighter poppins-bold leading-[1] uppercase drop-shadow-2xl"
               >
-                {title}
+                {content.title}
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0, x: -30 }}
@@ -132,7 +104,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 transition={{ delay: 0.1 }}
                 className="text-lg sm:text-2xl font-medium text-white/70 leading-relaxed max-w-xl"
               >
-                {subtitle}
+                {content.subtitle}
               </motion.p>
             </div>
 

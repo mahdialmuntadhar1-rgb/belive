@@ -182,14 +182,22 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-5">
                 <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-[24px] flex items-center gap-5 group hover:bg-white/10 transition-all cursor-pointer">
-                  <div className="text-4xl">🍎</div>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.05 20.28c-.98.95-2.05 1.88-3.19 1.9-1.19.02-1.58-.75-2.95-.75-1.36 0-1.79.73-2.93.77-1.16.04-2.35-.99-3.33-1.91-2-1.89-3.53-5.33-1.51-8.83 1-1.74 2.8-2.85 4.76-2.88 1.49-.02 2.89 1.01 3.8 1.01.9 0 2.62-1.23 4.41-1.05.75.03 2.85.3 4.2 2.26-.11.07-2.5 1.46-2.47 4.35.03 3.44 3.03 4.62 3.06 4.64-.03.07-.48 1.65-1.59 2.73zM12.03 5.95c-.08-2.02 1.62-3.8 3.53-4.16.18 2.15-1.84 4.15-3.53 4.16z"/>
+                    </svg>
+                  </div>
                   <div>
                     <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest mb-1">Available on</p>
                     <p className="text-base font-black">App Store</p>
                   </div>
                 </div>
                 <div className="flex-1 bg-white/5 border border-white/10 p-5 rounded-[24px] flex items-center gap-5 group hover:bg-white/10 transition-all cursor-pointer">
-                  <div className="text-4xl">🤖</div>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.31-.632V2.447c0-.23.08-.453.23-.633h.079zm11.33 10.186l3.34 1.89c.77.437.77 1.565 0 2.002l-2.733 1.548-3.13-3.13 2.523-2.31zm-1.143-1.143L11.273 8.334 3.99 1.432c.368-.113.774-.032 1.082.21l8.724 4.94zm-1.143 1.143L10.13 14.523l-7.64 7.64c-.308.242-.714.323-1.082.21l11.246-11.246z"/>
+                    </svg>
+                  </div>
                   <div>
                     <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest mb-1">Get it on</p>
                     <p className="text-base font-black">Google Play</p>
