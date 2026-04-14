@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/stores/authStore';
 import type { Post } from '@/lib/supabase';
 
 export function usePosts(businessId?: string) {
+  const { user, profile } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,12 +93,34 @@ export function usePosts(businessId?: string) {
   };
 
   const createPost = async (content: string, imageUrl?: string, metadata?: { businessName?: string, businessAvatar?: string, isVerified?: boolean }) => {
+    // Security check: user must be authenticated
+    if (!user) {
+      throw new Error('You must be logged in to create a post');
+    }
+
+    // Security check: business owners can only create posts for their own businesses
+    if (businessId && profile?.role === 'business_owner') {
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', businessId)
+        .single();
+
+      if (businessError || !business) {
+        throw new Error('Business not found');
+      }
+
+      if (business.owner_id !== user.id) {
+        throw new Error('You can only create posts for your own businesses');
+      }
+    }
+
     try {
       const { data, error: insertError } = await supabase
         .from('posts')
         .insert([
           {
-            businessId: businessId || `fallback-${Math.random().toString(36).substr(2, 9)}`,
+            business_id: businessId || `fallback-${Math.random().toString(36).substr(2, 9)}`,
             content,
             caption: content,
             image_url: imageUrl,
@@ -112,7 +136,7 @@ export function usePosts(businessId?: string) {
         .single();
 
       if (insertError) throw insertError;
-      
+
       if (data) {
         // Refresh posts
         fetchPosts();
