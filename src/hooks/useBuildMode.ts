@@ -92,6 +92,29 @@ export const useBuildMode = create<BuildModeState>()(
         heroSlides: state.heroSlides,
         buildModeEnabled: state.buildModeEnabled 
       }),
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          return JSON.parse(str);
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (e) {
+            if (e instanceof DOMException && (
+              e.code === 22 || 
+              e.code === 1014 || 
+              e.name === 'QuotaExceededError' || 
+              e.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+            ) {
+              console.error('Build Mode: LocalStorage quota exceeded. Image may be too large.');
+              alert('Storage full! This image is too large to save locally. Try a smaller image or use a URL instead.');
+            }
+          }
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
     }
   )
 );
