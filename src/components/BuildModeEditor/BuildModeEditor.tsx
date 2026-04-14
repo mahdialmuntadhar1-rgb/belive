@@ -3,7 +3,7 @@
  * Main Build Mode Editor panel.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
@@ -22,15 +22,34 @@ import BuildModeToggle from './BuildModeToggle';
 import SlideList from './SlideList';
 import ImageUploader from './ImageUploader';
 import { disableBuildModeAccess, canAccessBuildMode } from '@/lib/buildModeAccess';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, CloudUpload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function BuildModeEditor() {
-  const { buildModeEnabled, toggleBuildMode, lastSaved, resetToOriginal, saveToRepo, isSaving } = useBuildMode();
+  const { 
+    buildModeEnabled, 
+    toggleBuildMode, 
+    lastSaved, 
+    resetToOriginal, 
+    saveToRepo, 
+    isSaving,
+    heroSlides,
+    hasUnsavedChanges
+  } = useBuildMode();
   const [activeSection, setActiveSection] = useState<'hero' | null>(null);
   const [showSaved, setShowSaved] = useState(false);
 
+  // Auto-save logic
+  useEffect(() => {
+    if (hasUnsavedChanges && !isSaving) {
+      const timer = setTimeout(() => {
+        saveToRepo(true); // Silent save
+      }, 3000); // 3 second debounce
+      return () => clearTimeout(timer);
+    }
+  }, [heroSlides, hasUnsavedChanges, isSaving, saveToRepo]);
+
   // Ensure access is initialized (checks URL ?builder=1)
-  React.useEffect(() => {
+  useEffect(() => {
     canAccessBuildMode();
   }, []);
 
@@ -67,21 +86,28 @@ export default function BuildModeEditor() {
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
                 <h2 className="text-xl font-black poppins-bold uppercase tracking-tight text-primary">Build Mode Editor</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Temporary Playground Only</p>
-                  <AnimatePresence>
-                    {showSaved && (
-                      <motion.span 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1"
-                      >
-                        <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                        ✓ Saved locally
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Repository Sync</p>
+                    <div className="flex items-center gap-1.5">
+                      {isSaving ? (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-amber-500 uppercase tracking-widest">
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                          Syncing...
+                        </div>
+                      ) : hasUnsavedChanges ? (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          <CloudUpload className="w-2.5 h-2.5" />
+                          Unsaved
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-emerald-500 uppercase tracking-widest">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          Synced to Repo
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <button 
@@ -95,12 +121,30 @@ export default function BuildModeEditor() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-8 space-y-6">
               
+              {/* Sync Status Banner */}
+              {hasUnsavedChanges && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3"
+                >
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  <p className="text-[10px] font-bold text-amber-700 leading-tight">
+                    You have unsaved changes. They will auto-sync to the repository in a few seconds.
+                  </p>
+                </motion.div>
+              )}
+
               {/* Save to Repo Button - CRITICAL */}
               <div className="mb-8">
                 <button 
-                  onClick={saveToRepo}
+                  onClick={() => saveToRepo(false)}
                   disabled={isSaving}
-                  className="w-full py-6 bg-emerald-500 text-white rounded-[32px] shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+                  className={`w-full py-6 rounded-[32px] shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100 ${
+                    hasUnsavedChanges 
+                      ? 'bg-primary text-white shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-95' 
+                      : 'bg-slate-100 text-slate-400 shadow-none cursor-default'
+                  }`}
                 >
                   {isSaving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -108,8 +152,12 @@ export default function BuildModeEditor() {
                     <Save className="w-5 h-5" />
                   )}
                   <div className="flex flex-col items-start">
-                    <span className="text-xs font-black uppercase tracking-widest">Save to Repository</span>
-                    <span className="text-[8px] font-bold opacity-70 uppercase tracking-tight">Persist changes to source code</span>
+                    <span className="text-xs font-black uppercase tracking-widest">
+                      {hasUnsavedChanges ? 'Sync Changes Now' : 'All Changes Synced'}
+                    </span>
+                    <span className="text-[8px] font-bold opacity-70 uppercase tracking-tight">
+                      {hasUnsavedChanges ? 'Persist edits to source code' : 'Repository is up to date'}
+                    </span>
                   </div>
                 </button>
               </div>

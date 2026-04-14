@@ -14,6 +14,7 @@ interface BuildModeState {
   activeSlideId: string | null;
   lastSaved: string | null;
   isSaving: boolean;
+  hasUnsavedChanges: boolean;
   
   // Actions
   toggleBuildMode: () => void;
@@ -23,7 +24,7 @@ interface BuildModeState {
   updateSlide: (slideId: string, updates: Partial<HeroSlide>) => void;
   reorderSlides: (slideId: string, direction: Direction) => void;
   resetToOriginal: () => void;
-  saveToRepo: () => Promise<void>;
+  saveToRepo: (silent?: boolean) => Promise<void>;
 }
 
 export const useBuildMode = create<BuildModeState>()((set, get) => ({
@@ -32,6 +33,7 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
   activeSlideId: null,
   lastSaved: null,
   isSaving: false,
+  hasUnsavedChanges: false,
 
   toggleBuildMode: () => set((state) => ({ buildModeEnabled: !state.buildModeEnabled })),
 
@@ -40,18 +42,21 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
   addSlide: (slide) => set((state) => ({
     heroSlides: [...state.heroSlides, slide],
     activeSlideId: slide.id,
-    lastSaved: new Date().toISOString()
+    lastSaved: new Date().toISOString(),
+    hasUnsavedChanges: true
   })),
 
   deleteSlide: (slideId) => set((state) => ({
     heroSlides: state.heroSlides.filter((s) => s.id !== slideId),
     activeSlideId: state.activeSlideId === slideId ? null : state.activeSlideId,
-    lastSaved: new Date().toISOString()
+    lastSaved: new Date().toISOString(),
+    hasUnsavedChanges: true
   })),
 
   updateSlide: (slideId, updates) => set((state) => ({
     heroSlides: state.heroSlides.map((s) => s.id === slideId ? { ...s, ...updates } : s),
-    lastSaved: new Date().toISOString()
+    lastSaved: new Date().toISOString(),
+    hasUnsavedChanges: true
   })),
 
   reorderSlides: (slideId, direction) => set((state) => {
@@ -67,16 +72,18 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
     
     return { 
       heroSlides: newSlides,
-      lastSaved: new Date().toISOString()
+      lastSaved: new Date().toISOString(),
+      hasUnsavedChanges: true
     };
   }),
 
   resetToOriginal: () => set({ 
     heroSlides: heroContent,
-    lastSaved: new Date().toISOString()
+    lastSaved: new Date().toISOString(),
+    hasUnsavedChanges: true
   }),
 
-  saveToRepo: async () => {
+  saveToRepo: async (silent = false) => {
     set({ isSaving: true });
     try {
       const response = await fetch('/api/build-mode/save-hero', {
@@ -91,12 +98,17 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
       set({ 
         heroSlides: data.slides,
         lastSaved: new Date().toISOString(),
-        isSaving: false 
+        isSaving: false,
+        hasUnsavedChanges: false
       });
-      alert('Changes saved to repository successfully! You can now push to GitHub.');
+      if (!silent) {
+        alert('Changes saved to repository successfully! You can now push to GitHub.');
+      }
     } catch (error) {
       console.error('Error saving to repo:', error);
-      alert('Failed to save to repository.');
+      if (!silent) {
+        alert('Failed to save to repository.');
+      }
       set({ isSaving: false });
     }
   }
