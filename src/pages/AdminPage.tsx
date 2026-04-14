@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified'>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Content editor state
   const [heroTitle, setHeroTitle] = useState('');
@@ -47,6 +48,11 @@ export default function AdminPage() {
   // Post editor state
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     checkAccess();
@@ -156,6 +162,7 @@ export default function AdminPage() {
     if (!file) return;
 
     setUploading(true);
+    showToast('Uploading...', 'info');
     const result = await uploadImage(file, 'hero-images');
     setUploading(false);
 
@@ -166,12 +173,12 @@ export default function AdminPage() {
       
       if (updateResult.success) {
         await loadData();
-        alert('Hero image updated successfully!');
+        showToast('✓ Uploaded successfully', 'success');
       } else {
-        alert(updateResult.error || 'Failed to update hero image');
+        showToast('Upload failed', 'error');
       }
     } else {
-      alert(result.error || 'Failed to upload image');
+      showToast('Upload failed', 'error');
     }
   };
 
@@ -182,6 +189,7 @@ export default function AdminPage() {
     }
 
     setUploading(true);
+    showToast('Uploading...', 'info');
     let imageUrl: string | undefined;
 
     if (newPostImage) {
@@ -204,9 +212,9 @@ export default function AdminPage() {
 
     if (result.success) {
       await loadData();
-      alert('Post created successfully!');
+      showToast('✓ Uploaded successfully', 'success');
     } else {
-      alert(result.error || 'Failed to create post');
+      showToast('Upload failed', 'error');
     }
   };
 
@@ -693,7 +701,7 @@ export default function AdminPage() {
                                 {actionLoading === business.id ? '...' : business.is_featured ? '⭐' : '⭐'}
                               </button>
                               <button
-                                onClick={() => handleDeleteBusiness(business.id, business.name)}
+                                onClick={() => handleDelete(business.id, business.name)}
                                 disabled={actionLoading === business.id}
                                 className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                                 title="Delete"
@@ -757,6 +765,16 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium animate-slide-up ${
+          toast.type === 'success' ? 'bg-green-600' :
+          toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        }`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
