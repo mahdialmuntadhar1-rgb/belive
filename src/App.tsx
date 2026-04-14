@@ -9,6 +9,7 @@ import Scraper from '@/pages/Scraper';
 import Review from '@/pages/Review';
 import BusinessDashboard from '@/pages/BusinessDashboard';
 import ClaimPage from '@/pages/ClaimPage';
+import ClaimBusinessPage from '@/pages/ClaimBusinessPage';
 import AdminDashboard from '@/pages/AdminDashboard';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AdminRoute from '@/components/auth/AdminRoute';
@@ -51,6 +52,7 @@ export default function App() {
 
         {/* Claim Flow */}
         <Route path="/claim" element={<ClaimPage />} />
+        <Route path="/claim-business" element={<ClaimBusinessPage />} />
 
         {/* Auth Routes */}
         <Route path="/reset-password" element={<ResetPasswordPage />} />

@@ -1,26 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  Store, 
-  PlusCircle, 
-  Settings, 
-  Image as ImageIcon, 
-  Send, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  Building2,
+  LayoutDashboard,
+  Store,
+  PlusCircle,
+  Settings,
+  Image as ImageIcon,
+  Send,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
-  Clock,
   Phone,
   Globe,
   MapPin,
-  ChevronRight,
   ArrowLeft,
   Star,
   Heart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import BusinessClaimModal from '@/components/auth/BusinessClaimModal';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
 import { usePosts } from '@/hooks/usePosts';
 import { Business } from '@/lib/supabase';
@@ -30,6 +30,7 @@ export default function BusinessDashboard() {
   const { getOwnedBusinesses, updateBusinessProfile, loading: businessLoading } = useBusinessManagement();
   const [ownedBusinesses, setOwnedBusinesses] = useState<Business[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'posts' | 'settings'>('overview');
   
   // Post Form State
@@ -94,6 +95,58 @@ export default function BusinessDashboard() {
       setIsUpdatingProfile(false);
     }
   };
+
+  // Handle empty state - no businesses owned yet
+  if (ownedBusinesses.length === 0 && !businessLoading) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-xl text-center"
+        >
+          <div className="w-20 h-20 bg-[#2CA6A4]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-10 h-10 text-[#2CA6A4]" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold mb-2">No Businesses Yet</h2>
+          <p className="text-[#6B7280] mb-8">
+            Claim your existing business listing or create a new one to get started.
+          </p>
+          <button
+            onClick={() => setIsClaimModalOpen(true)}
+            className="w-full py-3.5 bg-[#2CA6A4] text-white font-bold rounded-2xl shadow-lg shadow-[#2CA6A4]/20 hover:bg-[#1e7a78] transition-all flex items-center justify-center gap-2 mb-3 uppercase tracking-widest text-xs"
+          >
+            <Building2 className="w-4 h-4" />
+            Claim Existing Business
+          </button>
+          <Link
+            to="/"
+            className="w-full py-3 border-2 border-[#E5E7EB] text-[#2B2F33] font-bold rounded-2xl hover:border-[#2CA6A4] hover:text-[#2CA6A4] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back Home
+          </Link>
+        </motion.div>
+
+        <BusinessClaimModal
+          isOpen={isClaimModalOpen}
+          onClose={() => setIsClaimModalOpen(false)}
+          onClaimSuccess={() => {
+            // Refresh the businesses list
+            const fetchOwned = async () => {
+              const data = await getOwnedBusinesses();
+              setOwnedBusinesses(data);
+              if (data.length > 0) {
+                setSelectedBusiness(data[0]);
+                setEditForm(data[0]);
+              }
+            };
+            fetchOwned();
+          }}
+        />
+      </div>
+    );
+  }
 
   if (profile?.role !== 'business_owner') {
     return (
@@ -441,6 +494,19 @@ export default function BusinessDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Business Claim Modal */}
+      <BusinessClaimModal
+        isOpen={isClaimModalOpen}
+        onClose={() => setIsClaimModalOpen(false)}
+        onClaimSuccess={() => {
+          const fetchOwned = async () => {
+            const data = await getOwnedBusinesses();
+            setOwnedBusinesses(data);
+          };
+          fetchOwned();
+        }}
+      />
     </div>
   );
 }
