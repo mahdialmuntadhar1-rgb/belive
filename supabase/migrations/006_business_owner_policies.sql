@@ -1,5 +1,6 @@
 -- Business Owner RLS Policies
 -- This migration adds proper security for business owners to claim and manage their businesses
+-- PREREQUISITE: Run migration 007_add_owner_id_to_businesses.sql first to add owner_id column
 
 -- 1. Add business owner check function
 CREATE OR REPLACE FUNCTION is_business_owner(user_id uuid)
