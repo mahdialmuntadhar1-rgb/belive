@@ -36,16 +36,25 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
     }
   }, [activeSlideId, buildModeEnabled, slidesToUse.length]);
 
+  const [direction, setDirection] = useState(0);
+
+  const nextSlide = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
+  };
+
+  const prevSlide = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
+  };
+
   useEffect(() => {
     if (slidesToUse.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
+      nextSlide();
     }, 5000);
     return () => clearInterval(timer);
   }, [slidesToUse.length]);
-
-  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
-  const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
 
   // Fallback if no slides
   if (slidesToUse.length === 0) {
@@ -53,24 +62,43 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   }
 
   const currentSlide = slidesToUse[currentIndex];
-  
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? '100%' : '-100%',
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? '100%' : '-100%',
+      opacity: 0
+    })
+  };
+
   return (
     <div className="w-full px-4 mb-12 sm:mb-20">
       <div className="max-w-6xl mx-auto">
-        <div className="relative overflow-hidden rounded-[48px] aspect-square sm:aspect-[16/9] lg:aspect-[21/9] flex items-end group">
-          <AnimatePresence mode="wait">
+        <div className="relative overflow-hidden rounded-[48px] aspect-square flex items-end group">
+          <AnimatePresence initial={false} custom={direction}>
             <motion.div 
               key={currentSlide.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="absolute inset-0 z-0"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.5 }
+              }}
+              className="absolute inset-0"
             >
-              <motion.img 
-                initial={{ scale: 1.1 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 10 }}
+              <img 
                 src={currentSlide.image} 
                 alt="Hero Image"
                 className="w-full h-full object-cover"
