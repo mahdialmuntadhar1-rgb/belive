@@ -14,6 +14,41 @@ async function startServer() {
   // Increase payload limit for base64 images
   app.use(express.json({ limit: '50mb' }));
 
+  const distPath = path.join(process.cwd(), 'dist');
+  const publicPath = path.join(process.cwd(), 'public');
+
+  // 1. Explicitly serve manifest with correct headers to avoid 401
+  // Move to top to ensure it's not intercepted
+  app.get(['/manifest.json', '/manifest.webmanifest'], (req, res) => {
+    const manifestPath = path.join(distPath, 'manifest.json');
+    const fallbackPath = path.join(publicPath, 'manifest.json');
+    const finalPath = fs.existsSync(manifestPath) ? manifestPath : fallbackPath;
+
+    if (fs.existsSync(finalPath)) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.sendFile(finalPath);
+    }
+    res.status(404).send('Not found');
+  });
+
+  // 2. Explicitly serve hero images to avoid any path issues
+  app.get('/hero/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const distHeroPath = path.join(distPath, 'hero', filename);
+    const publicHeroPath = path.join(publicPath, 'hero', filename);
+    const finalPath = fs.existsSync(distHeroPath) ? distHeroPath : publicHeroPath;
+
+    if (fs.existsSync(finalPath)) {
+      res.setHeader('Content-Type', 'image/jpeg'); // Default to jpeg
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.sendFile(finalPath);
+    }
+    res.status(404).send('Not found');
+  });
+
   // API Route to save hero content
   app.post('/api/build-mode/save-hero', async (req, res) => {
     try {
@@ -63,28 +98,6 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    
-    // Explicitly serve manifest with correct headers to avoid 401
-    app.get('/manifest.webmanifest', (req, res) => {
-      const manifestPath = path.join(distPath, 'manifest.webmanifest');
-      if (fs.existsSync(manifestPath)) {
-        res.setHeader('Content-Type', 'application/manifest+json');
-        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        return res.sendFile(manifestPath);
-      }
-      // Fallback to public if not in dist
-      const publicManifestPath = path.join(process.cwd(), 'public', 'manifest.webmanifest');
-      if (fs.existsSync(publicManifestPath)) {
-        res.setHeader('Content-Type', 'application/manifest+json');
-        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        return res.sendFile(publicManifestPath);
-      }
-      res.status(404).send('Not found');
-    });
-
     app.use(express.static(distPath, {
       setHeaders: (res, path) => {
         if (path.endsWith('.webmanifest')) {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import HomePage from '@/pages/HomePage';
 import Scraper from '@/pages/Scraper';
 import Review from '@/pages/Review';
@@ -13,6 +13,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AdminRoute from '@/components/auth/AdminRoute';
 import BuildModeEditor from '@/components/BuildModeEditor/BuildModeEditor';
+import BuildModeToggle from '@/components/BuildModeEditor/BuildModeToggle';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
 import { useAuthStore } from '@/stores/authStore';
 import { ShieldCheck } from 'lucide-react';
@@ -21,15 +22,19 @@ import './styles/humus-design.css';
 
 export default function App() {
   const { profile } = useAuthStore();
+  const location = useLocation();
   
-  // Admin visibility logic: Check role OR show always in DEV mode
-  const showAdminFAB = (profile?.role === 'admin') || (import.meta.env.DEV);
+  // Admin visibility logic: Show ONLY on non-homepage OR if explicitly admin role
+  // Hiding from homepage as per user request to avoid confusion with Build Mode
+  const isHomePage = location.pathname === '/';
+  const showAdminFAB = !isHomePage && ((profile?.role === 'admin') || (import.meta.env.DEV));
 
-  // Build Mode Access Check
-  const hasBuildModeAccess = canAccessBuildMode();
+  // Build Mode Access Check - Reactive to location changes
+  // Requirement: URL ?builder=1 AND localStorage owner_builder_access="true"
+  const hasBuildModeAccess = canAccessBuildMode(location.search);
 
   return (
-    <Router>
+    <>
       <Routes>
         {/* Main Homepage - Version 1 Design */}
         <Route path="/" element={<HomePage />} />
@@ -61,8 +66,13 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Build Mode Editor - Build Mode Only */}
-      {hasBuildModeAccess && <BuildModeEditor />}
+      {/* Build Mode - Owner Only */}
+      {hasBuildModeAccess && (
+        <>
+          <BuildModeToggle />
+          <BuildModeEditor />
+        </>
+      )}
 
       {/* Global Admin Access FAB */}
       <AnimatePresence>
@@ -86,6 +96,6 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-    </Router>
+    </>
   );
 }

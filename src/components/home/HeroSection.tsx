@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboard, ArrowRight, Download, Briefcase, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -22,28 +22,34 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   const isRTL = language === 'ar' || language === 'ku';
 
   // Single Source of Truth: Use playground slides in Build Mode, otherwise use heroContent.ts
-  const slidesToUse = buildModeEnabled && playgroundSlides.length > 0
-    ? playgroundSlides
-    : heroContent;
+  // Ensure we fallback to heroContent if playground is empty or build mode is disabled
+  const slidesToUse = useMemo(() => {
+    if (buildModeEnabled && playgroundSlides && playgroundSlides.length > 0) {
+      return playgroundSlides;
+    }
+    return heroContent && heroContent.length > 0 ? heroContent : [];
+  }, [buildModeEnabled, playgroundSlides]);
 
   // Sync currentIndex with activeSlideId in Build Mode
   useEffect(() => {
-    if (buildModeEnabled && activeSlideId) {
+    if (buildModeEnabled && activeSlideId && slidesToUse.length > 0) {
       const index = slidesToUse.findIndex(s => s.id === activeSlideId);
       if (index !== -1) {
         setCurrentIndex(index);
       }
     }
-  }, [activeSlideId, buildModeEnabled, slidesToUse.length]);
+  }, [activeSlideId, buildModeEnabled, slidesToUse]);
 
   const [direction, setDirection] = useState(0);
 
   const nextSlide = () => {
+    if (slidesToUse.length === 0) return;
     setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
   };
 
   const prevSlide = () => {
+    if (slidesToUse.length === 0) return;
     setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
   };
@@ -57,11 +63,20 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   }, [slidesToUse.length]);
 
   // Fallback if no slides
-  if (slidesToUse.length === 0) {
-    return null;
+  if (!slidesToUse || slidesToUse.length === 0) {
+    return (
+      <div className="w-full px-4 mb-12 sm:mb-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-[48px] aspect-video bg-slate-100 flex items-center justify-center">
+            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No Hero Content Available</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const currentSlide = slidesToUse[currentIndex];
+  const currentSlide = slidesToUse[currentIndex] || slidesToUse[0];
+  if (!currentSlide) return null;
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -103,6 +118,9 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 alt="Hero Image"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/belive-fallback/1200/600';
+                }}
               />
             </motion.div>
           </AnimatePresence>

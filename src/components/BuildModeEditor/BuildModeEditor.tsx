@@ -18,14 +18,15 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { useBuildMode } from '@/hooks/useBuildMode';
-import BuildModeToggle from './BuildModeToggle';
 import SlideList from './SlideList';
 import ImageUploader from './ImageUploader';
+import { useLocation } from 'react-router-dom';
 import { disableBuildModeAccess, canAccessBuildMode } from '@/lib/buildModeAccess';
 import { Save, Loader2, CloudUpload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function BuildModeEditor() {
-  if (!canAccessBuildMode()) return null;
+  const location = useLocation();
+  if (!canAccessBuildMode(location.search)) return null;
 
   const { 
     buildModeEnabled, 
@@ -68,8 +69,6 @@ export default function BuildModeEditor() {
 
   return (
     <>
-      <BuildModeToggle />
-
       <AnimatePresence>
         {buildModeEnabled && (
           <motion.div 
