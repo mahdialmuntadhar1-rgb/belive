@@ -52,7 +52,6 @@ export default function StorySection() {
                   
                   {isActive && (
                     <motion.div 
-                      layoutId="active-story-dot"
                       className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full border-4 border-white shadow-lg"
                     />
                   )}

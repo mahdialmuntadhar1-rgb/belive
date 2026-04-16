@@ -126,31 +126,27 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult & { feat
 
   const fetchFeatured = async () => {
     try {
-      // Try is_featured first, then fallback to isFeatured if needed
+      // Fetch businesses without filtering on potentially missing 'is_featured' column
+      // to avoid 400 errors in production. Filter in JS instead.
       const { data, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
-        .eq('is_featured', true)
-        .limit(5);
+        .limit(50);
       
-      if (fetchError) {
-        // If is_featured fails, try isFeatured
-        const { data: altData, error: altError } = await supabase
-          .from('businesses')
-          .select('*')
-          .eq('isFeatured', true)
-          .limit(5);
+      if (fetchError) throw fetchError;
+      
+      if (data) {
+        // Filter for featured businesses in JS
+        const featured = data.filter((item: any) => item.is_featured === true || item.isFeatured === true);
         
-        if (altError) throw altError;
-        if (altData) {
-          mapFeaturedData(altData);
-        }
-      } else if (data) {
-        mapFeaturedData(data);
+        // If we found featured businesses, use them. Otherwise use the first 5 as "featured"
+        const finalFeatured = featured.length > 0 ? featured.slice(0, 5) : data.slice(0, 5);
+        mapFeaturedData(finalFeatured);
       }
     } catch (err) {
       console.error('Error fetching featured businesses:', err);
-      // Fail silently, don't block homepage
+      // Fallback to empty or predefined featured if everything fails
+      setFeaturedBusinesses([]);
     }
   };
 

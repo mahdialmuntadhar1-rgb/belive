@@ -15,10 +15,12 @@ interface HeroSlideEditorProps {
   total: number;
 }
 
+import { useLocation } from 'react-router-dom';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
 
 export default function HeroSlideEditor({ slide, index, total }: HeroSlideEditorProps) {
-  if (!canAccessBuildMode()) return null;
+  const location = useLocation();
+  if (!canAccessBuildMode(location.search)) return null;
 
   const { updateSlide, deleteSlide, reorderSlides, setActiveSlideId } = useBuildMode();
 

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboard, ArrowRight, Download, Briefcase, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { useAdminDB, HeroSlide } from '@/hooks/useAdminDB';
+import { useBuildMode } from '@/hooks/useBuildMode';
+import { heroContent } from '@/data/heroContent';
+import { Upload } from 'lucide-react';
 
 interface HeroSectionProps {
   businesses: Business[];
@@ -21,29 +23,35 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
 
   const isRTL = language === 'ar' || language === 'ku';
 
-  // Fetch hero slides from Supabase on mount
-  useEffect(() => {
-    const loadHeroSlides = async () => {
-      try {
-        const slides = await fetchHeroSlides();
-        setHeroSlides(slides);
-      } catch (err) {
-        console.error('Failed to load hero slides:', err);
-      }
-    };
-    loadHeroSlides();
-  }, [fetchHeroSlides]);
+  // Single Source of Truth: Use playground slides in Build Mode, otherwise use heroContent.ts
+  // Ensure we fallback to heroContent if playground is empty or build mode is disabled
+  const slidesToUse = useMemo(() => {
+    if (buildModeEnabled && playgroundSlides && playgroundSlides.length > 0) {
+      return playgroundSlides;
+    }
+    return heroContent && heroContent.length > 0 ? heroContent : [];
+  }, [buildModeEnabled, playgroundSlides]);
 
-  const slidesToUse = heroSlides;
+  // Sync currentIndex with activeSlideId in Build Mode
+  useEffect(() => {
+    if (buildModeEnabled && activeSlideId && slidesToUse.length > 0) {
+      const index = slidesToUse.findIndex(s => s.id === activeSlideId);
+      if (index !== -1) {
+        setCurrentIndex(index);
+      }
+    }
+  }, [activeSlideId, buildModeEnabled, slidesToUse]);
 
   const [direction, setDirection] = useState(0);
 
   const nextSlide = () => {
+    if (slidesToUse.length === 0) return;
     setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
   };
 
   const prevSlide = () => {
+    if (slidesToUse.length === 0) return;
     setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
   };
@@ -57,11 +65,34 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   }, [slidesToUse.length]);
 
   // Fallback if no slides
-  if (slidesToUse.length === 0) {
-    return null;
+  if (!slidesToUse || slidesToUse.length === 0) {
+    return (
+      <div className="w-full px-4 mb-12 sm:mb-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-[48px] aspect-video bg-slate-100 flex items-center justify-center">
+            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No Hero Content Available</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const currentSlide = slidesToUse[currentIndex];
+  const currentSlide = slidesToUse[currentIndex] || slidesToUse[0];
+  if (!currentSlide) return null;
+
+  const { updateSlide } = useBuildMode();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      updateSlide(currentSlide.id, { image: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -122,7 +153,26 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                 alt="Hero Image"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/belive-fallback/1200/600';
+                }}
               />
+
+              {/* Build Mode Overlay Controls */}
+              {buildModeEnabled && (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <label className="cursor-pointer bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform group">
+                    <Upload className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-black uppercase tracking-widest text-primary">Replace Background</span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

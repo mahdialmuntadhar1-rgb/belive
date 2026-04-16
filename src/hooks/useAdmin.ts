@@ -35,9 +35,10 @@ export function useAdmin() {
         supabase.from('businesses').select('*', { count: 'exact', head: true }),
         supabase.from('posts').select('*', { count: 'exact', head: true }),
         supabase.from('claim_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('is_featured', true).then(res => {
-          if (res.error) return supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('isFeatured', true);
-          return res;
+        supabase.from('businesses').select('is_featured, isFeatured').then(res => {
+          if (res.error || !res.data) return { count: 0 };
+          const count = res.data.filter((item: any) => item.is_featured === true || item.isFeatured === true).length;
+          return { count };
         }),
         supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('is_verified', true)
       ]);

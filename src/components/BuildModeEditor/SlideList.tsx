@@ -7,11 +7,12 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import { useBuildMode } from '@/hooks/useBuildMode';
 import HeroSlideEditor from './HeroSlideEditor';
-
+import { useLocation } from 'react-router-dom';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
 
 export default function SlideList() {
-  if (!canAccessBuildMode()) return null;
+  const location = useLocation();
+  if (!canAccessBuildMode(location.search)) return null;
 
   const { heroSlides, addSlide } = useBuildMode();
 

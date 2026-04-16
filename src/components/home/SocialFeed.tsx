@@ -8,6 +8,7 @@ import { useBusinesses } from '@/hooks/useBusinesses';
 import { Business, Post } from '@/lib/supabase';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useBuildMode } from '@/hooks/useBuildMode';
 
 const formatMetric = (num: number) => {
   return num.toString();
@@ -85,6 +86,7 @@ const FALLBACK_POST_TEMPLATES = [
 export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   const { language } = useHomeStore();
   const { user } = useAuth();
+  const { feedItems } = useBuildMode();
   const { posts: realPosts, loading: postsLoading, error, hasMore, loadMore, likePost, createPost, addComment, fetchComments, refresh: fetchPosts } = usePosts();
   const { businesses, featuredBusinesses, loading: bizLoading } = useBusinesses("");
   const [isSeeding, setIsSeeding] = React.useState(false);
@@ -96,7 +98,25 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   
   const isRTL = language === 'ar' || language === 'ku';
 
+  // Use real posts + build mode items
+  const displayPosts = React.useMemo(() => {
+    const itemsAsPosts = feedItems.map(item => ({
+      id: item.id,
+      businessId: 'official',
+      authorName: item.authorName || (language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'),
+      authorAvatar: item.authorAvatar || '/logo.png',
+      content: item.caption || '',
+      image: item.image,
+      likes: 1200,
+      createdAt: new Date().toISOString(),
+      isVerified: true
+    }));
+    
+    return [...itemsAsPosts, ...realPosts];
+  }, [feedItems, realPosts, language]);
+
   const handleLike = async (postId: string) => {
+    if (postId.length > 20) return; // Skip for build mode items
     await likePost(postId, user?.id);
   };
 
@@ -143,6 +163,9 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   // AI Seeder Logic
   React.useEffect(() => {
     const seedPosts = async () => {
+      // Disable seeding if we have build mode feed items (manual control)
+      if (feedItems.length > 0) return;
+      
       if (postsLoading || bizLoading || realPosts.length >= 50 || isSeeding) return;
       
       if (realPosts.length > 5) return;
@@ -206,9 +229,6 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
 
     seedPosts();
   }, [realPosts, businesses, postsLoading, bizLoading, isSeeding]);
-
-  // Use real posts only
-  const displayPosts = realPosts;
 
   const isLoading = postsLoading || (realPosts.length === 0 && bizLoading);
 

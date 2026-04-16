@@ -19,14 +19,16 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { useBuildMode } from '@/hooks/useBuildMode';
-import BuildModeToggle from './BuildModeToggle';
 import SlideList from './SlideList';
+import FeedList from './FeedList';
 import ImageUploader from './ImageUploader';
-import { useAuthStore } from '@/stores/authStore';
-import { Save, Loader2, CloudUpload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { disableBuildModeAccess, canAccessBuildMode } from '@/lib/buildModeAccess';
+import { Save, Loader2, CloudUpload, CheckCircle2, AlertCircle, ImageIcon, Smartphone } from 'lucide-react';
 
 export default function BuildModeEditor() {
-  const { profile } = useAuthStore();
+  const location = useLocation();
+  if (!canAccessBuildMode(location.search)) return null;
 
   // Admin-only access control
   if (profile?.role !== 'admin') return null;
@@ -39,12 +41,12 @@ export default function BuildModeEditor() {
     saveToRepo,
     isSaving,
     heroSlides,
+    feedItems,
     hasUnsavedChanges
   } = useBuildMode();
-  const [activeSection, setActiveSection] = useState<'hero' | null>(null);
+  const [activeTab, setActiveTab] = useState<'hero' | 'feed'>('hero');
   const [showSaved, setShowSaved] = useState(false);
 
-  // Auto-save logic
   useEffect(() => {
     if (hasUnsavedChanges && !isSaving) {
       const timer = setTimeout(() => {
@@ -52,7 +54,7 @@ export default function BuildModeEditor() {
       }, 3000); // 3 second debounce
       return () => clearTimeout(timer);
     }
-  }, [heroSlides, hasUnsavedChanges, isSaving, saveToRepo]);
+  }, [heroSlides, feedItems, hasUnsavedChanges, isSaving, saveToRepo]);
 
   // Show "Saved" feedback briefly when lastSaved changes
   React.useEffect(() => {
@@ -65,8 +67,6 @@ export default function BuildModeEditor() {
 
   return (
     <>
-      <BuildModeToggle />
-
       <AnimatePresence>
         {buildModeEnabled && (
           <motion.div 
@@ -106,15 +106,34 @@ export default function BuildModeEditor() {
               </div>
               <button 
                 onClick={toggleBuildMode}
-                className="p-3 hover:bg-white rounded-2xl transition-colors shadow-sm border border-slate-100"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-white rounded-2xl transition-colors shadow-sm border border-slate-100"
               >
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Close</span>
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
               
+              {/* Tab Switcher */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl">
+                <button 
+                  onClick={() => setActiveTab('hero')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'hero' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Hero
+                </button>
+                <button 
+                  onClick={() => setActiveTab('feed')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'feed' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  Feed
+                </button>
+              </div>
+
               {/* Sync Status Banner */}
               {hasUnsavedChanges && (
                 <motion.div 
@@ -124,13 +143,13 @@ export default function BuildModeEditor() {
                 >
                   <AlertCircle className="w-4 h-4 text-amber-500" />
                   <p className="text-[10px] font-bold text-amber-700 leading-tight">
-                    You have unsaved changes. They will auto-sync to the repository in a few seconds.
+                    Unsaved changes detected. They will auto-sync to the repository.
                   </p>
                 </motion.div>
               )}
 
-              {/* Save to Repo Button - CRITICAL */}
-              <div className="mb-8">
+              {/* Save to Repo Button */}
+              <div>
                 <button 
                   onClick={() => saveToRepo(false)}
                   disabled={isSaving}
@@ -147,7 +166,7 @@ export default function BuildModeEditor() {
                   )}
                   <div className="flex flex-col items-start">
                     <span className="text-xs font-black uppercase tracking-widest">
-                      {hasUnsavedChanges ? 'Sync Changes Now' : 'All Changes Synced'}
+                      {hasUnsavedChanges ? 'Sync to Repository' : 'All Changes Synced'}
                     </span>
                     <span className="text-[8px] font-bold opacity-70 uppercase tracking-tight">
                       {hasUnsavedChanges ? 'Persist edits to source code' : 'Repository is up to date'}
@@ -156,28 +175,26 @@ export default function BuildModeEditor() {
                 </button>
               </div>
 
-              {/* Hero Section Editor */}
-              <SectionCollapse 
-                title="Hero Section" 
-                icon={<Layout className="w-4 h-4" />} 
-                isOpen={activeSection === 'hero'} 
-                onToggle={() => setActiveSection(activeSection === 'hero' ? null : 'hero')}
-              >
-                <SlideList />
-                
-                <div className="mt-8 pt-6 border-t border-slate-100">
+              {/* Editor Sections */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    {activeTab === 'hero' ? 'Hero Slides' : 'Feed / Poster Items'}
+                  </h3>
                   <button 
                     onClick={() => {
-                      if (confirm('Reset all hero slides to default? This cannot be undone.')) {
+                      if (confirm(`Reset all ${activeTab === 'hero' ? 'hero slides' : 'feed items'} to default? This cannot be undone.`)) {
                         resetToOriginal();
                       }
                     }}
-                    className="w-full py-4 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-dashed border-slate-200 hover:border-red-100"
+                    className="text-[9px] font-black text-slate-300 hover:text-red-500 uppercase tracking-widest transition-colors"
                   >
-                    Reset to Defaults
+                    Reset
                   </button>
                 </div>
-              </SectionCollapse>
+                
+                {activeTab === 'hero' ? <SlideList /> : <FeedList />}
+              </div>
 
             </div>
 
@@ -191,60 +208,5 @@ export default function BuildModeEditor() {
         )}
       </AnimatePresence>
     </>
-  );
-}
-
-function SectionCollapse({ title, icon, children, isOpen, onToggle }: any) {
-  return (
-    <div className="border border-slate-100 rounded-[32px] overflow-hidden bg-white shadow-sm">
-      <button 
-        onClick={onToggle}
-        className="w-full p-6 flex items-center justify-between hover:bg-slate-50 transition-colors"
-      >
-        <div className="flex items-center gap-4">
-          <div className={`p-2.5 rounded-xl transition-colors ${isOpen ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400'}`}>
-            {icon}
-          </div>
-          <span className="font-black uppercase tracking-widest text-[11px]">{title}</span>
-        </div>
-        {isOpen ? <ChevronDown className="w-4 h-4 text-slate-300" /> : <ChevronRight className="w-4 h-4 text-slate-300" />}
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-6 pb-6">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function TextInput({ label, value, onChange, isTextArea = false }: any) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
-      {isTextArea ? (
-        <textarea 
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-xs font-medium min-h-[80px] leading-relaxed"
-        />
-      ) : (
-        <input 
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full p-4 bg-white border border-slate-100 rounded-2xl focus:ring-2 focus:ring-primary text-xs font-medium"
-        />
-      )}
-    </div>
   );
 }

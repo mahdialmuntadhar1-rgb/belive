@@ -8,8 +8,17 @@ export interface HeroSlide {
   image: string; // base64 or URL
 }
 
+export interface FeedItem {
+  id: string;
+  image: string;
+  caption?: string;
+  authorName?: string;
+  authorAvatar?: string;
+}
+
 export interface BuildModeData {
   slides: HeroSlide[];
+  feedItems: FeedItem[];
   lastUpdated?: string;
 }
 

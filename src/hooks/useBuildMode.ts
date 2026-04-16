@@ -12,12 +12,14 @@
  */
 
 import { create } from 'zustand';
-import { HeroSlide, Direction } from '@/types/buildMode';
+import { HeroSlide, FeedItem, Direction } from '@/types/buildMode';
 import { heroContent } from '@/data/heroContent';
+import { feedContent } from '@/data/feedContent';
 
 interface BuildModeState {
   buildModeEnabled: boolean;
   heroSlides: HeroSlide[];
+  feedItems: FeedItem[];
   activeSlideId: string | null;
   lastSaved: string | null;
   isSaving: boolean;
@@ -26,10 +28,19 @@ interface BuildModeState {
   // Actions
   toggleBuildMode: () => void;
   setActiveSlideId: (id: string | null) => void;
+  
+  // Hero Actions
   addSlide: (slide: HeroSlide) => void;
   deleteSlide: (slideId: string) => void;
   updateSlide: (slideId: string, updates: Partial<HeroSlide>) => void;
   reorderSlides: (slideId: string, direction: Direction) => void;
+  
+  // Feed Actions
+  addFeedItem: (item: FeedItem) => void;
+  deleteFeedItem: (itemId: string) => void;
+  updateFeedItem: (itemId: string, updates: Partial<FeedItem>) => void;
+  reorderFeedItems: (itemId: string, direction: Direction) => void;
+
   resetToOriginal: () => void;
   saveToRepo: (silent?: boolean) => Promise<void>;
 }
@@ -37,6 +48,7 @@ interface BuildModeState {
 export const useBuildMode = create<BuildModeState>()((set, get) => ({
   buildModeEnabled: false,
   heroSlides: heroContent,
+  feedItems: feedContent,
   activeSlideId: null,
   lastSaved: null,
   isSaving: false,
@@ -46,57 +58,80 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
 
   setActiveSlideId: (id) => set({ activeSlideId: id }),
 
+  // Hero
   addSlide: (slide) => set((state) => ({
     heroSlides: [...state.heroSlides, slide],
     activeSlideId: slide.id,
-    lastSaved: new Date().toISOString(),
     hasUnsavedChanges: true
   })),
 
   deleteSlide: (slideId) => set((state) => ({
     heroSlides: state.heroSlides.filter((s) => s.id !== slideId),
     activeSlideId: state.activeSlideId === slideId ? null : state.activeSlideId,
-    lastSaved: new Date().toISOString(),
     hasUnsavedChanges: true
   })),
 
   updateSlide: (slideId, updates) => set((state) => ({
     heroSlides: state.heroSlides.map((s) => s.id === slideId ? { ...s, ...updates } : s),
-    lastSaved: new Date().toISOString(),
     hasUnsavedChanges: true
   })),
 
   reorderSlides: (slideId, direction) => set((state) => {
     const index = state.heroSlides.findIndex(s => s.id === slideId);
     if (index === -1) return state;
-    
     const newSlides = [...state.heroSlides];
     if (direction === 'up' && index > 0) {
       [newSlides[index], newSlides[index - 1]] = [newSlides[index - 1], newSlides[index]];
     } else if (direction === 'down' && index < newSlides.length - 1) {
       [newSlides[index], newSlides[index + 1]] = [newSlides[index + 1], newSlides[index]];
     }
-    
-    return { 
-      heroSlides: newSlides,
-      lastSaved: new Date().toISOString(),
-      hasUnsavedChanges: true
-    };
+    return { heroSlides: newSlides, hasUnsavedChanges: true };
+  }),
+
+  // Feed
+  addFeedItem: (item) => set((state) => ({
+    feedItems: [...state.feedItems, item],
+    hasUnsavedChanges: true
+  })),
+
+  deleteFeedItem: (itemId) => set((state) => ({
+    feedItems: state.feedItems.filter((i) => i.id !== itemId),
+    hasUnsavedChanges: true
+  })),
+
+  updateFeedItem: (itemId, updates) => set((state) => ({
+    feedItems: state.feedItems.map((i) => i.id === itemId ? { ...i, ...updates } : i),
+    hasUnsavedChanges: true
+  })),
+
+  reorderFeedItems: (itemId, direction) => set((state) => {
+    const index = state.feedItems.findIndex(i => i.id === itemId);
+    if (index === -1) return state;
+    const newItems = [...state.feedItems];
+    if (direction === 'up' && index > 0) {
+      [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
+    } else if (direction === 'down' && index < newItems.length - 1) {
+      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+    }
+    return { feedItems: newItems, hasUnsavedChanges: true };
   }),
 
   resetToOriginal: () => set({ 
     heroSlides: heroContent,
-    lastSaved: new Date().toISOString(),
+    feedItems: feedContent,
     hasUnsavedChanges: true
   }),
 
   saveToRepo: async (silent = false) => {
     set({ isSaving: true });
     try {
-      const response = await fetch('/api/build-mode/save-hero', {
+      const response = await fetch('/api/build-mode/save-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slides: get().heroSlides }),
+        body: JSON.stringify({ 
+          slides: get().heroSlides,
+          feedItems: get().feedItems
+        }),
       });
       
       if (!response.ok) throw new Error('Failed to save');
@@ -104,6 +139,7 @@ export const useBuildMode = create<BuildModeState>()((set, get) => ({
       const data = await response.json();
       set({ 
         heroSlides: data.slides,
+        feedItems: data.feedItems,
         lastSaved: new Date().toISOString(),
         isSaving: false,
         hasUnsavedChanges: false
