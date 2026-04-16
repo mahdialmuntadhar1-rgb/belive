@@ -6,6 +6,7 @@ import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { useBuildMode } from '@/hooks/useBuildMode';
 import { heroContent } from '@/data/heroContent';
+import { Upload } from 'lucide-react';
 
 interface HeroSectionProps {
   businesses: Business[];
@@ -78,6 +79,20 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   const currentSlide = slidesToUse[currentIndex] || slidesToUse[0];
   if (!currentSlide) return null;
 
+  const { updateSlide } = useBuildMode();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      updateSlide(currentSlide.id, { image: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const slideVariants = {
     enter: (direction: number) => ({
       x: direction > 0 ? '100%' : '-100%',
@@ -122,6 +137,22 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
                   (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/belive-fallback/1200/600';
                 }}
               />
+
+              {/* Build Mode Overlay Controls */}
+              {buildModeEnabled && (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <label className="cursor-pointer bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 hover:scale-105 transition-transform group">
+                    <Upload className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-black uppercase tracking-widest text-primary">Replace Background</span>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
