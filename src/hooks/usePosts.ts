@@ -23,13 +23,18 @@ export function usePosts(businessId?: string) {
 
       let query = supabase
         .from('posts')
-        .select('*', { count: 'exact' });
+        .select('*', { count: 'exact' })
+        .eq('is_active', true); // Only fetch active posts
 
       if (isTrending) {
         // Trending: sort by likes or comments count
         query = query.order('likes', { ascending: false });
       } else {
-        query = query.order('created_at', { ascending: false });
+        // Default: sort by sort_order if available, otherwise created_at
+        query = query.order('sort_order', { ascending: true, nullsFirst: false });
+        if (!isTrending) {
+          query = query.order('created_at', { ascending: false });
+        }
       }
 
       query = query.range(from, to);

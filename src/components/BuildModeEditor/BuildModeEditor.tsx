@@ -1,14 +1,15 @@
 /**
- * // BUILD MODE ONLY
- * Main Build Mode Editor panel.
+ * ADMIN ONLY - Build Mode Editor
+ * Access controlled by profile.role === 'admin' only
+ * No URL param or localStorage-based access
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  X, 
-  Layout, 
-  MessageSquare, 
+import {
+  X,
+  Layout,
+  MessageSquare,
   Star,
   ChevronRight,
   ChevronDown,
@@ -21,18 +22,21 @@ import { useBuildMode } from '@/hooks/useBuildMode';
 import BuildModeToggle from './BuildModeToggle';
 import SlideList from './SlideList';
 import ImageUploader from './ImageUploader';
-import { disableBuildModeAccess, canAccessBuildMode } from '@/lib/buildModeAccess';
+import { useAuthStore } from '@/stores/authStore';
 import { Save, Loader2, CloudUpload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function BuildModeEditor() {
-  if (!canAccessBuildMode()) return null;
+  const { profile } = useAuthStore();
 
-  const { 
-    buildModeEnabled, 
-    toggleBuildMode, 
-    lastSaved, 
-    resetToOriginal, 
-    saveToRepo, 
+  // Admin-only access control
+  if (profile?.role !== 'admin') return null;
+
+  const {
+    buildModeEnabled,
+    toggleBuildMode,
+    lastSaved,
+    resetToOriginal,
+    saveToRepo,
     isSaving,
     heroSlides,
     hasUnsavedChanges
@@ -58,13 +62,6 @@ export default function BuildModeEditor() {
       return () => clearTimeout(timer);
     }
   }, [lastSaved]);
-
-  const handleDisableAccess = () => {
-    if (confirm('Disable Build Mode access? You will need the private URL to enable it again.')) {
-      disableBuildModeAccess();
-      window.location.reload();
-    }
-  };
 
   return (
     <>
@@ -187,16 +184,8 @@ export default function BuildModeEditor() {
             {/* Footer */}
             <div className="p-8 border-t border-slate-100 bg-slate-50/50 space-y-4">
               <p className="text-[10px] text-slate-400 font-medium italic text-center">
-                Changes are synced directly to the repository source files.
+                Admin-only access. Changes are synced to Supabase.
               </p>
-              {!import.meta.env.DEV && (
-                <button 
-                  onClick={handleDisableAccess}
-                  className="w-full py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors"
-                >
-                  Disable Builder Access
-                </button>
-              )}
             </div>
           </motion.div>
         )}

@@ -1,85 +1,44 @@
 /**
- * // BUILD MODE ONLY
- * Modular Image Uploader component for Build Mode.
+ * ADMIN ONLY - Image Uploader component for Build Mode
+ * Uploads images to Supabase Storage via useAdminDB
  */
 
 import React from 'react';
 import { Upload } from 'lucide-react';
+import { useAdminDB } from '@/hooks/useAdminDB';
 
 interface ImageUploaderProps {
   value: string;
-  onChange: (base64: string) => void;
+  onChange: (url: string) => void;
   onUrlChange: (url: string) => void;
   label?: string;
+  folder?: 'hero' | 'feed' | 'posts' | 'businesses';
 }
 
-import { canAccessBuildMode } from '@/lib/buildModeAccess';
-
-export default function ImageUploader({ value, onChange, onUrlChange, label = "Image" }: ImageUploaderProps) {
-  if (!canAccessBuildMode()) return null;
-
+export default function ImageUploader({ value, onChange, onUrlChange, label = "Image", folder = 'hero' }: ImageUploaderProps) {
+  const { uploadImage, loading } = useAdminDB();
   const [isUploading, setIsUploading] = React.useState(false);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limit file size to 5MB before processing
+    // Limit file size to 5MB
     if (file.size > 5 * 1024 * 1024) {
       alert('File is too large. Please choose an image under 5MB.');
       return;
     }
 
     setIsUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.onload = () => {
-        // Create canvas for resizing
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        // Max dimensions for hero image to keep base64 size reasonable
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          // Compress as JPEG with 0.7 quality
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          onChange(compressedBase64);
-        } else {
-          onChange(reader.result as string);
-        }
-        setIsUploading(false);
-      };
-      img.onerror = () => {
-        setIsUploading(false);
-        alert('Failed to load image');
-      };
-      img.src = reader.result as string;
-    };
-    reader.onerror = () => {
+    try {
+      const publicUrl = await uploadImage(file, folder);
+      onChange(publicUrl);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload image to Supabase');
+    } finally {
       setIsUploading(false);
-      alert('Upload failed');
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   return (

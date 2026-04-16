@@ -1,4 +1,11 @@
 /**
+ * // DEPRECATED FOR FINAL PERSISTENCE
+ * This hook is now only used for temporary Build Mode editor state.
+ * Final persistence is handled by useAdminDB.ts which writes to Supabase.
+ * The localStorage-based saveToRepo() function is deprecated.
+ *
+ * Migration: Use useAdminDB hook for all CRUD operations on hero, feed, and posts.
+ * 
  * // BUILD MODE ONLY
  * State management for Build Mode using Zustand and localStorage.
  * Phase 1: Hero Section Only.

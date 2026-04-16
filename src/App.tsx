@@ -15,7 +15,6 @@ import ShakuMakuAdmin from '@/pages/ShakuMakuAdmin';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AdminRoute from '@/components/auth/AdminRoute';
 import BuildModeEditor from '@/components/BuildModeEditor/BuildModeEditor';
-import { canAccessBuildMode } from '@/lib/buildModeAccess';
 import { useAuthStore } from '@/stores/authStore';
 import { ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,8 +26,8 @@ export default function App() {
   // Admin visibility logic: Check role OR show always in DEV mode
   const showAdminFAB = (profile?.role === 'admin') || (import.meta.env.DEV);
 
-  // Build Mode Access Check
-  const hasBuildModeAccess = canAccessBuildMode();
+  // Build Mode Access Check - Admin only
+  const hasBuildModeAccess = profile?.role === 'admin';
 
   return (
     <Router>
