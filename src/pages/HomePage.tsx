@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import debounce from "lodash/debounce";
 import HomeHeader from "@/components/home/HomeHeader";
 import HeroSection from "@/components/home/HeroSection";
+import FeedSections from "@/components/home/FeedSections";
 import MainTabSwitcher from "@/components/home/MainTabSwitcher";
 import DirectoryTabPanel from "@/components/home/DirectoryTabPanel";
 import SocialFeed from "@/components/home/SocialFeed";
@@ -75,7 +76,11 @@ export default function HomePage() {
           setSearchQuery={setSearchQuery}
         />
 
-        <div className="max-w-7xl mx-auto px-4 mb-12">
+        <div className="pt-8">
+          <FeedSections />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 mb-12 mt-12">
           <MainTabSwitcher 
             activeTab={activeTab}
             onTabChange={setActiveTab}

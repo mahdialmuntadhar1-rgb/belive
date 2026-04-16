@@ -1,5 +1,4 @@
 import React from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { motion } from 'motion/react';
 import { Smartphone, Heart, MessageCircle, Share2, MapPin, MoreHorizontal, Bookmark, ArrowRight, Loader2, Eye, Star, CheckCircle2, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
@@ -8,7 +7,6 @@ import { useBusinesses } from '@/hooks/useBusinesses';
 import { Business, Post } from '@/lib/supabase';
 
 import { useAuth } from '@/hooks/useAuth';
-import { useBuildMode } from '@/hooks/useBuildMode';
 
 const formatMetric = (num: number) => {
   return num.toString();
@@ -86,7 +84,6 @@ const FALLBACK_POST_TEMPLATES = [
 export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   const { language } = useHomeStore();
   const { user } = useAuth();
-  const { feedItems } = useBuildMode();
   const { posts: realPosts, loading: postsLoading, error, hasMore, loadMore, likePost, createPost, addComment, fetchComments, refresh: fetchPosts } = usePosts();
   const { businesses, featuredBusinesses, loading: bizLoading } = useBusinesses("");
   const [isSeeding, setIsSeeding] = React.useState(false);
@@ -98,25 +95,10 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
   
   const isRTL = language === 'ar' || language === 'ku';
 
-  // Use real posts + build mode items
-  const displayPosts = React.useMemo(() => {
-    const itemsAsPosts = feedItems.map(item => ({
-      id: item.id,
-      businessId: 'official',
-      authorName: item.authorName || (language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'),
-      authorAvatar: item.authorAvatar || '/logo.png',
-      content: item.caption || '',
-      image: item.image,
-      likes: 1200,
-      createdAt: new Date().toISOString(),
-      isVerified: true
-    }));
-    
-    return [...itemsAsPosts, ...realPosts];
-  }, [feedItems, realPosts, language]);
+  // Use real posts only
+  const displayPosts = realPosts;
 
   const handleLike = async (postId: string) => {
-    if (postId.length > 20) return; // Skip for build mode items
     await likePost(postId, user?.id);
   };
 
@@ -160,27 +142,29 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
     refresh();
   }, [feedType, fetchPosts]);
 
-  // AI Seeder Logic
+  // AI Seeder Logic - Disabled for MVP (requires @google/generative-ai)
+  // To enable: install @google/generative-ai and uncomment the logic below
+  /*
   React.useEffect(() => {
     const seedPosts = async () => {
-      // Disable seeding if we have build mode feed items (manual control)
-      if (feedItems.length > 0) return;
-      
+      // Seeding logic can continue without build mode interference
+
       if (postsLoading || bizLoading || realPosts.length >= 50 || isSeeding) return;
-      
+
       if (realPosts.length > 5) return;
 
       setIsSeeding(true);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-        
+        // TODO: AI seeding feature disabled for MVP. Install @google/generative-ai if needed.
+        // const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+
         const availableBusinesses = businesses.length > 0 ? businesses : [];
         const targetCount = 50;
         const postsToCreate = [];
 
         for (let i = 0; i < targetCount; i++) {
           setSeedProgress(Math.round((i / targetCount) * 100));
-          
+
           const biz = availableBusinesses[i % availableBusinesses.length];
           const category = biz?.category || ['Hotel', 'Restaurant', 'Cafe', 'Gym', 'Pharmacy', 'Mall', 'Salon', 'Hospital', 'Electronics', 'Services'][Math.floor(Math.random() * 10)];
           const city = biz?.city || ['Baghdad', 'Erbil', 'Basra', 'Sulaymaniyah', 'Najaf'][Math.floor(Math.random() * 5)];
@@ -229,6 +213,7 @@ export default function SocialFeed({ onBusinessClick }: SocialFeedProps) {
 
     seedPosts();
   }, [realPosts, businesses, postsLoading, bizLoading, isSeeding]);
+  */
 
   const isLoading = postsLoading || (realPosts.length === 0 && bizLoading);
 

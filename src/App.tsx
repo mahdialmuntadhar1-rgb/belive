@@ -14,24 +14,12 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AdminRoute from '@/components/auth/AdminRoute';
 import BuildModeEditor from '@/components/BuildModeEditor/BuildModeEditor';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
-import { useBuildMode } from '@/hooks/useBuildMode';
 import { useAuthStore } from '@/stores/authStore';
 import { ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import './styles/humus-design.css';
 
-function DebugBuildModeButton() {
-  const { toggleBuildMode } = useBuildMode();
-  return (
-    <button 
-      id="debug-build-mode-btn"
-      onClick={toggleBuildMode}
-      className="fixed top-4 right-4 z-[99999] px-8 py-4 bg-[#FF0000] text-white font-bold text-sm uppercase tracking-widest rounded-md shadow-2xl hover:brightness-110 active:scale-95 transition-all border-none cursor-pointer"
-    >
-      Build Mode
-    </button>
-  );
-}
+// Dead toggle removed
 
 export default function App() {
   const { profile } = useAuthStore();
@@ -41,9 +29,8 @@ export default function App() {
   // Hiding from homepage as per user request to avoid confusion with Build Mode
   const isHomePage = location.pathname === '/';
   
-  // Build Mode Access Check - Reactive to location changes
-  // TEMPORARY DEBUG: Only check for ?builder=1
-  const hasBuildModeAccess = location.search.includes('builder=1');
+  // Build Mode Access Check - Reactive to profile role
+  const hasBuildModeAccess = canAccessBuildMode();
 
   // Hide Admin FAB if on homepage OR if Build Mode is available
   const showAdminFAB = !isHomePage && !hasBuildModeAccess && ((profile?.role === 'admin') || (import.meta.env.DEV));
@@ -81,15 +68,8 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* TEMPORARY DEBUG BUILD MODE TRIGGER */}
-      {hasBuildModeAccess && <DebugBuildModeButton />}
-
-      {/* Build Mode - Owner Only */}
-      {hasBuildModeAccess && (
-        <>
-          <BuildModeEditor />
-        </>
-      )}
+      {/* Build Mode - Admin Only */}
+      {hasBuildModeAccess && <BuildModeEditor />}
 
       {/* Global Admin Access FAB */}
       <AnimatePresence>

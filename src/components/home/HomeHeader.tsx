@@ -4,7 +4,6 @@ import { User, PlusCircle, LogOut, Settings, ChevronDown, LayoutDashboard, Shiel
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useHomeStore } from '@/stores/homeStore';
-import { useBuildMode } from '@/hooks/useBuildMode';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
 
 interface HomeHeaderProps {
@@ -16,7 +15,6 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const { language, setLanguage } = useHomeStore();
-  const { buildModeEnabled, toggleBuildMode } = useBuildMode();
 
   const isRTL = language === 'ar' || language === 'ku';
   const hasBuildModeAccess = canAccessBuildMode();
@@ -73,19 +71,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
             ))}
           </div>
 
-          {/* BUILD MODE ONLY - Toggle Button */}
-          {hasBuildModeAccess && (
-            <button 
-              onClick={toggleBuildMode}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
-                buildModeEnabled 
-                  ? 'bg-primary text-white border-primary shadow-lg' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-primary hover:text-primary'
-              }`}
-            >
-              Build Mode
-            </button>
-          )}
+          {/* Admin Build Mode button could go here if needed, but App.tsx handles the floating panel. */}
         </div>
 
         {/* Right: User Actions */}

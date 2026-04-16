@@ -1,69 +1,66 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboard, ArrowRight, Download, Briefcase, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Business } from '@/lib/supabase';
-import { useHomeStore } from '@/stores/homeStore';
-import { useBuildMode } from '@/hooks/useBuildMode';
-import { heroContent } from '@/data/heroContent';
+import { supabase } from '@/lib/supabaseClient';
 
-interface HeroSectionProps {
-  businesses: Business[];
-  onBusinessClick?: (business: Business) => void;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
+interface LiveSlide {
+  id: string;
+  image_url: string;
 }
 
-export default function HeroSection({ businesses, onBusinessClick, searchQuery, setSearchQuery }: HeroSectionProps) {
-  const { language } = useHomeStore();
-  const { buildModeEnabled, heroSlides: playgroundSlides, activeSlideId } = useBuildMode();
+export default function HeroSection() {
+  const [slides, setSlides] = useState<LiveSlide[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const isRTL = language === 'ar' || language === 'ku';
-
-  // Single Source of Truth: Use playground slides in Build Mode, otherwise use heroContent.ts
-  // Ensure we fallback to heroContent if playground is empty or build mode is disabled
-  const slidesToUse = useMemo(() => {
-    if (buildModeEnabled && playgroundSlides && playgroundSlides.length > 0) {
-      return playgroundSlides;
-    }
-    return heroContent && heroContent.length > 0 ? heroContent : [];
-  }, [buildModeEnabled, playgroundSlides]);
-
-  // Sync currentIndex with activeSlideId in Build Mode
-  useEffect(() => {
-    if (buildModeEnabled && activeSlideId && slidesToUse.length > 0) {
-      const index = slidesToUse.findIndex(s => s.id === activeSlideId);
-      if (index !== -1) {
-        setCurrentIndex(index);
-      }
-    }
-  }, [activeSlideId, buildModeEnabled, slidesToUse]);
-
   const [direction, setDirection] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadSlides() {
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .select('id, image_url')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (!error && data) {
+        setSlides(data);
+      }
+      setLoading(false);
+    }
+    loadSlides();
+  }, []);
 
   const nextSlide = () => {
-    if (slidesToUse.length === 0) return;
+    if (slides.length <= 1) return;
     setDirection(1);
-    setCurrentIndex((prev) => (prev + 1) % slidesToUse.length);
+    setCurrentIndex((prev) => (prev + 1) % slides.length);
   };
 
   const prevSlide = () => {
-    if (slidesToUse.length === 0) return;
+    if (slides.length <= 1) return;
     setDirection(-1);
-    setCurrentIndex((prev) => (prev - 1 + slidesToUse.length) % slidesToUse.length);
+    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   useEffect(() => {
-    if (slidesToUse.length <= 1) return;
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       nextSlide();
     }, 5000);
     return () => clearInterval(timer);
-  }, [slidesToUse.length]);
+  }, [slides.length]);
 
-  // Fallback if no slides
-  if (!slidesToUse || slidesToUse.length === 0) {
+  if (loading) {
+    return (
+      <div className="w-full px-4 mb-12 sm:mb-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-[48px] aspect-video bg-slate-100/50 animate-pulse flex items-center justify-center">
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (slides.length === 0) {
     return (
       <div className="w-full px-4 mb-12 sm:mb-20">
         <div className="max-w-6xl mx-auto">
@@ -75,7 +72,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
     );
   }
 
-  const currentSlide = slidesToUse[currentIndex] || slidesToUse[0];
+  const currentSlide = slides[currentIndex];
   if (!currentSlide) return null;
 
   const slideVariants = {
@@ -98,7 +95,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
   return (
     <div className="w-full px-4 mb-12 sm:mb-20">
       <div className="max-w-6xl mx-auto">
-        <div className="relative overflow-hidden rounded-[48px] aspect-square">
+        <div className="relative overflow-hidden rounded-[48px] aspect-square lg:aspect-[21/9]">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div 
               key={currentSlide.id}
@@ -114,7 +111,7 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
               className="absolute inset-0"
             >
               <img 
-                src={currentSlide.image} 
+                src={currentSlide.image_url} 
                 alt="Hero Image"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -124,6 +121,21 @@ export default function HeroSection({ businesses, onBusinessClick, searchQuery, 
               />
             </motion.div>
           </AnimatePresence>
+          
+          {slides.length > 1 && (
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-10">
+              {slides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setDirection(idx > currentIndex ? 1 : -1);
+                    setCurrentIndex(idx);
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/80'}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
