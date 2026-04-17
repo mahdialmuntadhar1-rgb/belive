@@ -13,6 +13,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import AdminClaimsDashboard from '@/pages/AdminClaimsDashboard';
 import ShakuMakuAdmin from '@/pages/ShakuMakuAdmin';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import BusinessOwnerDashboard from '@/pages/BusinessOwnerDashboard';
 import AdminRoute from '@/components/auth/AdminRoute';
 import BuildModeEditor from '@/components/BuildModeEditor/BuildModeEditor';
 import { useAuthStore } from '@/stores/authStore';
@@ -71,6 +72,9 @@ export default function App() {
 
         {/* Business Dashboard */}
         <Route path="/dashboard" element={<BusinessDashboard />} />
+
+        {/* Business Owner Dashboard */}
+        <Route path="/my-business" element={<BusinessOwnerDashboard />} />
 
         {/* Claim Flow */}
         <Route path="/claim" element={<ClaimPage />} />

@@ -10,16 +10,16 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'signup' | 'forgot';
+  onLoginSuccess?: (profile: any) => void;
 }
 
 type UserRole = 'user' | 'business_owner';
 
-export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLoginSuccess }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [isForgot, setIsForgot] = useState(initialMode === 'forgot');
   const { signIn, signUp } = useAuth();
-  
-  // Reset state when modal opens with a specific mode
+
   React.useEffect(() => {
     if (isOpen) {
       setIsLogin(initialMode === 'login');
@@ -28,12 +28,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       setSuccess(null);
     }
   }, [isOpen, initialMode]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('user');
-  
-  // Business Owner Fields
+
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
   const [governorate, setGovernorate] = useState('');
@@ -53,106 +53,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     category: { en: 'Category', ar: 'التصنيف', ku: 'پۆلێن' },
     city: { en: 'City', ar: 'المدينة', ku: 'شار' },
     description: { en: 'Short Description', ar: 'وصف قصير', ku: 'وەسفێکی کورت' },
-    forgotTitle: {
-      en: 'Reset Password',
-      ar: 'إعادة تعيين كلمة المرور',
-      ku: 'دووبارە ڕێکخستنەوەی وشەی نهێنی'
-    },
-    forgotDesc: {
-      en: 'Enter your email to receive a password reset link.',
-      ar: 'أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.',
-      ku: 'ئیمەیڵەکەت بنووسە بۆ وەرگرتنی لینکی دووبارە ڕێکخستنەوەی وشەی نهێنی.'
-    },
-    resetSent: {
-      en: 'Reset link sent! Check your email.',
-      ar: 'تم إرسال رابط إعادة التعيين! تحقق من بريدك الإلكتروني.',
-      ku: 'لینکی دووبارە ڕێکخستنەوە نێردرا! سەیری ئیمەیڵەکەت بکە.'
-    },
-    backToLogin: {
-      en: 'Back to Login',
-      ar: 'العودة لتسجيل الدخول',
-      ku: 'گەڕانەوە بۆ چوونەژوورەوە'
-    },
-    sendReset: {
-      en: 'Send Reset Link',
-      ar: 'إرسال رابط إعادة التعيين',
-      ku: 'ناردنی لینکی دووبارە ڕێکخستنەوە'
-    },
-    welcome: {
-      en: 'Welcome Back',
-      ar: 'مرحباً بعودتك',
-      ku: 'بەخێربێیتەوە'
-    },
-    create: {
-      en: 'Create Account',
-      ar: 'إنشاء حساب',
-      ku: 'دروستکردنی هەژمار'
-    },
-    loginDesc: {
-      en: 'Log in to access your saved places and reviews.',
-      ar: 'سجل الدخول للوصول إلى الأماكن المحفوظة والمراجعات.',
-      ku: 'بچۆ ژوورەوە بۆ دەستگەیشتن بە شوێنە پاشەکەوتکراوەکان و پێداچوونەوەکان.'
-    },
-    signupDesc: {
-      en: 'Join Saku Maku to discover and share the best of Iraq.',
-      ar: 'انضم إلى شکو ماکو لاكتشاف ومشاركة الأفضل في العراق.',
-      ku: 'ببە بە ئەندام لە شکو ماکو بۆ دۆزینەوە و هاوبەشکردنی باشترینەکانی عێراق.'
-    },
-    fullName: {
-      en: 'Full Name',
-      ar: 'الاسم الكامل',
-      ku: 'ناوی تەواو'
-    },
-    email: {
-      en: 'Email Address',
-      ar: 'البريد الإلكتروني',
-      ku: 'ناونیشانی ئیمەیڵ'
-    },
-    password: {
-      en: 'Password',
-      ar: 'كلمة المرور',
-      ku: 'وشەی نهێنی'
-    },
-    normalUser: {
-      en: 'Normal User',
-      ar: 'مستخدم عادي',
-      ku: 'بەکارهێنەری ئاسایی'
-    },
-    businessOwner: {
-      en: 'Business Owner',
-      ar: 'صاحب عمل',
-      ku: 'خاوەن کار'
-    },
-    login: {
-      en: 'Log In',
-      ar: 'تسجيل الدخول',
-      ku: 'چوونەژوورەوە'
-    },
-    signup: {
-      en: 'Sign Up',
-      ar: 'إنشاء حساب',
-      ku: 'خۆت تۆمار بکە'
-    },
-    forgot: {
-      en: 'Forgot Password?',
-      ar: 'نسيت كلمة المرور؟',
-      ku: 'وشەی نهێنیت لەبیرچووە؟'
-    },
-    or: {
-      en: 'Or continue with',
-      ar: 'أو استمر بواسطة',
-      ku: 'یان بەردەوام بە لەڕێگەی'
-    },
-    noAccount: {
-      en: "Don't have an account?",
-      ar: 'ليس لديك حساب؟',
-      ku: 'هەژمارت نییە؟'
-    },
-    haveAccount: {
-      en: 'Already have an account?',
-      ar: 'لديك حساب بالفعل؟',
-      ku: 'پێشتر هەژمارت دروستکردووە؟'
-    }
+    forgotTitle: { en: 'Reset Password', ar: 'إعادة تعيين كلمة المرور', ku: 'دووبارە ڕێکخستنەوەی وشەی نهێنی' },
+    forgotDesc: { en: 'Enter your email to receive a password reset link.', ar: 'أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.', ku: 'ئیمەیڵەکەت بنووسە بۆ وەرگرتنی لینکی دووبارە ڕێکخستنەوەی وشەی نهێنی.' },
+    resetSent: { en: 'Reset link sent! Check your email.', ar: 'تم إرسال رابط إعادة التعيين! تحقق من بريدك الإلكتروني.', ku: 'لینکی دووبارە ڕێکخستنەوە نێردرا! سەیری ئیمەیڵەکەت بکە.' },
+    backToLogin: { en: 'Back to Login', ar: 'العودة لتسجيل الدخول', ku: 'گەڕانەوە بۆ چوونەژوورەوە' },
+    sendReset: { en: 'Send Reset Link', ar: 'إرسال رابط إعادة التعيين', ku: 'ناردنی لینکی دووبارە ڕێکخستنەوە' },
+    welcome: { en: 'Welcome Back', ar: 'مرحباً بعودتك', ku: 'بەخێربێیتەوە' },
+    create: { en: 'Create Account', ar: 'إنشاء حساب', ku: 'دروستکردنی هەژمار' },
+    loginDesc: { en: 'Log in to access your saved places and reviews.', ar: 'سجل الدخول للوصول إلى الأماكن المحفوظة والمراجعات.', ku: 'بچۆ ژوورەوە بۆ دەستگەیشتن بە شوێنە پاشەکەوتکراوەکان و پێداچوونەوەکان.' },
+    signupDesc: { en: 'Join Saku Maku to discover and share the best of Iraq.', ar: 'انضم إلى شکو ماکو لاكتشاف ومشاركة الأفضل في العراق.', ku: 'ببە بە ئەندام لە شکو ماکو بۆ دۆزینەوە و هاوبەشکردنی باشترینەکانی عێراق.' },
+    fullName: { en: 'Full Name', ar: 'الاسم الكامل', ku: 'ناوی تەواو' },
+    email: { en: 'Email Address', ar: 'البريد الإلكتروني', ku: 'ناونیشانی ئیمەیڵ' },
+    password: { en: 'Password', ar: 'كلمة المرور', ku: 'وشەی نهێنی' },
+    normalUser: { en: 'Normal User', ar: 'مستخدم عادي', ku: 'بەکارهێنەری ئاسایی' },
+    businessOwner: { en: 'Business Owner', ar: 'صاحب عمل', ku: 'خاوەن کار' },
+    login: { en: 'Log In', ar: 'تسجيل الدخول', ku: 'چوونەژوورەوە' },
+    signup: { en: 'Sign Up', ar: 'إنشاء حساب', ku: 'خۆت تۆمار بکە' },
+    forgot: { en: 'Forgot Password?', ar: 'نسيت كلمة المرور؟', ku: 'وشەی نهێنیت لەبیرچووە؟' },
+    or: { en: 'Or continue with', ar: 'أو استمر بواسطة', ku: 'یان بەردەوام بە لەڕێگەی' },
+    noAccount: { en: "Don't have an account?", ar: 'ليس لديك حساب؟', ku: 'هەژمارت نییە؟' },
+    haveAccount: { en: 'Already have an account?', ar: 'لديك حساب بالفعل؟', ku: 'پێشتر هەژمارت دروستکردووە؟' }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,7 +96,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       }
 
       if (isLogin) {
-        await signIn(email, password);
+        const data = await signIn(email, password);
+        // Fetch profile to get role for redirect
+        if (data?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          onClose();
+          if (onLoginSuccess && profile) {
+            onLoginSuccess(profile);
+          }
+        } else {
+          onClose();
+        }
       } else {
         await signUp(email, password, {
           full_name: name,
@@ -191,7 +125,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         setSuccess(language === 'ar' ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب.' : 'Account created! Please check your email to verify your account.');
         return;
       }
-      onClose();
     } catch (err) {
       console.error('Auth error:', err);
       let message = 'An error occurred during authentication';
@@ -237,17 +170,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             <div className="p-8 sm:p-10" dir={language === 'en' ? 'ltr' : 'rtl'}>
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-[#2B2F33] poppins-bold mb-2">
-                  {isForgot 
-                    ? translations.forgotTitle[language] 
-                    : isLogin 
-                      ? translations.welcome[language] 
+                  {isForgot
+                    ? translations.forgotTitle[language]
+                    : isLogin
+                      ? translations.welcome[language]
                       : translations.create[language]}
                 </h2>
                 <p className="text-sm text-[#6B7280]">
                   {isForgot
                     ? translations.forgotDesc[language]
-                    : isLogin 
-                      ? translations.loginDesc[language] 
+                    : isLogin
+                      ? translations.loginDesc[language]
                       : translations.signupDesc[language]}
                 </p>
               </div>
@@ -295,8 +228,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         type="button"
                         onClick={() => setRole('user')}
                         className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                          role === 'user' 
-                            ? 'bg-white text-accent shadow-sm' 
+                          role === 'user'
+                            ? 'bg-white text-accent shadow-sm'
                             : 'text-[#6B7280] hover:text-[#2B2F33]'
                         }`}
                       >
@@ -307,8 +240,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         type="button"
                         onClick={() => setRole('business_owner')}
                         className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                          role === 'business_owner' 
-                            ? 'bg-white text-accent shadow-sm' 
+                          role === 'business_owner'
+                            ? 'bg-white text-accent shadow-sm'
                             : 'text-[#6B7280] hover:text-[#2B2F33]'
                         }`}
                       >
@@ -319,7 +252,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                     {/* Business Owner Specific Fields */}
                     {role === 'business_owner' && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-4 pt-2"
@@ -330,7 +263,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             placeholder={translations.businessName[language]}
                             value={businessName}
                             onChange={(e) => setBusinessName(e.target.value)}
-                            className={`w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm`}
+                            className="w-full px-4 py-3 bg-[#F5F7F9] border border-[#E5E7EB] focus:border-accent rounded-2xl focus:outline-none transition-all text-sm"
                             required={role === 'business_owner'}
                           />
                         </div>
@@ -397,8 +330,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                 {isLogin && !isForgot && (
                   <div className={`flex ${language === 'en' ? 'justify-end' : 'justify-start'}`}>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => {
                         setIsForgot(true);
                         setError(null);
@@ -420,10 +353,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      {isForgot 
-                        ? translations.sendReset[language] 
-                        : isLogin 
-                          ? translations.login[language] 
+                      {isForgot
+                        ? translations.sendReset[language]
+                        : isLogin
+                          ? translations.login[language]
                           : translations.signup[language]}
                       <ArrowRight className={`w-4 h-4 ${language === 'en' ? 'group-hover:translate-x-1' : 'group-hover:-translate-x-1'} transition-transform`} />
                     </>
@@ -457,9 +390,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       try {
                         const { error: magicError } = await supabase.auth.signInWithOtp({
                           email,
-                          options: {
-                            emailRedirectTo: window.location.origin,
-                          },
+                          options: { emailRedirectTo: window.location.origin },
                         });
                         if (magicError) throw magicError;
                         setSuccess(language === 'ar' ? 'تم إرسال رابط تسجيل الدخول إلى بريدك الإلكتروني' : 'Magic link sent to your email');

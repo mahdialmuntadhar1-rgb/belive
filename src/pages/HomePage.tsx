@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import debounce from "lodash/debounce";
 import HomeHeader from "@/components/home/HomeHeader";
 import HeroSection from "@/components/home/HeroSection";
@@ -17,6 +18,7 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -134,10 +136,17 @@ export default function HomePage() {
       </main>
 
       {/* Modals */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
         initialMode={authMode}
+        onLoginSuccess={(profile: any) => {
+          if (profile?.role === 'business_owner') {
+            navigate('/my-business');
+          } else if (profile?.role === 'admin') {
+            navigate('/admin');
+          }
+        }}
       />
       
       <BusinessDetailModal 

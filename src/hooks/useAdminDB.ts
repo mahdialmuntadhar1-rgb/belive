@@ -21,7 +21,8 @@ export interface HeroSlide {
   cta_text_ar?: string;
   cta_text_ku?: string;
   cta_link?: string;
-  sort_order: number;
+  display_order: number;
+  sort_order?: number; // legacy alias
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -80,7 +81,7 @@ export function useAdminDB() {
         .from('hero_slides')
         .select('*')
         .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+        .order('display_order', { ascending: true });
 
       if (fetchError) throw fetchError;
       return data as HeroSlide[];
@@ -93,7 +94,7 @@ export function useAdminDB() {
     }
   }, []);
 
-  const addHeroSlide = useCallback(async (slide: Omit<HeroSlide, 'id' | 'created_at' | 'updated_at'>) => {
+  const addHeroSlide = useCallback(async (slide: Omit<HeroSlide, 'id' | 'created_at' | 'updated_at' | 'sort_order'>) => {
     setLoading(true);
     setError(null);
     try {
@@ -161,7 +162,7 @@ export function useAdminDB() {
     try {
       const updates = slides.map((slide, index) => ({
         id: slide.id,
-        sort_order: index
+        display_order: index
       }));
 
       const { error: updateError } = await supabase
@@ -298,8 +299,7 @@ export function useAdminDB() {
     try {
       let query = supabase
         .from('posts')
-        .select('*')
-        .eq('is_active', true);
+        .select('*');
 
       if (options?.isFeatured) {
         query = query.eq('is_featured', true);
@@ -308,7 +308,7 @@ export function useAdminDB() {
         query = query.eq('post_type', options.postType);
       }
 
-      query = query.order('sort_order', { ascending: true });
+      query = query.order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await query;
 
@@ -417,18 +417,35 @@ export function useAdminDB() {
     setError(null);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(7);
+      const fileName = `${timestamp}-${random}.${fileExt}`;
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('build-mode-images')
-        .upload(fileName, file);
+      // Route to correct bucket based on folder
+      let bucket: string;
+      let filePath: string;
+      if (folder === 'hero') {
+        bucket = 'hero-images';
+        filePath = `slides/${fileName}`;
+      } else if (folder === 'businesses') {
+        bucket = 'hero-images'; // reuse hero-images bucket for businesses
+        filePath = `businesses/${fileName}`;
+      } else {
+        // feed, posts
+        bucket = 'feed-images';
+        filePath = `${folder}/${fileName}`;
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, { upsert: false });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('build-mode-images')
-        .getPublicUrl(fileName);
+        .from(bucket)
+        .getPublicUrl(filePath);
 
       return publicUrl;
     } catch (err) {
@@ -444,14 +461,16 @@ export function useAdminDB() {
     setLoading(true);
     setError(null);
     try {
-      // Extract file path from URL
-      const url = new URL(imageUrl);
-      const pathParts = url.pathname.split('/');
-      const fileName = pathParts[pathParts.length - 2] + '/' + pathParts[pathParts.length - 1];
+      // Determine bucket from URL
+      const isHero = imageUrl.includes('/hero-images/');
+      const bucket = isHero ? 'hero-images' : 'feed-images';
+      const bucketPrefix = isHero ? '/hero-images/' : '/feed-images/';
+      const filePath = imageUrl.split(bucketPrefix)[1];
+      if (!filePath) return;
 
       const { error: deleteError } = await supabase.storage
-        .from('build-mode-images')
-        .remove([fileName]);
+        .from(bucket)
+        .remove([filePath]);
 
       if (deleteError) throw deleteError;
     } catch (err) {

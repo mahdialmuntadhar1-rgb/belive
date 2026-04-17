@@ -334,41 +334,44 @@ function BusinessManager({ admin }: { admin: any }) {
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
-    // Mock search results for frontend-only feel
-    setTimeout(() => {
-      setBusinesses([
-        {
-          id: '1',
-          name: 'Al-Mansour Restaurant',
-          nameAr: 'مطعم المنصور',
-          category: 'restaurants',
-          governorate: 'baghdad',
-          city: 'Mansour',
-          phone: '07701234567',
-          isVerified: true,
-          isFeatured: true,
-          image: 'https://picsum.photos/seed/restaurant/400/300'
-        },
-        {
-          id: '2',
-          name: 'Babylon Hotel',
-          nameAr: 'فندق بابل',
-          category: 'hotels',
-          governorate: 'baghdad',
-          city: 'Jadriya',
-          phone: '07801234567',
-          isVerified: true,
-          isFeatured: false,
-          image: 'https://picsum.photos/seed/hotel/400/300'
-        }
-      ] as any);
+    try {
+      const results = await admin.searchBusinesses(searchFilters);
+      setBusinesses(results);
+    } catch (err) {
+      console.error('Search error:', err);
+      alert('Failed to search businesses: ' + (err as any).message);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
+  // Load all businesses on mount
+  React.useEffect(() => {
+    handleSearch();
+  }, []);
+
   const handleUpdate = async (id: string, updates: any) => {
-    alert('Changes saved (Mock)');
-    setEditingBusiness(null);
+    try {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.nameAr !== undefined) dbUpdates.name_ar = updates.nameAr;
+      if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+      if (updates.whatsapp !== undefined) dbUpdates.whatsapp = updates.whatsapp;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.governorate !== undefined) dbUpdates.governorate = updates.governorate;
+      if (updates.city !== undefined) dbUpdates.city = updates.city;
+      if (updates.image !== undefined) dbUpdates.image_url = updates.image;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
+      if (updates.isVerified !== undefined) dbUpdates.is_verified = updates.isVerified;
+      dbUpdates.updated_at = new Date().toISOString();
+      await admin.updateBusiness(id, dbUpdates);
+      alert('Business updated successfully!');
+      setEditingBusiness(null);
+      handleSearch();
+    } catch (err) {
+      alert('Failed to save changes: ' + (err as any).message);
+    }
   };
 
   return (
