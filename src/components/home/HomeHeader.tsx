@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useHomeStore } from '@/stores/homeStore';
 import { useBuildMode } from '@/hooks/useBuildMode';
-import { canAccessBuildMode } from '@/lib/buildModeAccess';
 
 interface HomeHeaderProps {
   onAddBusiness: () => void;
@@ -19,7 +18,6 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
   const { buildModeEnabled, toggleBuildMode } = useBuildMode();
 
   const isRTL = language === 'ar' || language === 'ku';
-  const hasBuildModeAccess = canAccessBuildMode();
 
   const translations = {
     addBusiness: { en: 'Add Business', ar: 'أضف عملك', ku: 'کارەکەت زیاد بکە' },

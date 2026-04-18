@@ -3,22 +3,15 @@ import { useNavigate } from "react-router-dom";
 import debounce from "lodash/debounce";
 import HomeHeader from "@/components/home/HomeHeader";
 import HeroSection from "@/components/home/HeroSection";
-import EditableHeroSection from "@/components/buildMode/EditableHeroSection";
 import MainTabSwitcher from "@/components/home/MainTabSwitcher";
 import DirectoryTabPanel from "@/components/home/DirectoryTabPanel";
 import SocialFeed from "@/components/home/SocialFeed";
-import AddPostButton from "@/components/buildMode/AddPostButton";
 import AuthModal from "@/components/auth/AuthModal";
 import BusinessDetailModal from "@/components/home/BusinessDetailModal";
 import AddBusinessModal from "@/components/home/AddBusinessModal";
 import PWAInstallButton from "@/components/common/PWAInstallButton";
-import AdminEditToggle from "@/components/admin/AdminEditToggle";
-import AdminPanel from "@/components/admin/AdminPanel";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
-import { useAdminDB, HeroSlide } from "@/hooks/useAdminDB";
-import { useBuildMode } from "@/hooks/useBuildMode";
-import { useAdminMode } from "@/hooks/useAdminMode";
 import type { Business, Post } from "@/lib/supabase";
 
 import { ArrowRight, TrendingUp } from "lucide-react";
@@ -34,14 +27,6 @@ export default function HomePage() {
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'guide' | 'social'>('guide');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-
-  // Build Mode
-  const { isBuildModeEnabled } = useBuildMode();
-  const { isAdminEditModeActive } = useAdminMode();
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
-  const { fetchHeroSlides } = useAdminDB();
 
   const { language, setLanguage } = useHomeStore();
   
@@ -51,19 +36,6 @@ export default function HomePage() {
       setLanguage('ar');
     }
   }, [language, setLanguage]);
-
-  // Load hero slides for Build Mode
-  useEffect(() => {
-    const loadSlides = async () => {
-      try {
-        const slides = await fetchHeroSlides();
-        setHeroSlides(slides);
-      } catch (err) {
-        console.error('Failed to load hero slides:', err);
-      }
-    };
-    loadSlides();
-  }, [fetchHeroSlides]);
 
   const {
     businesses,
@@ -87,14 +59,6 @@ export default function HomePage() {
 
   const isRTL = language === 'ar' || language === 'ku';
 
-  const handleNextSlide = () => {
-    setCurrentHeroIndex((prev) => (prev + 1) % heroSlides.length);
-  };
-
-  const handlePrevSlide = () => {
-    setCurrentHeroIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
-
   return (
     <div className="min-h-screen bg-[#F7F7F5] selection:bg-[#0F7B6C]/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <HomeHeader 
@@ -106,23 +70,13 @@ export default function HomePage() {
       />
 
       <main className="pt-4 sm:pt-8">
-        {/* Hero Section - Build Mode or Normal */}
-        {isBuildModeEnabled && heroSlides.length > 0 ? (
-          <EditableHeroSection
-            heroSlides={heroSlides}
-            currentIndex={currentHeroIndex}
-            onNextSlide={handleNextSlide}
-            onPrevSlide={handlePrevSlide}
-            onSlidesUpdate={setHeroSlides}
-          />
-        ) : (
-          <HeroSection
-            businesses={businesses}
-            onBusinessClick={setSelectedBusiness}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
-        )}
+        {/* Hero Section */}
+        <HeroSection
+          businesses={businesses}
+          onBusinessClick={setSelectedBusiness}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
 
         <div className="max-w-7xl mx-auto px-4 mb-12">
           <MainTabSwitcher 
@@ -208,18 +162,7 @@ export default function HomePage() {
         onSuccess={() => refresh()}
       />
 
-      {/* Build Mode Post Button */}
-      {isBuildModeEnabled && activeTab === 'social' && (
-        <AddPostButton
-          onPostCreated={(post: Post) => {
-            console.log('Post created:', post);
-          }}
-        />
-      )}
-
       <PWAInstallButton />
-      <AdminEditToggle onOpenPanel={() => setIsAdminPanelOpen(true)} />
-      <AdminPanel isOpen={isAdminPanelOpen} onClose={() => setIsAdminPanelOpen(false)} />
 
       {/* Footer */}
       <footer className="bg-text-main text-white pt-32 pb-16">

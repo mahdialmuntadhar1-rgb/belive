@@ -4,12 +4,7 @@ import { Search, MapPin, Sparkles, TrendingUp, Users, ShieldCheck, LayoutDashboa
 import { Link } from 'react-router-dom';
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
-import { useBuildMode } from '@/hooks/useBuildMode';
-import { useAdminDB } from '@/hooks/useAdminDB';
-import { useAuthStore } from '@/stores/authStore';
-import { EditableImage } from '../BuildModeEditor/EditableImage';
 import { heroContent } from '@/data/heroContent';
-import { Upload } from 'lucide-react';
 
 interface HeroSectionProps {
   businesses: Business[];
@@ -20,99 +15,33 @@ interface HeroSectionProps {
 
 export default function HeroSection({ businesses, onBusinessClick, searchQuery, setSearchQuery }: HeroSectionProps) {
   const { language } = useHomeStore();
-  const { profile } = useAuthStore();
-  const { heroSlides: slides, buildModeEnabled, updateSlide } = useBuildMode();
-  const { updateHeroSlide } = useAdminDB();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
-
-  const isAdmin = profile?.role === 'admin';
+  const content = heroContent[language] || heroContent['ar'];
   const isRTL = language === 'ar' || language === 'ku';
-
-  const nextSlide = () => {
-    if (slides.length === 0) return;
-    setDirection(1);
-    setCurrentIndex((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    if (slides.length === 0) return;
-    setDirection(-1);
-    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  useEffect(() => {
-    if (slides.length <= 1) return;
-    const timer = setInterval(() => {
-      nextSlide();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
-
-  // Fallback if no slides
-  if (!slides || slides.length === 0) {
-    return (
-      <div className="w-full px-4 mb-12 sm:mb-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-[48px] aspect-video bg-slate-100 flex items-center justify-center">
-            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No Hero Content Available</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const currentSlide = slides[currentIndex] || slides[0];
-  if (!currentSlide) return null;
-
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? '100%' : '-100%',
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? '100%' : '-100%',
-      opacity: 0
-    })
-  };
 
   return (
     <div className="w-full px-4 mb-12 sm:mb-20">
       <div className="max-w-6xl mx-auto">
-        <div className="relative overflow-hidden rounded-[48px] aspect-square">
-          <AnimatePresence initial={false} custom={direction}>
-            <motion.div 
-              key={currentSlide.id}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.5 }
-              }}
-              className="absolute inset-0"
-            >
-              <EditableImage
-                src={currentSlide.image}
-                alt="Hero Image"
-                className="w-full h-full object-cover"
-                folder="hero"
-                isAdmin={isAdmin}
-                onSave={(newUrl) => {
-                  updateSlide(currentSlide.id, { image: newUrl });
-                  updateHeroSlide(currentSlide.id, { image_url: newUrl });
-                }}
+        <div className="relative overflow-hidden rounded-[48px] aspect-square bg-gradient-to-br from-[#0F7B6C] to-[#0d6857]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 sm:p-16">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-6 poppins-bold tracking-tighter">
+              {content.title}
+            </h1>
+            <p className="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl">
+              {content.subtitle}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <input
+                type="text"
+                placeholder={content.searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-6 py-4 rounded-full bg-white/20 backdrop-blur-sm text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
               />
-            </motion.div>
-          </AnimatePresence>
+              <button className="px-8 py-4 bg-[#C8A96A] text-[#0F7B6C] rounded-full font-black hover:bg-[#b89a5a] transition-colors">
+                {content.searchButton}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
