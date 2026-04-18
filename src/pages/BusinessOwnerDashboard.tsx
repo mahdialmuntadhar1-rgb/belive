@@ -91,9 +91,9 @@ export default function BusinessOwnerDashboard() {
     try {
       const ext = file.name.split('.').pop();
       const fileName = `businesses/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('hero-images').upload(fileName, file, { upsert: false });
+      const { error: uploadError } = await supabase.storage.from('business-images').upload(fileName, file, { upsert: false });
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('hero-images').getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage.from('business-images').getPublicUrl(fileName);
       setFormData(prev => ({ ...prev, image: publicUrl }));
     } catch (error: any) {
       alert('Failed to upload image: ' + error.message);
@@ -400,14 +400,7 @@ export default function BusinessOwnerDashboard() {
               </div>
               <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
                 <button onClick={() => setShowCreatePost(false)} className="px-6 py-3 text-slate-400 font-black uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors">Cancel</button>
-                <button onClick={handleCreatePost} disabled={creatingPost || !newPost.content.trim()} className="px-10 py-3 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                  {creatingPost ? <><Loader2 className="w-4 h-4 animate-spin" /> Publishing...</> : 'Publish Post'}
+                <button onClick={handleCreatePost} disabled={creatingPost || !newPost.content.trim()} className="px-10 py-3 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all uppercase tracking-widest text-[10px] disabled:opacity-50">
+                  {creatingPost ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Post'}
                 </button>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
