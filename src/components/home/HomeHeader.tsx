@@ -71,19 +71,6 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
             ))}
           </div>
 
-          {/* BUILD MODE ONLY - Toggle Button */}
-          {hasBuildModeAccess && (
-            <button 
-              onClick={toggleBuildMode}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
-                buildModeEnabled 
-                  ? 'bg-primary text-white border-primary shadow-lg' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-primary hover:text-primary'
-              }`}
-            >
-              Build Mode
-            </button>
-          )}
         </div>
 
         {/* Right: User Actions */}
@@ -158,8 +145,8 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                               </Link>
                             )}
 
-                            {(profile?.role === 'admin' || user?.email === 'safaribosafar@gmail.com') && (
-                              <Link 
+                            {profile?.role === 'admin' && (
+                              <Link
                                 to="/admin"
                                 onClick={() => setShowUserMenu(false)}
                                 className="w-full px-4 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center gap-3 transition-colors"

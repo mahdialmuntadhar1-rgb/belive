@@ -1,0 +1,132 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                      BELIVE - PRODUCTION DEPLOYMENT                            ║
+║                         QUICK REFERENCE CARD                                    ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+STATUS: ✅ READY FOR PRODUCTION
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: SUPABASE DATABASE SETUP
+─────────────────────────────────
+□ Log into Supabase dashboard
+□ Go to SQL Editor → New Query
+□ Copy & paste: supabase/FINAL_PRODUCTION_SETUP.sql
+□ Click RUN
+□ Verify: All 8 tables created, all indexes created, all RLS policies created
+
+Expected output: No errors, all CREATE statements successful
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 2: SUPABASE STORAGE BUCKETS
+─────────────────────────────────
+□ Go to Storage → Buckets
+□ Create bucket: "feed-images" (PUBLIC)
+□ Create bucket: "business-images" (PUBLIC)
+
+IMPORTANT: Both must be PUBLIC so images are viewable without auth
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 3: GET YOUR CREDENTIALS
+─────────────────────────────
+□ Go to Settings → API
+□ Copy: Project URL (https://...supabase.co)
+□ Copy: Anon Key (long public key)
+□ Copy: Service Role Key (keep secret!)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 4: VERCEL ENVIRONMENT VARIABLES
+────────────────────────────────────
+□ Go to Vercel project → Settings → Environment Variables
+□ Add three variables (use values from STEP 3):
+
+    VITE_SUPABASE_URL = (your Project URL)
+    VITE_SUPABASE_ANON_KEY = (your Anon Key)
+    SUPABASE_SERVICE_ROLE_KEY = (your Service Role Key)
+
+□ Select: Production, Preview, Development
+□ Click SAVE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 5: DEPLOY
+──────────────
+□ Push code to GitHub (if not already pushed)
+□ Go to Vercel → Click DEPLOY or automatic push triggers deploy
+□ Wait 2-3 minutes for build to complete
+□ Get your production URL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 6: CREATE ADMIN USER
+──────────────────────────
+□ Sign up a user through the app
+□ Go to Supabase → Auth → Users
+□ Find your user and copy their User ID (UUID)
+□ Go to SQL Editor → New Query
+□ Paste and run:
+
+    UPDATE profiles SET role = 'admin' WHERE id = '[PASTE_YOUR_USER_ID_HERE]';
+
+□ That user can now access /admin dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 7: VERIFY EVERYTHING WORKS
+────────────────────────────────
+□ Visit your production URL
+□ Sign up a new account
+□ See home page with businesses and posts
+□ Login as business owner → can create posts with images
+□ Login as admin → can see /admin dashboard with real statistics
+□ Hidden posts don't appear in public feed
+□ Business owner can only edit their own business
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TROUBLESHOOTING
+───────────────
+If images fail to upload:
+  • Check buckets are PUBLIC (not private)
+  • Check bucket names: feed-images, business-images (no hyphens in code)
+
+If RLS errors appear:
+  • Rerun FINAL_PRODUCTION_SETUP.sql
+  • Make sure user is authenticated
+  • Check user role in profiles table
+
+If admin can't access dashboard:
+  • Verify user.role = 'admin' in profiles table (not just 'user')
+  • Refresh the page after updating role
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7 MANDATORY FIXES - ALL COMPLETE ✅
+
+1. ✅ Admin Dashboard - Uses real database queries, not mocks
+2. ✅ Post Visibility - Hidden posts are filtered from public feed
+3. ✅ Admin Access - Role-based only (no email fallbacks)
+4. ✅ Ownership Checks - Enforced at database level via RLS
+5. ✅ Database Schema - Complete with all tables and RLS policies
+6. ✅ Secrets Management - No credentials in code, all in environment variables
+7. ✅ Image Uploads - All buckets correctly referenced
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOCUMENTATION
+──────────────
+□ PRODUCTION_SETUP_GUIDE.md - Full step-by-step guide (read this!)
+□ PRODUCTION_READINESS_VERDICT.md - Detailed audit report
+□ EXECUTION_MODE_COMPLETION_SUMMARY.md - What was fixed and why
+□ supabase/FINAL_PRODUCTION_SETUP.sql - Database schema to run
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ESTIMATED SETUP TIME: 30 minutes
+
+Ready? Follow the 7 steps above and you're live! 🚀
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

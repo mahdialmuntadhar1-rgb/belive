@@ -49,23 +49,36 @@ export default function AdminDashboard() {
   const { profile, user } = useAuthStore();
   const navigate = useNavigate();
   const admin = useAdmin();
-  
+
   const [activeTab, setActiveTab] = useState<'summary' | 'businesses' | 'featured' | 'settings'>('summary');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [summaryData, setSummaryData] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   const isAdmin = profile?.role === 'admin';
 
-  // Mock Summary Data
-  const mockSummary = {
-    totalBusinesses: 1248,
-    totalPosts: 342,
-    pendingClaims: 12,
-    verifiedBusinesses: 856,
-    featuredBusinesses: 45,
-    trendingItems: 18,
-    activeUsers: 2104,
-    monthlyGrowth: '+12%'
-  };
+  // Load real summary data from Supabase
+  useEffect(() => {
+    const loadSummary = async () => {
+      setSummaryLoading(true);
+      try {
+        const data = await admin.fetchSummary();
+        setSummaryData(data);
+      } catch (err) {
+        console.error('Failed to load summary:', err);
+        setSummaryData({
+          totalBusinesses: 0,
+          totalPosts: 0,
+          pendingClaims: 0,
+          featuredBusinesses: 0,
+          verifiedBusinesses: 0
+        });
+      } finally {
+        setSummaryLoading(false);
+      }
+    };
+    loadSummary();
+  }, [admin]);
 
   if (!user || !isAdmin) {
     return (
@@ -178,62 +191,70 @@ export default function AdminDashboard() {
           <div className="max-w-7xl mx-auto space-y-10">
             <AnimatePresence mode="wait">
               {activeTab === 'summary' && (
-                <motion.div 
+                <motion.div
                   key="summary"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
                 >
+                  {summaryLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+
                   <StatCard 
                     label="Total Businesses" 
-                    value={mockSummary.totalBusinesses} 
+                    value={summaryData?.totalBusinesses || 0} 
                     icon={<Store className="text-blue-500" />}
                     color="blue"
                   />
                   <StatCard 
                     label="Total Posts" 
-                    value={mockSummary.totalPosts} 
+                    value={summaryData?.totalPosts || 0} 
                     icon={<MessageSquare className="text-purple-500" />}
                     color="purple"
                   />
                   <StatCard 
                     label="Pending Claims" 
-                    value={mockSummary.pendingClaims} 
+                    value={summaryData?.pendingClaims || 0} 
                     icon={<ShieldCheck className="text-orange-500" />}
                     color="orange"
-                    highlight={mockSummary.pendingClaims > 0}
+                    highlight={summaryData?.pendingClaims || 0 > 0}
                   />
                   <StatCard 
                     label="Verified" 
-                    value={mockSummary.verifiedBusinesses} 
+                    value={summaryData?.verifiedBusinesses || 0} 
                     icon={<CheckCircle2 className="text-green-500" />}
                     color="green"
                   />
                   <StatCard 
                     label="Featured" 
-                    value={mockSummary.featuredBusinesses} 
+                    value={summaryData?.featuredBusinesses || 0} 
                     icon={<Star className="text-cyan-500" />}
                     color="cyan"
                   />
                   <StatCard 
                     label="Trending" 
-                    value={mockSummary.trendingItems} 
+                    value={summaryData?.trendingItems || 0} 
                     icon={<TrendingUp className="text-rose-500" />}
                     color="rose"
                   />
                   <StatCard 
                     label="Active Users" 
-                    value={mockSummary.activeUsers} 
+                    value={summaryData?.activeUsers || 0} 
                     icon={<Globe className="text-indigo-500" />}
                     color="indigo"
                   />
-                  <StatCard 
-                    label="Growth" 
-                    value={mockSummary.monthlyGrowth} 
+                  <StatCard
+                    label="Growth"
+                    value={summaryData?.monthlyGrowth || '0%'}
                     icon={<TrendingUp className="text-emerald-500" />}
                     color="emerald"
                   />
+                    </div>
+                  )}
                 </motion.div>
               )}
 

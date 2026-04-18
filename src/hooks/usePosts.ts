@@ -21,12 +21,11 @@ export function usePosts(businessId?: string) {
         setLoading(true);
       }
 
-      // Use status column (visible/hidden) if it exists, otherwise fetch all
+      // Fetch posts - filter for visible posts only
       let query = supabase
         .from('posts')
-        .select('*, business:businesses(name, image_url)', { count: 'exact' });
-      // Temporarily disabled status filter until SQL migration is run
-      // .or('status.eq.visible,status.is.null');
+        .select('*, business:businesses(name, image_url)', { count: 'exact' })
+        .or('status.eq.visible,status.is.null');
 
       if (isTrending) {
         query = query.order('likes', { ascending: false });
