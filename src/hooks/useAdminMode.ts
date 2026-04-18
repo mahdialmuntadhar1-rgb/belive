@@ -2,16 +2,18 @@ import { useAuth } from './useAuth';
 import { useMemo, useState } from 'react';
 
 /**
- * useAdminMode - Role-based admin access hook
- * Only users with profile.role === 'admin' can edit
+ * useAdminMode - Email-based admin access hook
+ * Only mahdialmuntadhar1@gmail.com can edit
  */
+const ADMIN_EMAIL = 'mahdialmuntadhar1@gmail.com';
+
 export function useAdminMode() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [isEditModeOn, setIsEditModeOn] = useState(false);
 
   const canEditContent = useMemo(() => {
-    return profile?.role === 'admin';
-  }, [profile?.role]);
+    return user?.email === ADMIN_EMAIL;
+  }, [user?.email]);
 
   const isAdminEditModeActive = canEditContent && isEditModeOn;
 

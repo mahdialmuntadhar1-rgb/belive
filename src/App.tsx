@@ -13,28 +13,23 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import BusinessOwnerDashboard from '@/pages/BusinessOwnerDashboard';
 import AdminRoute from '@/components/auth/AdminRoute';
-import PageEditor from '@/components/PageEditor';
 import { useAuthStore } from '@/stores/authStore';
 import { ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from 'sonner';
-import { BuildModeProvider } from '@/contexts/BuildModeContext';
-import BuildModeImageReplacer from '@/components/BuildModeEditor/BuildModeImageReplacer';
 import './styles/humus-design.css';
 
 export default function App() {
   const { profile } = useAuthStore();
   const location = useLocation();
   
-  // Admin visibility logic: Show ONLY on non-homepage OR if explicitly admin role
-  // Hiding from homepage as per user request to avoid confusion with Build Mode
+  // Admin visibility logic: Show ONLY for mahdialmuntadhar1@gmail.com
   const isHomePage = location.pathname === '/';
-  
-  // Hide Admin FAB if on homepage
-  const showAdminFAB = !isHomePage && ((profile?.role === 'admin') || (import.meta.env.DEV));
+  const ADMIN_EMAIL = 'mahdialmuntadhar1@gmail.com';
+  const showAdminFAB = !isHomePage && profile?.email === ADMIN_EMAIL;
 
   return (
-    <BuildModeProvider>
+    <>
       <Toaster position="top-center" richColors />
       <Routes>
         {/* Main Homepage - Version 1 Design */}
@@ -70,13 +65,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Build Mode Sidebar */}
-      <PageEditor />
-
-      {/* Direct Image Replacement Toolbar */}
-      <BuildModeImageReplacer />
-
-      {/* Global Admin Access FAB */}
+      {/* Global Admin Access FAB - ONLY for mahdialmuntadhar1@gmail.com */}
       <AnimatePresence>
         {showAdminFAB && (
           <motion.div
@@ -92,12 +81,12 @@ export default function App() {
             >
               <ShieldCheck className="w-8 h-8" />
               <div className="absolute right-full mr-4 px-4 py-2 bg-white text-[#0F7B6C] text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-100">
-                Open Admin Panel {import.meta.env.DEV && profile?.role !== 'admin' && "(DEV MODE)"}
+                Admin Panel
               </div>
             </Link>
           </motion.div>
         )}
       </AnimatePresence>
-    </BuildModeProvider>
+    </>
   );
 }
