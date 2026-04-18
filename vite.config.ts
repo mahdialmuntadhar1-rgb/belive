@@ -21,14 +21,7 @@ export default defineConfig(({mode}) => {
       },
     },
     build: {
-      rollupOptions: {
-        onwarn(warning, warn) {
-          // Ignore external module warnings
-          if (warning.code === 'MODULE_NOT_FOUND') return;
-          if (warning.message.includes('externalize')) return;
-          warn(warning);
-        },
-      },
+      logLevel: 'error',
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
