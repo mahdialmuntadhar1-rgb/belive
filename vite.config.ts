@@ -7,7 +7,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [
-      react(),
+      react({ strictMode: false }),
       tailwindcss(),
       // VitePWA disabled temporarily to fix manifest.json 401 error
       // Re-enable after deployment is stable
