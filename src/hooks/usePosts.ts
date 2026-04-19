@@ -22,9 +22,10 @@ export function usePosts(businessId?: string) {
       }
 
       // Fetch posts - filter for visible posts only
+      // Removed embedded businesses join to fix production 400 error
       let query = supabase
         .from('posts')
-        .select('*, business:businesses(name, image_url)', { count: 'exact' })
+        .select('*', { count: 'exact' })
         .or('status.eq.visible,status.is.null');
 
       if (isTrending) {
