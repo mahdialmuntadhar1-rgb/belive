@@ -57,8 +57,8 @@ export function usePosts(businessId?: string) {
           views: item.views || 0,
           commentsCount: item.comments_count || item.commentsCount || 0,
           createdAt: new Date(item.created_at),
-          authorName: (item.business as any)?.name || item.author_name || 'Community',
-          authorAvatar: (item.business as any)?.image_url || `https://i.pravatar.cc/150?u=${item.id}`,
+          authorName: item.author_name || 'Community',
+          authorAvatar: `https://i.pravatar.cc/150?u=${item.id}`,
           isVerified: item.is_verified || false,
           status: item.status || 'visible',
         }));
