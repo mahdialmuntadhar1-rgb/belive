@@ -54,6 +54,7 @@ export default function HeroEditor({ slides, onUpdate }: HeroEditorProps) {
       );
       onUpdate(updated);
     } catch (err) {
+      console.error('Failed to upload hero image:', err);
       setError('Image upload failed');
     } finally {
       setIsUploading(false);

@@ -80,6 +80,7 @@ export default function EditableHeroSection({
       );
       onSlidesUpdate(updated);
     } catch (err) {
+      console.error('Failed to upload hero image:', err);
       alert('Error uploading image');
     } finally {
       setIsUploading(false);

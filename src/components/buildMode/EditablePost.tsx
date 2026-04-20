@@ -30,7 +30,8 @@ export default function EditablePost({
       onUpdate({ ...post, content: newCaption });
       setIsEditing(false);
     } catch (err) {
-      alert(language === "ar" ? "خطأ" : "Error");
+      console.error('Failed to save post caption:', err);
+      alert(language === "ar" ? "خطأ في الحفظ" : "Error saving caption");
       setNewCaption(post.content);
     }
   };
@@ -50,9 +51,10 @@ export default function EditablePost({
         .getPublicUrl(fileName);
 
       await supabase.from("posts").update({ image_url: publicUrl }).eq("id", post.id);
-      onUpdate({ ...post, image: publicUrl });
+      onUpdate({ ...post, image_url: publicUrl });
     } catch (err) {
-      alert(language === "ar" ? "خطأ" : "Error");
+      console.error('Failed to upload post image:', err);
+      alert(language === "ar" ? "خطأ في تحميل الصورة" : "Error uploading image");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -66,7 +68,8 @@ export default function EditablePost({
       await supabase.from("posts").delete().eq("id", post.id);
       onUpdate({ ...post, id: "" });
     } catch (err) {
-      alert(language === "ar" ? "خطأ" : "Error");
+      console.error('Failed to delete post:', err);
+      alert(language === "ar" ? "خطأ في الحذف" : "Error deleting post");
     }
   };
 

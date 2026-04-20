@@ -59,7 +59,7 @@ export default function PostsEditor({ posts, onUpdate }: PostsEditorProps) {
           .insert([
             {
               content: formData.content,
-              image: formData.image,
+              image_url: formData.image,
               title: formData.title,
               likes: formData.likes || 0,
               status: formData.status || 'visible',
@@ -77,7 +77,7 @@ export default function PostsEditor({ posts, onUpdate }: PostsEditorProps) {
           .from('posts')
           .update({
             content: formData.content,
-            image: formData.image,
+            image_url: formData.image,
             title: formData.title,
             status: formData.status,
           })

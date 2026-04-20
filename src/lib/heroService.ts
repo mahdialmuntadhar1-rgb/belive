@@ -79,13 +79,13 @@ export const heroService = {
     const filePath = `slides/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('business-images')
+      .from('hero-images')
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
-      .from('business-images')
+      .from('hero-images')
       .getPublicUrl(filePath);
 
     return data.publicUrl;
@@ -93,9 +93,9 @@ export const heroService = {
 
   async deleteImage(url: string): Promise<void> {
     try {
-      const path = url.split('/business-images/')[1];
+      const path = url.split('/hero-images/')[1];
       if (path) {
-        await supabase.storage.from('business-images').remove([path]);
+        await supabase.storage.from('hero-images').remove([path]);
       }
     } catch (error) {
       console.error('Error deleting image:', error);
