@@ -14,6 +14,7 @@ import OwnerEditFAB from "@/components/home/OwnerEditFAB";
 import EditModePanel from "@/components/home/EditModePanel";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
+import { heroService, HeroSlide } from "@/lib/heroService";
 import type { Business, Post } from "@/lib/supabase";
 
 import { ArrowRight, TrendingUp } from "lucide-react";
@@ -30,15 +31,32 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'guide' | 'social'>('guide');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [isEditModePanelOpen, setIsEditModePanelOpen] = useState(false);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
   const { language, setLanguage } = useHomeStore();
-  
+
   // Set Arabic as default on first load if not set
   useEffect(() => {
     if (!language) {
       setLanguage('ar');
     }
   }, [language, setLanguage]);
+
+  // Load hero slides from database
+  useEffect(() => {
+    const loadHeroSlides = async () => {
+      try {
+        const slides = await heroService.getActiveSlides();
+        if (slides && slides.length > 0) {
+          setHeroSlides(slides);
+        }
+      } catch (err) {
+        console.error('Failed to load hero slides:', err);
+      }
+    };
+    loadHeroSlides();
+  }, []);
 
   const {
     businesses,
@@ -62,6 +80,22 @@ export default function HomePage() {
 
   const isRTL = language === 'ar' || language === 'ku';
 
+  const handlePrevHero = () => {
+    if (heroSlides.length > 0) {
+      setCurrentHeroIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    }
+  };
+
+  const handleNextHero = () => {
+    if (heroSlides.length > 0) {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroSlides.length);
+    }
+  };
+
+  const handleHeroSlidesUpdate = (updated: HeroSlide[]) => {
+    setHeroSlides(updated);
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F7F5] selection:bg-[#0F7B6C]/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <HomeHeader 
@@ -79,6 +113,11 @@ export default function HomePage() {
           onBusinessClick={setSelectedBusiness}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          heroSlides={heroSlides}
+          currentHeroIndex={currentHeroIndex}
+          onPrevHero={handlePrevHero}
+          onNextHero={handleNextHero}
+          onHeroSlidesUpdate={handleHeroSlidesUpdate}
         />
 
         <div className="max-w-7xl mx-auto px-4 mb-12">
