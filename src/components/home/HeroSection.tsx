@@ -125,7 +125,7 @@ export default function HeroSection({
               )}
               {/* Edit overlay (owner only) */}
               {isBuildModeEnabled && isEditing && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
@@ -142,11 +142,19 @@ export default function HeroSection({
                   />
                 </div>
               )}
+              {/* Edit button when build mode is enabled */}
+              {isBuildModeEnabled && !isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="absolute top-4 right-4 z-20 px-4 py-2 bg-white/90 backdrop-blur-md rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-all shadow-lg"
+                >
+                  <Loader2 className="w-4 h-4" />
+                  Edit Hero
+                </button>
+              )}
               {/* Search overlay */}
               <div
                 className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-center p-8 sm:p-16 group"
-                onMouseEnter={() => isBuildModeEnabled && setIsEditing(true)}
-                onMouseLeave={() => isBuildModeEnabled && setIsEditing(false)}
               >
                 <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                   <input

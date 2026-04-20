@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import debounce from "lodash/debounce";
 import HomeHeader from "@/components/home/HomeHeader";
 import HeroSection from "@/components/home/HeroSection";
+import EditableHeroSection from "@/components/buildMode/EditableHeroSection";
 import MainTabSwitcher from "@/components/home/MainTabSwitcher";
 import DirectoryTabPanel from "@/components/home/DirectoryTabPanel";
 import SocialFeed from "@/components/home/SocialFeed";
@@ -14,6 +15,7 @@ import OwnerEditFAB from "@/components/home/OwnerEditFAB";
 import EditModePanel from "@/components/home/EditModePanel";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
+import { useBuildMode } from "@/hooks/useBuildMode";
 import { heroService, HeroSlide } from "@/lib/heroService";
 import type { Business, Post } from "@/lib/supabase";
 
