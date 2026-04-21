@@ -219,5 +219,61 @@ export function usePosts(businessId?: string) {
     }
   };
 
-  return { posts, loading, error, hasMore, loadMore, createPost, likePost, fetchComments, addComment, refresh: fetchPosts };
+  const uploadPostImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  const updatePost = async (postId: string, updates: Partial<Post>) => {
+    try {
+      // Map Post type fields back to DB columns if necessary
+      const dbUpdates: any = {};
+      if (updates.content !== undefined) dbUpdates.content = updates.content;
+      if (updates.image !== undefined) dbUpdates.image_url = updates.image;
+      
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update(dbUpdates)
+        .eq('id', postId);
+
+      if (updateError) throw updateError;
+      
+      // Refresh local state
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, ...updates } : p));
+    } catch (err) {
+      console.error('Error updating post:', err);
+      throw err;
+    }
+  };
+
+  const deletePost = async (postId: string) => {
+    try {
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (deleteError) throw deleteError;
+      
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      throw err;
+    }
+  };
+
+  return { posts, loading, error, hasMore, loadMore, createPost, updatePost, deletePost, uploadPostImage, likePost, fetchComments, addComment, refresh: fetchPosts };
 }

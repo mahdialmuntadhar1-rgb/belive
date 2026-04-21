@@ -63,33 +63,35 @@ export const heroService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating hero slide:', error);
+      throw error;
+    }
     return data;
-  },
-
-  async deleteSlide(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('hero_slides')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
   },
 
   async uploadImage(file: File): Promise<string> {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `slides/${fileName}`;
+    const fileName = `hero_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const filePath = `${fileName}`;
 
+    // Upload to 'hero-images' bucket
     const { error: uploadError } = await supabase.storage
       .from('hero-images')
-      .upload(filePath, file);
+      .upload(filePath, file, { upsert: true });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Error uploading hero image:', uploadError);
+      throw uploadError;
+    }
 
     const { data } = supabase.storage
       .from('hero-images')
       .getPublicUrl(filePath);
+
+    if (!data?.publicUrl) {
+      throw new Error('Failed to get public URL for uploaded hero image');
+    }
 
     return data.publicUrl;
   },

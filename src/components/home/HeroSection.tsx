@@ -1,33 +1,65 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImagePlus, Loader2 } from 'lucide-react';
 import { useLocalBuildStore } from '@/stores/localBuildStore';
+import { useHeroSlides } from '@/hooks/useHeroSlides';
+import { heroService } from '@/lib/heroService';
 
 export default function HeroSection() {
-  const { heroSlides, updateHeroImage, isBuildMode } = useLocalBuildStore();
+  const { isBuildMode } = useLocalBuildStore();
+  const { slides, refresh, loading: slidesLoading } = useHeroSlides();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [replacing, setReplacing] = useState<string | null>(null);
+
+  const heroSlides = slides.length > 0 ? slides : [];
 
   const nextSlide = () => {
+    if (heroSlides.length === 0) return;
     setCurrentIndex((prev) => (prev + 1) % heroSlides.length);
   };
 
   const prevSlide = () => {
+    if (heroSlides.length === 0) return;
     setCurrentIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
   };
 
-  const handleImageUpload = (index: number) => {
+  const handleImageUpload = async (slideId: string) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const url = URL.createObjectURL(file);
-        updateHeroImage(index, url);
+        try {
+          setReplacing(slideId);
+          // 1. Upload to Storage
+          const publicUrl = await heroService.uploadImage(file);
+          // 2. Update Database
+          await heroService.updateSlide(slideId, { image_url: publicUrl });
+          // 3. Refresh Data
+          await refresh();
+        } catch (error) {
+          alert('Failed to update hero image. Check storage buckets and policies.');
+          console.error(error);
+        } finally {
+          setReplacing(null);
+        }
       }
     };
     input.click();
   };
+
+  if (slidesLoading && heroSlides.length === 0) {
+    return (
+      <div className="w-full px-4 mb-12 sm:mb-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative overflow-hidden rounded-[48px] aspect-[4/5] sm:aspect-video shadow-2xl bg-slate-100 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (heroSlides.length === 0) return null;
 
@@ -52,13 +84,23 @@ export default function HeroSection() {
               />
               
               {isBuildMode && (
-                <div className="absolute inset-0 bg-black/0 group-hover/hero:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover/hero:opacity-100">
+                <div className="absolute inset-0 bg-black/0 group-hover/hero:bg-black/60 transition-all flex items-center justify-center opacity-0 group-hover/hero:opacity-100 backdrop-blur-sm">
                   <button
-                    onClick={() => handleImageUpload(currentIndex)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-full font-black text-xs uppercase tracking-widest shadow-2xl transform scale-90 group-hover/hero:scale-100 transition-all hover:bg-primary hover:text-white"
+                    disabled={replacing === heroSlides[currentIndex].id}
+                    onClick={() => handleImageUpload(heroSlides[currentIndex].id)}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-full font-black text-xs uppercase tracking-widest shadow-2xl transform scale-90 group-hover/hero:scale-100 transition-all hover:bg-primary hover:text-white disabled:opacity-50"
                   >
-                    <ImagePlus className="w-4 h-4" />
-                    Replace Image
+                    {replacing === heroSlides[currentIndex].id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="w-4 h-4" />
+                        Replace Image
+                      </>
+                    )}
                   </button>
                 </div>
               )}

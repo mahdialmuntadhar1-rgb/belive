@@ -14,12 +14,14 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
 import type { Business } from "@/lib/supabase";
 
-import { useLocalBuildStore } from "@/stores/localBuildStore";
+import { useLocalBuildStore, OWNER_EMAIL } from "@/stores/localBuildStore";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function HomePage() {
-  const { isBuildMode, setBuildMode } = useLocalBuildStore();
+  const { isBuildMode, setBuildMode, canEdit } = useLocalBuildStore();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -151,20 +153,22 @@ export default function HomePage() {
 
       <PWAInstallButton />
 
-      {/* Build Mode Toggle */}
-      <div className="fixed bottom-8 left-8 z-[100] flex items-center gap-3">
-        <button
-          onClick={() => setBuildMode(!isBuildMode)}
-          className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all flex items-center gap-2 ${
-            isBuildMode 
-              ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
-              : 'bg-white text-slate-400 hover:text-primary shadow-slate-200'
-          }`}
-        >
-          <div className={`w-2 h-2 rounded-full ${isBuildMode ? 'bg-white animate-pulse' : 'bg-slate-300'}`} />
-          {isBuildMode ? 'Build Mode: On' : 'Enter Build Mode'}
-        </button>
-      </div>
+      {/* Build Mode Toggle - Only for Owner */}
+      {canEdit(user?.email) && (
+        <div className="fixed bottom-8 left-8 z-[100] flex items-center gap-3">
+          <button
+            onClick={() => setBuildMode(!isBuildMode)}
+            className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all flex items-center gap-2 ${
+              isBuildMode 
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                : 'bg-white text-slate-400 hover:text-primary shadow-slate-200'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${isBuildMode ? 'bg-white animate-pulse' : 'bg-slate-300'}`} />
+            {isBuildMode ? 'Build Mode: On' : 'Enter Build Mode'}
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-text-main text-white pt-32 pb-16">
