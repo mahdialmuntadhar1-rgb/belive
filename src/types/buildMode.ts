@@ -6,6 +6,7 @@
 export interface HeroSlide {
   id: string;
   image: string; // base64 or URL
+  title?: string;
 }
 
 export interface FeedItem {

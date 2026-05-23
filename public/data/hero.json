@@ -1,0 +1,12 @@
+{
+  "slides": [
+    {
+      "image": "https://picsum.photos/seed/hero1/1920/1080",
+      "title": "Welcome to Belive"
+    },
+    {
+      "image": "https://picsum.photos/seed/hero2/1920/1080",
+      "title": "Discover Local Businesses"
+    }
+  ]
+}

@@ -15,10 +15,11 @@ interface CategorySectionProps {
   };
   businesses: Business[];
   loading: boolean;
+  onRefresh?: () => void;
   onBusinessClick: (biz: Business) => void;
 }
 
-export default function CategorySection({ category, businesses, loading, onBusinessClick }: CategorySectionProps) {
+export default function CategorySection({ category, businesses, loading, onRefresh, onBusinessClick }: CategorySectionProps) {
   const { language } = useHomeStore();
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -64,6 +65,7 @@ export default function CategorySection({ category, businesses, loading, onBusin
         <BusinessGrid 
           businesses={visibleBusinesses} 
           loading={loading}
+          onRefresh={onRefresh}
           onBusinessClick={onBusinessClick}
         />
       </div>

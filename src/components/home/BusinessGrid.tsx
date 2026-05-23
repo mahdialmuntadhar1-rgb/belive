@@ -11,6 +11,7 @@ interface BusinessGridProps {
   hasMore?: boolean;
   totalCount?: number;
   onLoadMore?: () => void;
+  onRefresh?: () => void;
   onBusinessClick?: (business: Business) => void;
 }
 
@@ -20,6 +21,7 @@ export default function BusinessGrid({
   hasMore, 
   totalCount = 0,
   onLoadMore, 
+  onRefresh,
   onBusinessClick 
 }: BusinessGridProps) {
   const { language } = useHomeStore();
@@ -97,6 +99,7 @@ export default function BusinessGrid({
               <BusinessCard
                 biz={biz}
                 onClick={onBusinessClick}
+                onRefresh={onRefresh}
               />
             </motion.div>
           ))}

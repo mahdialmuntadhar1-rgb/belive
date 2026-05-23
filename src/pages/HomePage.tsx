@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import debounce from "lodash/debounce";
 import HomeHeader from "@/components/home/HomeHeader";
 import HeroSection from "@/components/home/HeroSection";
-import FeedSections from "@/components/home/FeedSections";
+import GovernorateFilter from "@/components/home/GovernorateFilter";
+import FeaturesSection from "@/components/home/FeaturesSection";
 import MainTabSwitcher from "@/components/home/MainTabSwitcher";
 import DirectoryTabPanel from "@/components/home/DirectoryTabPanel";
 import SocialFeed from "@/components/home/SocialFeed";
@@ -14,10 +15,14 @@ import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
 import type { Business } from "@/lib/supabase";
 
+import { useLocalBuildStore, OWNER_EMAIL } from "@/stores/localBuildStore";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function HomePage() {
+  const { isBuildMode, setBuildMode, canEdit } = useLocalBuildStore();
+  const { user, profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -59,7 +64,7 @@ export default function HomePage() {
   const isRTL = language === 'ar' || language === 'ku';
 
   return (
-    <div className="min-h-screen bg-[#F7F7F5] selection:bg-[#0F7B6C]/20" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="selection:bg-primary/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <HomeHeader 
         onAddBusiness={() => setIsAddBusinessModalOpen(true)}
         onAuth={(mode) => {
@@ -70,17 +75,15 @@ export default function HomePage() {
 
       <main className="pt-4 sm:pt-8">
         <HeroSection 
-          businesses={businesses} 
-          onBusinessClick={setSelectedBusiness}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
 
-        <div className="pt-8">
-          <FeedSections />
-        </div>
+        <GovernorateFilter />
 
-        <div className="max-w-7xl mx-auto px-4 mb-12 mt-12">
+        <FeaturesSection />
+
+        <div className="mb-12">
           <MainTabSwitcher 
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -104,6 +107,7 @@ export default function HomePage() {
                     hasMore={hasMore}
                     totalCount={totalCount}
                     loadMore={loadMore}
+                    refresh={refresh}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     onBusinessClick={setSelectedBusiness}
@@ -122,14 +126,6 @@ export default function HomePage() {
                 className="bg-white/50 backdrop-blur-sm py-12 sm:py-20"
               >
                 <div className="max-w-4xl mx-auto px-4">
-                  <div className="text-center mb-16">
-                    <h2 className="text-4xl sm:text-6xl font-black text-[#111827] poppins-bold uppercase tracking-tighter mb-4">
-                      {language === 'ar' ? 'شكو ماكو' : 'Shaku Maku'}
-                    </h2>
-                    <p className="text-slate-500 font-medium text-lg">
-                      {language === 'ar' ? 'آخر أخبار وعروض الشركات في العراق' : 'Latest news and offers from businesses in Iraq'}
-                    </p>
-                  </div>
                   <SocialFeed onBusinessClick={setSelectedBusiness} />
                 </div>
               </motion.div>
@@ -157,6 +153,23 @@ export default function HomePage() {
       />
 
       <PWAInstallButton />
+
+      {/* Build Mode Toggle - Only for Owner */}
+      {canEdit(user?.email, profile?.role) && (
+        <div className="fixed bottom-8 left-8 z-[100] flex items-center gap-3">
+          <button
+            onClick={() => setBuildMode(!isBuildMode)}
+            className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all flex items-center gap-2 ${
+              isBuildMode 
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                : 'bg-white text-slate-400 hover:text-primary shadow-slate-200'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${isBuildMode ? 'bg-white animate-pulse' : 'bg-slate-300'}`} />
+            {isBuildMode ? 'Build Mode: On' : 'Enter Build Mode'}
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-text-main text-white pt-32 pb-16">

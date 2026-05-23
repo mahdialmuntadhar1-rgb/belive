@@ -126,8 +126,6 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult & { feat
 
   const fetchFeatured = async () => {
     try {
-      // Fetch businesses without filtering on potentially missing 'is_featured' column
-      // to avoid 400 errors in production. Filter in JS instead.
       const { data, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
@@ -136,16 +134,18 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult & { feat
       if (fetchError) throw fetchError;
       
       if (data) {
-        // Filter for featured businesses in JS
         const featured = data.filter((item: any) => item.is_featured === true || item.isFeatured === true);
-        
-        // If we found featured businesses, use them. Otherwise use the first 5 as "featured"
         const finalFeatured = featured.length > 0 ? featured.slice(0, 5) : data.slice(0, 5);
         mapFeaturedData(finalFeatured);
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Quietly use fallbacks for known DB configuration issues
+      if (err?.code === '42P17' || err?.code === 'PGRST205') {
+        const fallbackFeatured = FALLBACK_BUSINESSES.filter(b => b.isFeatured).slice(0, 5);
+        setFeaturedBusinesses(fallbackFeatured);
+        return;
+      }
       console.error('Error fetching featured businesses:', err);
-      // Fallback to empty or predefined featured if everything fails
       setFeaturedBusinesses([]);
     }
   };
@@ -248,11 +248,17 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult & { feat
         setHasMore(newBusinesses.length < countVal);
         return newBusinesses;
       });
-    } catch (err) {
-      console.error('Error fetching businesses:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch businesses');
+    } catch (err: any) {
+      // Handle network errors or configuration issues
+      const isNetworkError = err instanceof Error && err.message.includes('fetch');
+      const isRLSRecursion = err?.code === '42P17' || err?.code === 'PGRST205';
+
+      if (isRLSRecursion) {
+        console.warn('RLS Recursion detected. Fallback applied.');
+      } else if (isNetworkError) {
+        console.error('Supabase Network Error: Failed to fetch. Check VITE_SUPABASE_URL or project status.');
+      }
       
-      // On error, if it's a fresh load, show fallbacks
       if (isRefresh) {
         setBusinesses(FALLBACK_BUSINESSES);
         setTotalCount(FALLBACK_BUSINESSES.length);

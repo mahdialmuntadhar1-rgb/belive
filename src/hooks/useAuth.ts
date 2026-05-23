@@ -44,11 +44,16 @@ export function useAuth() {
           // Profile doesn't exist, create it
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
-            .insert([{ id: userId, created_at: new Date().toISOString() }])
+            .insert([{ id: userId, created_at: new Date().toISOString(), role: 'user' }])
             .select()
             .single();
           
           if (!createError) setProfile(newProfile);
+        } else if (error.code === '42P17') {
+          // Infinite recursion detected in RLS policy
+          console.warn('RLS Recursion detected in profiles table. Please run the supabase_repair.sql script to fix this.');
+          // Provide a minimal mock profile so the app doesn't break
+          setProfile({ id: userId, role: 'user' } as any);
         } else {
           throw error;
         }
@@ -56,6 +61,8 @@ export function useAuth() {
         setProfile(data);
       }
     } catch (err) {
+      // Avoid spamming if it's a known recursion issue
+      if (err && typeof err === 'object' && 'code' in err && err.code === '42P17') return;
       console.error('Error fetching profile:', err);
     }
   };

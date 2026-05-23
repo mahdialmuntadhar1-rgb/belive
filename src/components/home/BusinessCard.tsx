@@ -4,17 +4,39 @@ import { Star, MapPin, Phone, MessageCircle, ShieldCheck, TrendingUp, Heart, Sha
 import { Business } from '@/lib/supabase';
 import { useHomeStore } from '@/stores/homeStore';
 import { mapBusinessToCard } from '@/lib/mappers';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdminDB } from '@/hooks/useAdminDB';
+import { useBuildModeContext } from '@/contexts/BuildModeContext';
+import EditableWrapper from '../BuildModeEditor/EditableWrapper';
+import { EditableImage } from '../BuildModeEditor/EditableImage';
+import { EditorField } from '../BuildModeEditor/InlineEditor';
 
 interface BusinessCardProps {
   key?: string | number;
   biz: Business;
   variant?: 'default' | 'compact' | 'featured';
   onClick?: (biz: Business) => void;
+  onRefresh?: () => void;
 }
 
-export default function BusinessCard({ biz, variant = 'default', onClick }: BusinessCardProps) {
+export default function BusinessCard({ biz, variant = 'default', onClick, onRefresh }: BusinessCardProps) {
   const { language } = useHomeStore();
+  const { updateBusiness, deleteBusiness } = useAdminDB();
+  const { isAdmin } = useBuildModeContext();
   const card = mapBusinessToCard(biz, language);
+
+  const businessFields: EditorField[] = [
+    { name: 'name', label: 'Name (EN/Global)', type: 'text' },
+    { name: 'name_ar', label: 'الاسم (عربي)', type: 'text' },
+    { name: 'description', label: 'Description (EN)', type: 'textarea' },
+    { name: 'description_ar', label: 'الوصف (عربي)', type: 'textarea' },
+    { name: 'category', label: 'Category ID', type: 'text' },
+    { name: 'city', label: 'City', type: 'text' },
+    { name: 'phone', label: 'Phone', type: 'text' },
+    { name: 'image_url', label: 'Image URL', type: 'url' },
+    { name: 'is_verified', label: 'Verified', type: 'checkbox' },
+    { name: 'rating', label: 'Rating', type: 'number' }
+  ];
 
   const whatsappNumber = biz.socialLinks?.whatsapp || biz.phone;
   const callNumber = biz.phone;
@@ -43,19 +65,35 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
 
   if (variant === 'featured') {
     return (
-      <motion.div
-        whileHover={{ y: -5 }}
-        onClick={() => onClick?.(biz)}
-        className="flex-shrink-0 w-72 sm:w-80 group cursor-pointer"
+      <EditableWrapper
+        title="تعديل المتجر"
+        fields={businessFields}
+        initialData={biz}
+        onSave={async (data) => {
+          const { success } = await updateBusiness(biz.id, data);
+          if (success) onRefresh?.();
+        }}
+        onDelete={async () => {
+          const { success } = await deleteBusiness(biz.id);
+          if (success) onRefresh?.();
+        }}
+        className="flex-shrink-0"
       >
+        <motion.div
+          whileHover={{ y: -5 }}
+          onClick={() => onClick?.(biz)}
+          className="w-72 sm:w-80 group cursor-pointer"
+        >
         <div className="relative aspect-[16/10] rounded-[20px] overflow-hidden mb-4 shadow-premium border border-white/10">
-          <img 
-            src={card.image} 
+          <EditableImage
+            src={card.image}
             alt={card.name}
+            folder="business"
+            isAdmin={isAdmin}
+            onSave={(newUrl) => updateBusiness(biz.id, { image_url: newUrl }).then(() => onRefresh?.())}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
           
           <div className="absolute top-4 left-4">
             <div className={`px-3 py-1 ${catStyles.bg} backdrop-blur-md rounded-full border ${catStyles.border}`}>
@@ -87,31 +125,48 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
           </div>
         </div>
       </motion.div>
+      </EditableWrapper>
     );
   }
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -12, scale: 1.02 }}
-      className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-2xl border border-slate-100 transition-all duration-500 h-full"
+    <EditableWrapper
+      title="تعديل المتجر"
+      fields={businessFields}
+      initialData={biz}
+      onSave={async (data) => {
+        const { success } = await updateBusiness(biz.id, data);
+        if (success) onRefresh?.();
+      }}
+      onDelete={async () => {
+        const { success } = await deleteBusiness(biz.id);
+        if (success) onRefresh?.();
+      }}
+      className="h-full"
     >
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -12, scale: 1.02 }}
+        className="group relative flex flex-col bg-white rounded-[32px] overflow-hidden shadow-2xl border border-slate-100 transition-all duration-500 h-full"
+      >
       {/* Postcard Image Section */}
       <div 
         className="aspect-[16/10] w-full overflow-hidden relative cursor-pointer"
         onClick={() => onClick?.(biz)}
       >
-        <img 
-          src={card.image} 
+        <EditableImage
+          src={card.image}
           alt={card.name}
+          folder="business"
+          isAdmin={isAdmin}
+          onSave={(newUrl) => updateBusiness(biz.id, { image_url: newUrl }).then(() => onRefresh?.())}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-          referrerPolicy="no-referrer"
         />
         
         {/* Overlay for better text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500 pointer-events-none" />
  
         {/* Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -191,5 +246,6 @@ export default function BusinessCard({ biz, variant = 'default', onClick }: Busi
         </div>
       </div>
     </motion.div>
-  );
+  </EditableWrapper>
+);
 }

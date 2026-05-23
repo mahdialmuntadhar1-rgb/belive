@@ -1,23 +1,25 @@
 /**
- * // ADMIN MODE ONLY
+ * // BUILD MODE ONLY
  * Modular Slide List component for Build Mode.
  */
 
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { useAdminDB } from '@/hooks/useAdminDB';
+import { useBuildMode } from '@/hooks/useBuildMode';
 import HeroSlideEditor from './HeroSlideEditor';
+import { useLocation } from 'react-router-dom';
 import { canAccessBuildMode } from '@/lib/buildModeAccess';
 
 export default function SlideList() {
-  if (!canAccessBuildMode()) return null;
+  const location = useLocation();
+  if (!canAccessBuildMode(location.search)) return null;
 
-  const { heroSlides, addHeroSlide } = useAdminDB();
+  const { heroSlides, addSlide } = useBuildMode();
 
   const handleAddSlide = () => {
-    addHeroSlide({
-      image_url: 'https://picsum.photos/seed/new/1200/600',
-      is_active: true
+    addSlide({
+      id: Math.random().toString(36).substr(2, 9),
+      image: 'https://picsum.photos/seed/new/1200/600'
     });
   };
 
@@ -41,4 +43,3 @@ export default function SlideList() {
     </div>
   );
 }
-

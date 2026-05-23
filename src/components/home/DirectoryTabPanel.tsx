@@ -8,6 +8,9 @@ import BusinessCard from './BusinessCard';
 import BusinessMap from './BusinessMap';
 import CategorySection from './CategorySection';
 import { useHomeStore } from '@/stores/homeStore';
+import { useAdminDB } from '@/hooks/useAdminDB';
+import { useBuildModeContext } from '@/contexts/BuildModeContext';
+import EditableWrapper from '../BuildModeEditor/EditableWrapper';
 import { CATEGORIES } from '@/constants';
 import { Business } from '@/lib/supabase';
 
@@ -17,6 +20,7 @@ interface DirectoryTabPanelProps {
   hasMore: boolean;
   totalCount: number;
   loadMore: () => void;
+  refresh: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onBusinessClick: (business: Business) => void;
@@ -30,6 +34,7 @@ export default function DirectoryTabPanel({
   hasMore,
   totalCount,
   loadMore,
+  refresh,
   searchQuery,
   setSearchQuery,
   onBusinessClick,
@@ -37,6 +42,17 @@ export default function DirectoryTabPanel({
   setViewMode
 }: DirectoryTabPanelProps) {
   const { language, setCategory, selectedCategory } = useHomeStore();
+  const { isAdmin } = useBuildModeContext();
+  const { updateContent } = useAdminDB();
+
+  const [headerContent, setHeaderContent] = useState({
+    title_ar: 'اكتشف أفضل ما في مدينتك',
+    title_ku: 'باشترینەکانی شارەکەت بدۆزەرەوە',
+    title_en: 'Discover the Best in Your City',
+    description_ar: 'تصفح آلاف الشركات المحلية، المطاعم، والخدمات الموثوقة في جميع أنحاء العراق.',
+    description_ku: 'هەزاران کۆمپانیای ناوخۆیی، چێشتخانە و خزمەتگوزارییە باوەڕپێکراوەکان لە سەرانسەری عێراق بگەڕێ.',
+    description_en: 'Browse thousands of local businesses, restaurants, and trusted services across Iraq.'
+  });
 
   const translations = {
     showing: { en: 'Showing', ar: 'عرض', ku: 'پیشاندانی' },
@@ -52,27 +68,44 @@ export default function DirectoryTabPanel({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
       {/* Intro Text */}
-      <div className="mb-16 text-center max-w-4xl mx-auto">
-        <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          className="text-3xl sm:text-6xl font-black text-[#111827] poppins-bold uppercase tracking-tighter mb-6 leading-[1.1]"
-        >
-          {language === 'ar' ? 'اكتشف أفضل ما في مدينتك' : language === 'ku' ? 'باشترینەکانی شارەکەت بدۆزەرەوە' : 'Discover the Best in Your City'}
-        </motion.h2>
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-base sm:text-xl text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto"
-        >
-          {language === 'ar' 
-            ? 'تصفح آلاف الشركات المحلية، المطاعم، والخدمات الموثوقة في جميع أنحاء العراق.' 
-            : language === 'ku'
-            ? 'هەزاران کۆمپانیای ناوخۆیی، چێشتخانە و خزمەتگوزارییە باوەڕپێکراوەکان لە سەرانسەری عێراق بگەڕێ.'
-            : 'Browse thousands of local businesses, restaurants, and trusted services across Iraq.'}
-        </motion.p>
-      </div>
+      <EditableWrapper
+        title="تعديل ترويسة الدليل"
+        fields={[
+          { name: 'title_ar', label: 'العنوان (عربي)', type: 'text' },
+          { name: 'title_ku', label: 'العنوان (كردي)', type: 'text' },
+          { name: 'title_en', label: 'Title (EN)', type: 'text' },
+          { name: 'description_ar', label: 'الوصف (عربي)', type: 'textarea' },
+          { name: 'description_ku', label: 'الوصف (كردي)', type: 'textarea' },
+          { name: 'description_en', label: 'Description (EN)', type: 'textarea' }
+        ]}
+        initialData={headerContent}
+        onSave={async (data) => {
+          setHeaderContent(data);
+          try {
+            await updateContent('site_settings', 'directory_header', data);
+          } catch (e) {
+            console.warn('Persistence failed for directory_header');
+          }
+        }}
+      >
+        <div className="mb-16 text-center max-w-4xl mx-auto">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="text-3xl sm:text-6xl font-black text-[#111827] poppins-bold uppercase tracking-tighter mb-6 leading-[1.1]"
+          >
+            {language === 'ar' ? headerContent.title_ar : language === 'ku' ? headerContent.title_ku : headerContent.title_en}
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-base sm:text-xl text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto"
+          >
+            {language === 'ar' ? headerContent.description_ar : language === 'ku' ? headerContent.description_ku : headerContent.description_en}
+          </motion.p>
+        </div>
+      </EditableWrapper>
 
       {/* 1.5 Sticky Search Bar */}
       <div className="sticky top-[64px] sm:top-[73px] z-40 py-4 sm:py-6 bg-[#F7F7F5]/80 backdrop-blur-xl -mx-4 px-4 mb-12 border-b border-slate-200/50 transition-all duration-300">
@@ -165,6 +198,7 @@ export default function DirectoryTabPanel({
                 category={category}
                 businesses={categoryBusinesses}
                 loading={loading}
+                onRefresh={refresh}
                 onBusinessClick={onBusinessClick}
               />
             );

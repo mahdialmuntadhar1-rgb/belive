@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,11 +12,50 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Multer config for image uploads
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const type = req.body.type || 'misc';
+      const dir = path.join(process.cwd(), 'public', 'images', type);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  });
+  const upload = multer({ storage });
+
   // Increase payload limit for base64 images
   app.use(express.json({ limit: '50mb' }));
 
   const distPath = path.join(process.cwd(), 'dist');
   const publicPath = path.join(process.cwd(), 'public');
+
+  // API: Upload Image
+  app.post("/api/upload", upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const type = req.body.type || 'misc';
+    res.json({ path: `/images/${type}/${req.file.filename}` });
+  });
+
+  // API: Save Hero JSON
+  app.post("/api/save-hero", (req, res) => {
+    const dir = path.join(process.cwd(), 'public', 'data');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const filePath = path.join(dir, 'hero.json');
+    fs.writeFileSync(filePath, JSON.stringify(req.body, null, 2));
+    res.json({ success: true });
+  });
+
+  // API: Save Categories JSON
+  app.post("/api/save-categories", (req, res) => {
+    const dir = path.join(process.cwd(), 'public', 'data');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const filePath = path.join(dir, 'categories.json');
+    fs.writeFileSync(filePath, JSON.stringify(req.body, null, 2));
+    res.json({ success: true });
+  });
 
   // 1. Explicitly serve manifest with correct headers to avoid 401
   // Move to top to ensure it's not intercepted
@@ -65,7 +105,97 @@ async function startServer() {
     res.status(404).send('Not found');
   });
 
-  // Legacy API routes have been removed. All Build Mode persistence is now securely handled directly by Supabase.
+  // API Route to save all build mode content
+  app.post('/api/build-mode/save-all', async (req, res) => {
+    try {
+      const { slides, feedItems } = req.body;
+      
+      // Process Hero Slides
+      const heroDir = path.join(process.cwd(), 'public', 'hero');
+      if (!fs.existsSync(heroDir)) fs.mkdirSync(heroDir, { recursive: true });
+
+      const processedSlides = (slides || []).map((slide: any, index: number) => {
+        if (slide.image && slide.image.startsWith('data:image')) {
+          const base64Data = slide.image.replace(/^data:image\/\w+;base64,/, '');
+          const extension = slide.image.split(';')[0].split('/')[1] || 'jpg';
+          const fileName = `hero-${index + 1}-${Date.now()}.${extension}`;
+          const filePath = path.join(heroDir, fileName);
+          fs.writeFileSync(filePath, base64Data, 'base64');
+          return { ...slide, image: `/hero/${fileName}` };
+        }
+        return slide;
+      });
+
+      // Process Feed Items
+      const feedDir = path.join(process.cwd(), 'public', 'feed');
+      if (!fs.existsSync(feedDir)) fs.mkdirSync(feedDir, { recursive: true });
+
+      const processedFeedItems = (feedItems || []).map((item: any, index: number) => {
+        if (item.image && item.image.startsWith('data:image')) {
+          const base64Data = item.image.replace(/^data:image\/\w+;base64,/, '');
+          const extension = item.image.split(';')[0].split('/')[1] || 'jpg';
+          const fileName = `feed-${index + 1}-${Date.now()}.${extension}`;
+          const filePath = path.join(feedDir, fileName);
+          fs.writeFileSync(filePath, base64Data, 'base64');
+          return { ...item, image: `/feed/${fileName}` };
+        }
+        return item;
+      });
+
+      // Write to data files
+      const heroContentFile = path.join(process.cwd(), 'src', 'data', 'heroContent.ts');
+      fs.writeFileSync(heroContentFile, `import { HeroSlide } from '@/types/buildMode';\n\nexport const heroContent: HeroSlide[] = ${JSON.stringify(processedSlides, null, 2)};\n`);
+
+      const feedContentFile = path.join(process.cwd(), 'src', 'data', 'feedContent.ts');
+      fs.writeFileSync(feedContentFile, `import { FeedItem } from '@/types/buildMode';\n\nexport const feedContent: FeedItem[] = ${JSON.stringify(processedFeedItems, null, 2)};\n`);
+
+      res.json({ success: true, slides: processedSlides, feedItems: processedFeedItems });
+    } catch (error) {
+      console.error('Error saving all content:', error);
+      res.status(500).json({ error: 'Failed to save content' });
+    }
+  });
+
+  // API Route to save hero content (legacy support)
+  app.post('/api/build-mode/save-hero', async (req, res) => {
+    try {
+      const { slides } = req.body;
+      
+      if (!slides || !Array.isArray(slides)) {
+        return res.status(400).json({ error: 'Invalid slides data' });
+      }
+
+      const heroDir = path.join(process.cwd(), 'public', 'hero');
+      if (!fs.existsSync(heroDir)) {
+        fs.mkdirSync(heroDir, { recursive: true });
+      }
+
+      // Process images and update paths
+      const processedSlides = slides.map((slide: any, index: number) => {
+        if (slide.image && slide.image.startsWith('data:image')) {
+          const base64Data = slide.image.replace(/^data:image\/\w+;base64,/, '');
+          const extension = slide.image.split(';')[0].split('/')[1];
+          const fileName = `hero-${index + 1}-${Date.now()}.${extension}`;
+          const filePath = path.join(heroDir, fileName);
+          
+          fs.writeFileSync(filePath, base64Data, 'base64');
+          return { ...slide, image: `/hero/${fileName}` };
+        }
+        return slide;
+      });
+
+      // Write to src/data/heroContent.ts
+      const contentFile = path.join(process.cwd(), 'src', 'data', 'heroContent.ts');
+      const fileContent = `import { HeroSlide } from '@/types/buildMode';\n\nexport const heroContent: HeroSlide[] = ${JSON.stringify(processedSlides, null, 2)};\n`;
+      
+      fs.writeFileSync(contentFile, fileContent);
+
+      res.json({ success: true, slides: processedSlides });
+    } catch (error) {
+      console.error('Error saving hero content:', error);
+      res.status(500).json({ error: 'Failed to save hero content' });
+    }
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
