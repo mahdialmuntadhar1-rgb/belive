@@ -41,8 +41,8 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
           className="flex items-center gap-2 group cursor-pointer shrink-0" 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#0F7B6C] rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-[10deg] transition-all duration-500 border border-white/10">
-            <span className="text-[#C8A96A] font-black text-lg sm:text-xl">ش</span>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-[10deg] transition-all duration-500 border border-white/10">
+            <span className="text-accent font-black text-lg sm:text-xl">ش</span>
           </div>
           <div className="flex flex-col">
             <h1 className="text-xs sm:text-lg font-black text-[#111827] poppins-bold tracking-tighter leading-none uppercase">
@@ -64,8 +64,8 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                 onClick={() => setLanguage(lang.id as any)}
                 className={`px-3 py-1 rounded-full text-[9px] font-black transition-all duration-300 ${
                   language === lang.id 
-                    ? 'bg-[#0F7B6C] text-white shadow-sm' 
-                    : 'text-slate-400 hover:text-[#0F7B6C]'
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-primary'
                 }`}
               >
                 {lang.label}
@@ -97,7 +97,7 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                 key={lang}
                 onClick={() => setLanguage(lang as any)}
                 className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${
-                  language === lang ? 'bg-[#0F7B6C] text-white' : 'text-slate-400'
+                  language === lang ? 'bg-primary text-white' : 'text-slate-400'
                 }`}
               >
                 {lang}
@@ -113,13 +113,13 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => onAuth('login')}
-                    className="px-3 py-2 text-[#111827] text-[9px] font-black rounded-xl hover:text-[#0F7B6C] transition-all uppercase tracking-widest"
+                    className="px-3 py-2 text-[#111827] text-[9px] font-black rounded-xl hover:text-primary transition-all uppercase tracking-widest"
                   >
                     {translations.login[language]}
                   </button>
                   <button 
                     onClick={() => onAuth('signup')}
-                    className="px-4 py-2 bg-[#0F7B6C] text-white text-[9px] font-black rounded-xl shadow-md hover:bg-[#0d6b5e] transition-all uppercase tracking-widest"
+                    className="px-4 py-2 bg-primary text-white text-[9px] font-black rounded-xl shadow-md hover:bg-primary-dark transition-all uppercase tracking-widest"
                   >
                     {translations.register[language]}
                   </button>
@@ -128,9 +128,9 @@ export default function HomeHeader({ onAddBusiness, onAuth }: HomeHeaderProps) {
                 <div className="relative">
                   <button 
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 p-1 rounded-xl bg-white border border-slate-100 hover:border-[#0F7B6C] transition-all shadow-sm group"
+                    className="flex items-center gap-2 p-1 rounded-xl bg-white border border-slate-100 hover:border-primary transition-all shadow-sm group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-[#0F7B6C] flex items-center justify-center text-white text-[10px] font-black">
+                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white text-[10px] font-black">
                       {profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase()}
                     </div>
                     <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />

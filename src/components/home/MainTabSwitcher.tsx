@@ -16,7 +16,7 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
       label: language === 'ar' ? 'اكتشف الشركات' : language === 'ku' ? 'کۆمپانیاکان بدۆزەرەوە' : 'Discover Businesses',
       sublabel: language === 'ar' ? 'دليل المدن' : language === 'ku' ? 'ڕێبەری شارەکان' : 'City Directory',
       icon: '🏙️',
-      activeColor: 'bg-[#0F7B6C]',
+      activeColor: 'bg-primary',
       activeText: 'text-white'
     },
     {
@@ -24,8 +24,8 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
       label: language === 'ar' ? 'آخر التحديثات' : language === 'ku' ? 'نوێترین نوێکارییەکان' : 'Latest Updates',
       sublabel: language === 'ar' ? 'شكو ماكو' : language === 'ku' ? 'چی هەیە چی نیە' : 'Shaku Maku',
       icon: '📱',
-      activeColor: 'bg-[#C8A96A]',
-      activeText: 'text-[#0F7B6C]'
+      activeColor: 'bg-accent',
+      activeText: 'text-primary'
     }
   ];
 
@@ -41,7 +41,7 @@ export default function MainTabSwitcher({ activeTab, onTabChange }: MainTabSwitc
               className={`flex-1 relative flex items-center justify-center gap-4 px-6 py-4 rounded-[24px] transition-all duration-500 ${
                 isActive 
                   ? `${tab.activeColor} ${tab.activeText} shadow-2xl scale-[1.02]` 
-                  : 'text-slate-400 hover:text-[#0F7B6C] hover:bg-white'
+                  : 'text-slate-400 hover:text-primary hover:bg-white'
               }`}
             >
               <span className="text-xl sm:text-2xl">{tab.icon}</span>

@@ -6,18 +6,18 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-poppins: "Poppins", sans-serif;
   
-  /* PREMIUM IRAQI DIRECTORY PALETTE */
-  --color-primary: #0F7B6C; /* Deep Emerald Green - Main Accent */
-  --color-primary-dark: #0A5A4F;
-  --color-accent: #C8A96A; /* Soft Gold - Luxury Accent */
-  --color-accent-light: #D4BC8A;
-  --color-bg-warm: #F7F7F5; /* Off-White / Light Warm Gray */
-  --color-text-main: #111827; /* Very Dark Gray */
-  --color-text-muted: #6B7280;
+  /* UNIQUE MESOPOTAMIAN LAPIS & SAFFRON PALETTE */
+  --color-primary: #1F4CD5; /* Radiant Lapis Blue - Main Accent */
+  --color-primary-dark: #12339E;
+  --color-accent: #E59F13; /* Warm Saffron - Luxury Accent */
+  --color-accent-light: #F3BC52;
+  --color-bg-warm: #FAF9F6; /* Creamy Warm Alabaster */
+  --color-text-main: #0B0F19; /* Obsidian Black */
+  --color-text-muted: #5E6675;
   
-  --shadow-premium: 0 10px 30px -10px rgba(15, 123, 108, 0.1), 0 4px 6px -4px rgba(15, 123, 108, 0.05);
-  --shadow-card: 0 20px 40px -15px rgba(17, 24, 39, 0.06);
-  --shadow-gold: 0 10px 20px -5px rgba(200, 169, 106, 0.15);
+  --shadow-premium: 0 10px 30px -10px rgba(31, 76, 213, 0.1), 0 4px 6px -4px rgba(31, 76, 213, 0.05);
+  --shadow-card: 0 20px 40px -15px rgba(11, 15, 25, 0.06);
+  --shadow-gold: 0 10px 20px -5px rgba(229, 159, 19, 0.15);
 
   /* Humus Theme Bridge */
   --humus-primary: var(--color-primary);
@@ -40,7 +40,7 @@
 
 @utility neon-border {
   border: 1px solid var(--color-primary);
-  box-shadow: 0 0 15px rgba(15, 123, 108, 0.2);
+  box-shadow: 0 0 15px rgba(31, 76, 213, 0.15);
 }
 
 @utility text-gradient {

@@ -89,7 +89,7 @@ export function EditableImage({
   );
 
   return (
-    <div className="relative group cursor-pointer overflow-hidden border-2 border-transparent hover:border-[#0F7B6C] transition-all rounded-inherit" onClick={handleClick}>
+    <div className="relative group cursor-pointer overflow-hidden border-2 border-transparent hover:border-primary transition-all rounded-inherit" onClick={handleClick}>
       <input
         type="file"
         ref={fileInputRef}
@@ -105,14 +105,14 @@ export function EditableImage({
 
       {/* Floating Action Button - Always visible to admin */}
       <div className="absolute top-3 right-3 z-20">
-        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-[#0F7B6C]/20 text-[#0F7B6C] hover:scale-110 transition-transform">
+        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-primary/20 text-primary hover:scale-110 transition-transform">
           <Pencil size={16} />
         </div>
       </div>
 
       {/* Hover Overlay */}
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2 pointer-events-none">
-        <div className="bg-[#0F7B6C] p-3 rounded-full">
+        <div className="bg-primary p-3 rounded-full">
           <Upload size={24} />
         </div>
         <span className="font-black text-sm uppercase tracking-tighter poppins-bold">
@@ -129,7 +129,7 @@ export function EditableImage({
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-white gap-3"
           >
-            <Loader2 className="animate-spin text-[#0F7B6C]" size={32} />
+            <Loader2 className="animate-spin text-primary" size={32} />
             <span className="text-sm font-bold poppins-bold">جاري الرفع...</span>
           </motion.div>
         )}
@@ -142,12 +142,12 @@ export function EditableImage({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute inset-0 bg-[#0F7B6C]/80 z-40 flex items-center justify-center text-white"
+            className="absolute inset-0 bg-primary/80 z-40 flex items-center justify-center text-white"
           >
             <motion.div
               initial={{ rotate: -45 }}
               animate={{ rotate: 0 }}
-              className="bg-white text-[#0F7B6C] p-2 rounded-full shadow-2xl"
+              className="bg-white text-primary p-2 rounded-full shadow-2xl"
             >
               <Check size={32} strokeWidth={4} />
             </motion.div>

@@ -181,7 +181,7 @@ export default function BusinessCard({ biz, variant = 'default', onClick, onRefr
         {/* City Badge */}
         <div className="absolute top-4 right-4">
           <div className="px-4 py-2 bg-black/40 backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 flex items-center gap-2.5">
-            <MapPin className="w-3.5 h-3.5 text-[#C8A96A]" />
+            <MapPin className="w-3.5 h-3.5 text-accent" />
             <span className="text-[9px] font-black text-white uppercase tracking-[0.2em]">
               {biz.city || 'Iraq'}
             </span>
@@ -190,7 +190,7 @@ export default function BusinessCard({ biz, variant = 'default', onClick, onRefr
  
         {/* Rating Badge */}
         <div className="absolute bottom-4 left-4">
-          <div className="px-4 py-2 bg-[#C8A96A] backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 flex items-center gap-2.5">
+          <div className="px-4 py-2 bg-accent backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 flex items-center gap-2.5">
             <Star className="w-3.5 h-3.5 text-white fill-white" />
             <span className="text-[11px] font-black text-white">{card.rating.toFixed(1)}</span>
           </div>
@@ -202,7 +202,7 @@ export default function BusinessCard({ biz, variant = 'default', onClick, onRefr
         <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div className="flex-1 min-w-0">
             <h3 
-              className="text-lg sm:text-xl font-black text-[#111827] poppins-bold uppercase tracking-tight group-hover:text-[#0F7B6C] transition-colors duration-300 cursor-pointer line-clamp-1"
+              className="text-lg sm:text-xl font-black text-[#111827] poppins-bold uppercase tracking-tight group-hover:text-primary transition-colors duration-300 cursor-pointer line-clamp-1"
               onClick={() => onClick?.(biz)}
             >
               {card.name}
@@ -215,8 +215,8 @@ export default function BusinessCard({ biz, variant = 'default', onClick, onRefr
             </div>
           </div>
           {card.isVerified && (
-            <div className="w-10 h-10 bg-[#0F7B6C]/5 rounded-2xl flex items-center justify-center shrink-0 border border-[#0F7B6C]/10 shadow-inner">
-              <ShieldCheck className="w-5 h-5 text-[#0F7B6C]" />
+            <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center shrink-0 border border-primary/10 shadow-inner">
+              <ShieldCheck className="w-5 h-5 text-primary" />
             </div>
           )}
         </div>
@@ -231,7 +231,7 @@ export default function BusinessCard({ biz, variant = 'default', onClick, onRefr
         <div className="mt-auto flex gap-3">
           <button 
             onClick={handleCall}
-            className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-[#0F7B6C] text-white text-[10px] sm:text-[11px] font-black rounded-2xl uppercase tracking-[0.2em] hover:bg-[#0d6b5e] transition-all active:scale-95 shadow-xl shadow-[#0F7B6C]/20"
+            className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-primary text-white text-[10px] sm:text-[11px] font-black rounded-2xl uppercase tracking-[0.2em] hover:bg-primary-dark transition-all active:scale-95 shadow-xl shadow-primary/20"
           >
             <Phone className="w-4 h-4" />
             <span>{language === 'ar' ? 'اتصال' : 'Call'}</span>

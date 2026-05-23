@@ -16,11 +16,11 @@ export default function BuildModeImageReplacer() {
         className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl border border-white/10 backdrop-blur-md flex items-center gap-6"
       >
         <div className="flex items-center gap-3 pr-6 border-r border-white/10">
-          <div className="p-2 bg-[#0F7B6C] rounded-lg">
+          <div className="p-2 bg-primary rounded-lg">
             <Camera size={18} className="text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#0F7B6C]">Build Mode</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Build Mode</span>
             <span className="text-xs font-bold poppins-bold">وضع التحرير نشط</span>
           </div>
         </div>
@@ -29,7 +29,7 @@ export default function BuildModeImageReplacer() {
           onClick={toggleEditing}
           className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all ${
             isEditingEnabled 
-              ? 'bg-[#0F7B6C] text-white shadow-[0_0_20px_rgba(15,123,108,0.3)]' 
+              ? 'bg-primary text-white shadow-[0_0_20px_rgba(31,76,213,0.3)]' 
               : 'bg-white/5 text-slate-400 hover:bg-white/10'
           }`}
         >
