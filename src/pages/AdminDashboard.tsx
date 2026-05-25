@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Papa from 'papaparse';
+import { uploadImageToSupabase } from '@/lib/uploadImage';
 import { 
   LayoutDashboard, 
   Store, 
@@ -295,6 +296,8 @@ function BusinessManager({ admin }: { admin: any }) {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<any | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -508,15 +511,44 @@ function BusinessManager({ admin }: { admin: any }) {
                     <div className="space-y-4">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Image</label>
                       <div className="flex items-center gap-6">
-                        <div className="w-32 h-32 rounded-3xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center relative group">
+                        <div
+                          className="w-32 h-32 rounded-3xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center relative group cursor-pointer"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
                           <img src={editingBusiness.image} className="w-full h-full object-cover" alt="" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Upload className="w-6 h-6 text-white" />
-                          </div>
+                          {imageUploading ? (
+                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
+                              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                            </div>
+                          ) : (
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Upload className="w-6 h-6 text-white" />
+                            </div>
+                          )}
                         </div>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setImageUploading(true);
+                            try {
+                              const url = await uploadImageToSupabase(file, 'business-logos');
+                              setEditingBusiness({ ...editingBusiness, image: url });
+                            } catch (err: any) {
+                              alert('Upload failed: ' + (err.message || 'Unknown error'));
+                            } finally {
+                              setImageUploading(false);
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }
+                          }}
+                        />
                         <div className="flex-1 space-y-2">
                           <FormInput label="Image URL" value={editingBusiness.image} onChange={v => setEditingBusiness({...editingBusiness, image: v})} />
-                          <p className="text-[9px] text-slate-400 font-medium italic">Paste a URL or click the image to upload (Simulation)</p>
+                          <p className="text-[9px] text-slate-400 font-medium italic">Click the image to upload to Supabase or paste a URL</p>
                         </div>
                       </div>
                     </div>

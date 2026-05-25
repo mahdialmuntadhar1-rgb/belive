@@ -73,12 +73,7 @@ export default function HomePage() {
       />
 
       <main className="pt-4 sm:pt-8">
-        <HeroSection 
-          businesses={businesses} 
-          onBusinessClick={setSelectedBusiness}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
+        <HeroSection />
 
         <FeaturesSection />
 
@@ -125,7 +120,7 @@ export default function HomePage() {
                 className="bg-white/50 backdrop-blur-sm py-12 sm:py-20"
               >
                 <div className="max-w-4xl mx-auto px-4">
-                  <SocialFeed onBusinessClick={setSelectedBusiness} />
+                  <SocialFeed />
                 </div>
               </motion.div>
             )}

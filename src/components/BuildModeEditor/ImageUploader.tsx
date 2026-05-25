@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Upload } from 'lucide-react';
+import { uploadImageToSupabase } from '@/lib/uploadImage';
 
 interface ImageUploaderProps {
   value: string;
@@ -20,7 +21,7 @@ export default function ImageUploader({ value, onChange, onUrlChange, label = "I
 
   const [isUploading, setIsUploading] = React.useState(false);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -31,16 +32,18 @@ export default function ImageUploader({ value, onChange, onUrlChange, label = "I
     }
 
     setIsUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    try {
       const img = new Image();
-      img.onload = () => {
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = async () => {
+        URL.revokeObjectURL(objectUrl);
+
         // Create canvas for resizing
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
 
-        // Max dimensions for hero image to keep base64 size reasonable
+        // Max dimensions for hero image
         const MAX_WIDTH = 1200;
         const MAX_HEIGHT = 1200;
 
@@ -61,25 +64,36 @@ export default function ImageUploader({ value, onChange, onUrlChange, label = "I
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          // Compress as JPEG with 0.7 quality
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          onChange(compressedBase64);
-        } else {
-          onChange(reader.result as string);
         }
-        setIsUploading(false);
+
+        // Convert canvas to Blob, then File for Supabase upload
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            setIsUploading(false);
+            alert('Failed to process image');
+            return;
+          }
+          const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+          try {
+            const publicUrl = await uploadImageToSupabase(resizedFile, 'build-mode');
+            onUrlChange(publicUrl);
+          } catch (err: any) {
+            alert('Upload failed: ' + (err.message || 'Unknown error'));
+          } finally {
+            setIsUploading(false);
+          }
+        }, 'image/jpeg', 0.85);
       };
       img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
         setIsUploading(false);
         alert('Failed to load image');
       };
-      img.src = reader.result as string;
-    };
-    reader.onerror = () => {
+      img.src = objectUrl;
+    } catch {
       setIsUploading(false);
       alert('Upload failed');
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   return (

@@ -127,31 +127,30 @@ export const useBuildMode = create<BuildModeState>()((set, get) => {
     saveToRepo: async (silent = false) => {
       set({ isSaving: true });
       try {
-        const response = await fetch('/api/save-hero', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            slides: get().heroSlides
-          }),
-        });
-        
-        if (!response.ok) throw new Error('Failed to save');
-        
-        set({ 
+        const { supabase } = await import('@/lib/supabaseClient');
+        const slides = get().heroSlides;
+        const upserts = slides.map((slide, index) => ({
+          id: slide.id,
+          image_url: slide.image,
+          title_en: slide.title || '',
+          display_order: index,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        }));
+        const { error } = await supabase.from('hero_slides').upsert(upserts, { onConflict: 'id' });
+        if (error) throw new Error(error.message);
+        set({
           lastSaved: new Date().toISOString(),
           isSaving: false,
           hasUnsavedChanges: false
         });
-        if (!silent) {
-          toast.success('Changes saved to repository successfully!');
-        }
+        if (!silent) toast.success('Saved to Supabase!');
       } catch (error) {
-        console.error('Error saving to repo:', error);
-        if (!silent) {
-          toast.error('Failed to save to repository.');
-        }
+        console.error('Error saving to Supabase:', error);
+        if (!silent) toast.error('Failed to save changes');
+      } finally {
         set({ isSaving: false });
       }
-    }
+    },
   };
 });
