@@ -1,5 +1,14 @@
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8787').replace(/\/$/, '');
+const rawUrl = import.meta.env.VITE_API_URL;
+if (!rawUrl) {
+  throw new Error(
+    'VITE_API_URL is not defined. ' +
+    'Set it in your build environment (Cloudflare Pages → Settings → Environment Variables). ' +
+    'Example: VITE_API_URL=https://belive-100back.mahdialmuntadhar1.workers.dev'
+  );
+}
+const API_URL = rawUrl.replace(/\/$/, '');
 
+// Deployed: 2026-05-26
 const TOKEN_KEY = 'belive_token';
 const USER_KEY = 'belive_user';
 
