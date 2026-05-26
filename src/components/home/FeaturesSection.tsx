@@ -15,7 +15,7 @@ import {
 import { useHomeStore } from '@/stores/homeStore';
 import { useBuildModeContext } from '@/contexts/BuildModeContext';
 import { useAdminDB } from '@/hooks/useAdminDB';
-import { supabase } from '@/lib/supabaseClient';
+import { featuresApi } from '@/lib/api';
 import EditableWrapper from '../BuildModeEditor/EditableWrapper';
 import { EditorField } from '../BuildModeEditor/InlineEditor';
 
@@ -94,22 +94,12 @@ export default function FeaturesSection() {
   const fetchFeatures = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('features')
-        .select('*')
-        .order('display_order', { ascending: true });
-      
-      if (error) {
-        // If error (like table missing), we already have HARDCODED_FEATURES as initial state
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        const formattedData = data.map((feat: any) => ({
+      const res = await featuresApi.list(true);
+      if (res.data && res.data.length > 0) {
+        setFeatures(res.data.map((feat: any) => ({
           ...feat,
-          icon_name: feat.icon_name || feat.icon || 'Sparkles'
-        }));
-        setFeatures(formattedData);
+          icon_name: feat.icon_name || feat.icon || 'Sparkles',
+        })));
       }
     } catch (err) {
       // Quietly fail as we have fallbacks

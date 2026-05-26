@@ -14,7 +14,7 @@ import {
   Lock
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
+import { businessesApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ClaimPage() {
@@ -45,17 +45,9 @@ export default function ClaimPage() {
     setError(null);
     
     try {
-      // Search for businesses with this phone
-      const { data, error: fetchError } = await supabase
-        .from('businesses')
-        .select('*')
-        .or(`phone.eq.${phone},phone_1.eq.${phone},phone_2.eq.${phone}`)
-        .is('owner_id', null); // Only unclaimed businesses
-      
-      if (fetchError) throw fetchError;
-      
-      if (data && data.length > 0) {
-        setMatches(data);
+      const res = await businessesApi.searchByPhone(phone);
+      if (res.data && res.data.length > 0) {
+        setMatches(res.data);
         setStep(2);
       } else {
         setError('No unclaimed businesses found with this phone number. Please contact support if you believe this is an error.');
@@ -77,18 +69,7 @@ export default function ClaimPage() {
       const authData = await signUp(formData.email, formData.password, { full_name: formData.fullName });
       
       if (authData?.user) {
-        // 2. Create claim request
-        const { error: claimError } = await supabase
-          .from('claim_requests')
-          .insert([{
-            business_id: selectedBusiness.id,
-            user_id: authData.user.id,
-            phone: phone,
-            status: 'pending'
-          }]);
-        
-        if (claimError) throw claimError;
-        
+        await businessesApi.claim(selectedBusiness.id, phone);
         setStep(4); // Success step
       }
     } catch (err: any) {

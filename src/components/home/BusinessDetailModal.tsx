@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Star, MapPin, Phone, Globe, Share2, Heart, Clock, CheckCircle2, Facebook, Instagram, Twitter, MessageCircle, ShieldAlert, Loader2, ShieldCheck, Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { CATEGORIES } from '@/constants';
 import { useHomeStore } from '@/stores/homeStore';
 import { useAuthStore } from '@/stores/authStore';

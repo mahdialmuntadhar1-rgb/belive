@@ -1,4 +1,4 @@
-import { Business } from './supabase';
+import { Business } from './types';
 import { CATEGORIES } from '@/constants';
 
 export interface MappedBusinessCard {

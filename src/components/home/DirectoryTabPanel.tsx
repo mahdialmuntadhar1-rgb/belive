@@ -12,7 +12,7 @@ import { useAdminDB } from '@/hooks/useAdminDB';
 import { useBuildModeContext } from '@/contexts/BuildModeContext';
 import EditableWrapper from '../BuildModeEditor/EditableWrapper';
 import { CATEGORIES } from '@/constants';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 
 interface DirectoryTabPanelProps {
   businesses: Business[];

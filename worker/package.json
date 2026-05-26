@@ -1,0 +1,17 @@
+{
+  "name": "belive-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute belive-db --file=schema.sql",
+    "db:init:remote": "wrangler d1 execute belive-db --file=schema.sql --remote",
+    "db:create": "wrangler d1 create belive-db"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241224.0",
+    "typescript": "~5.8.2",
+    "wrangler": "^3.101.0"
+  }
+}

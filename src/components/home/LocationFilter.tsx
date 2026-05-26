@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from "@/stores/homeStore";
 import { ChevronDown, MapPin, LayoutGrid, Check } from 'lucide-react';
 import { CATEGORIES, GOVERNORATES } from '@/constants';
-import type { Business } from '@/lib/supabase';
+import type { Business } from '@/lib/types';
 
 interface LocationFilterProps {
   businesses?: Business[];

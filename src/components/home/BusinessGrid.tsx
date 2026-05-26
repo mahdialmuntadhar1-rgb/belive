@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, SearchX, RefreshCw } from 'lucide-react';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
 import BusinessCard from './BusinessCard';
 

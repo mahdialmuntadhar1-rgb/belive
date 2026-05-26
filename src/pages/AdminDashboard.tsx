@@ -39,9 +39,9 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useAdmin, ClaimRequest } from '@/hooks/useAdmin';
-import { Business, Post } from '@/lib/supabase';
+import { Business, Post } from '@/lib/types';
 import { useBuildMode } from '@/hooks/useBuildMode';
-import { heroService, HeroSlide as SupabaseHeroSlide } from '@/lib/heroService';
+import { heroService, HeroSlide } from '@/lib/heroService';
 import { CATEGORIES, GOVERNORATES } from '@/constants';
 
 export default function AdminDashboard() {

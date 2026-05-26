@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useBusinessManagement } from '@/hooks/useBusinessManagement';
 import { usePosts } from '@/hooks/usePosts';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 
 export default function BusinessDashboard() {
   const { profile } = useAuthStore();

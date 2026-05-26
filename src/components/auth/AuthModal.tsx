@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck, Briefcase, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { authApi } from '@/lib/api';
 import { useHomeStore } from '@/stores/homeStore';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -161,16 +161,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setError(null);
 
     try {
-      const isConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-      if (!isConfigured) {
-        throw new Error('Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment.');
-      }
-
       if (isForgot) {
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (resetError) throw resetError;
+        await authApi.resetPasswordRequest(email);
         setSuccess(translations.resetSent[language]);
         return;
       }
@@ -198,7 +190,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       if (err instanceof Error) {
         message = err.message;
         if (message.includes('Failed to fetch')) {
-          message = 'Network error: Could not connect to authentication server. Please check your internet connection or Supabase configuration.';
+          message = 'Network error: Could not connect to the API server. Please check your internet connection.';
         }
       }
       setError(message);
@@ -261,12 +253,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               {success && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl text-xs text-green-600 font-bold">
                   {success}
-                </div>
-              )}
-
-              {!import.meta.env.VITE_SUPABASE_URL && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-[10px] text-amber-700 font-bold uppercase tracking-widest leading-relaxed">
-                  ⚠️ Supabase Configuration Missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable authentication.
                 </div>
               )}
 
@@ -455,14 +441,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       setLoading(true);
                       setError(null);
                       try {
-                        const { error: magicError } = await supabase.auth.signInWithOtp({
-                          email,
-                          options: {
-                            emailRedirectTo: window.location.origin,
-                          },
-                        });
-                        if (magicError) throw magicError;
-                        setSuccess(language === 'ar' ? 'تم إرسال رابط تسجيل الدخول إلى بريدك الإلكتروني' : 'Magic link sent to your email');
+                        await authApi.resetPasswordRequest(email);
+                        setSuccess(language === 'ar' ? 'تم إرسال رابط لبريدك الإلكتروني' : 'A reset link has been sent to your email');
                       } catch (err: any) {
                         setError(err.message);
                       } finally {

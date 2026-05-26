@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
 import { Star, MapPin, Phone, ArrowRight } from 'lucide-react';
 

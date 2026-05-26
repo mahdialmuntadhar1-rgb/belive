@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Star, MapPin, Phone, MessageCircle, ShieldCheck, TrendingUp, Heart, Share2 } from 'lucide-react';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
 import { mapBusinessToCard } from '@/lib/mappers';
 import { useAuth } from '@/hooks/useAuth';

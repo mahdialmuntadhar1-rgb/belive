@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect, useCallback } from 'react';
+import { reviewsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 
 export interface Review {
@@ -26,25 +26,21 @@ export function useReviews(businessId?: string) {
     if (!isLoadMore) { setLoading(true); setPage(0); }
     setError(null);
     try {
-      const from = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
-      const to = from + PAGE_SIZE - 1;
-      const { data, error: fetchError, count } = await supabase.from('reviews').select(`*, profiles (full_name, avatar_url)`, { count: 'exact' }).eq('business_id', businessId).order('created_at', { ascending: false }).range(from, to);
-      if (fetchError) throw fetchError;
-      if (data) {
-        const mappedReviews: Review[] = data.map((item: any) => ({
-          id: item.id,
-          businessId: item.business_id,
-          userId: item.user_id,
-          rating: item.rating,
-          comment: item.comment,
-          createdAt: new Date(item.created_at),
-          userName: item.profiles?.full_name,
-          userAvatar: item.profiles?.avatar_url
-        }));
-        if (isLoadMore) { setReviews(prev => [...prev, ...mappedReviews]); setPage(prev => prev + 1); }
-        else { setReviews(mappedReviews); }
-        if (count !== null) setHasMore(from + data.length < count);
-      }
+      const currentOffset = isLoadMore ? (page + 1) * PAGE_SIZE : 0;
+      const res = await reviewsApi.list(businessId, { limit: PAGE_SIZE, offset: currentOffset });
+      const mappedReviews: Review[] = (res.data || []).map((item: any) => ({
+        id: item.id,
+        businessId: item.business_id,
+        userId: item.user_id,
+        rating: item.rating,
+        comment: item.comment,
+        createdAt: new Date(item.created_at),
+        userName: item.user_name || 'Anonymous',
+        userAvatar: item.user_avatar,
+      }));
+      if (isLoadMore) { setReviews(prev => [...prev, ...mappedReviews]); setPage(prev => prev + 1); }
+      else { setReviews(mappedReviews); }
+      setHasMore(mappedReviews.length === PAGE_SIZE);
     } catch (err) {
       console.error('[useReviews] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch reviews');
@@ -60,9 +56,8 @@ export function useReviews(businessId?: string) {
     const currentUser = useAuthStore.getState().user;
     if (!currentUser) throw new Error('Must be logged in to review');
     try {
-      const { data, error: insertError } = await supabase.from('reviews').insert([{ business_id: businessId, user_id: currentUser.id, rating, comment }]).select().single();
-      if (insertError) throw insertError;
-      if (data) fetchReviews();
+      await reviewsApi.add(businessId, rating, comment);
+      fetchReviews();
     } catch (err) {
       console.error('[useReviews] Add error:', err);
       throw err;

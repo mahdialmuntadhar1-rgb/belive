@@ -1,30 +1,23 @@
-﻿import { create } from 'zustand';
-import { supabase } from '@/lib/supabaseClient';
-import type { User } from '@supabase/supabase-js';
-
-interface Profile {
-  id: string;
-  email: string;
-  full_name?: string;
-  role: 'user' | 'business_owner' | 'admin';
-  avatar_url?: string;
-}
+import { create } from 'zustand';
+import { authApi, getToken, getStoredUser, setToken, setStoredUser, removeToken, type AuthUser } from '@/lib/api';
 
 interface AuthState {
-  user: User | null;
-  profile: Profile | null;
+  user: AuthUser | null;
+  /** @alias user � kept for backward-compat with existing components */
+  profile: AuthUser | null;
   loading: boolean;
   initialized: boolean;
-  setUser: (user: User | null) => void;
-  setProfile: (profile: Profile | null) => void;
-  signOut: () => Promise<void>;
+  setUser: (user: AuthUser | null) => void;
+  signIn: (email: string, password: string) => Promise<{ user: AuthUser }>;
+  signUp: (email: string, password: string, meta?: { full_name?: string; role?: string; business_name?: string; phone?: string; governorate?: string; category?: string; city?: string; description?: string }) => Promise<{ user: AuthUser }>;
+  signOut: () => void;
   refreshProfile: () => Promise<void>;
   initAuth: () => () => void;
 }
 
-// Module-level singleton state — survives React StrictMode
-let subscription: { unsubscribe: () => void } | null = null;
 let isInitializing = false;
+
+const withProfile = (user: AuthUser | null) => ({ user, profile: user });
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -32,64 +25,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   initialized: false,
 
-  setUser: (user) => set({ user }),
-  setProfile: (profile) => set({ profile }),
+  setUser: (user) => set(withProfile(user)),
 
-  signOut: async () => {
-    await supabase.auth.signOut();
-    set({ user: null, profile: null });
+  signIn: async (email, password) => {
+    const res = await authApi.login(email, password);
+    setToken(res.token);
+    setStoredUser(res.user);
+    set(withProfile(res.user));
+    return { user: res.user };
+  },
+
+  signUp: async (email, password, meta = {}) => {
+    const res = await authApi.signup({ email, password, ...meta });
+    setToken(res.token);
+    setStoredUser(res.user);
+    set(withProfile(res.user));
+    return { user: res.user };
+  },
+
+  signOut: () => {
+    removeToken();
+    set(withProfile(null));
   },
 
   refreshProfile: async () => {
-    const user = get().user;
-    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      if (!error && data) {
-        set({ profile: data as Profile });
-      }
+      const res = await authApi.me();
+      setStoredUser(res.user);
+      set(withProfile(res.user));
     } catch (err) {
-      console.error('[AuthStore] Profile fetch error:', err);
+      console.error('[AuthStore] Profile refresh error:', err);
+      removeToken();
+      set(withProfile(null));
     }
   },
 
   initAuth: () => {
-    // Prevent double-init in StrictMode — idempotent
-    if (isInitializing) {
-      return () => {};
-    }
+    if (isInitializing) return () => {};
     isInitializing = true;
 
-    // Clean up any stale subscription
-    if (subscription) {
-      subscription.unsubscribe();
-      subscription = null;
+    const token = getToken();
+    if (token) {
+      const stored = getStoredUser();
+      if (stored) {
+        set({ ...withProfile(stored), loading: false, initialized: true });
+        get().refreshProfile();
+      } else {
+        get().refreshProfile().finally(() => set({ loading: false, initialized: true }));
+      }
+    } else {
+      set({ loading: false, initialized: true });
     }
 
-    // Subscribe ONCE. Callback must be SYNCHRONOUS — no awaits inside.
-    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const user = session?.user ?? null;
-        set({ user, loading: false, initialized: true });
-        if (!user) {
-          set({ profile: null });
-        }
-      }
-    );
-
-    subscription = sub;
-
-    // Return cleanup
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-        subscription = null;
-      }
-      isInitializing = false;
-    };
+    return () => { isInitializing = false; };
   },
 }));

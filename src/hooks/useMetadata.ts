@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { metadataApi } from '@/lib/api';
 import { CATEGORIES as FALLBACK_CATEGORIES, GOVERNORATES as FALLBACK_GOVERNORATES } from '@/constants';
 
 export interface Category {
@@ -36,66 +36,41 @@ export function useMetadata() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch categories
-        const { data: catData, error: catError } = await supabase
-          .from('categories')
-          .select('*')
-          .order('name_en', { ascending: true });
+        const [catRes, govRes, cityRes] = await Promise.allSettled([
+          metadataApi.categories(true),
+          metadataApi.governorates(),
+          metadataApi.cities(),
+        ]);
 
-        if (!catError && catData && catData.length > 0) {
-          setCategories(catData.map(cat => ({
+        if (catRes.status === 'fulfilled' && catRes.value.data?.length > 0) {
+          setCategories(catRes.value.data.map((cat: any) => ({
             id: cat.id,
-            name: {
-              en: cat.name_en,
-              ar: cat.name_ar,
-              ku: cat.name_ku
-            },
+            name: { en: cat.name_en, ar: cat.name_ar, ku: cat.name_ku },
             icon_name: cat.icon_name,
-            isHot: cat.is_hot
+            isHot: Boolean(cat.is_hot),
           })));
         } else {
           setCategories(FALLBACK_CATEGORIES);
         }
 
-        // Fetch governorates
-        const { data: govData, error: govError } = await supabase
-          .from('governorates')
-          .select('*')
-          .order('name_en', { ascending: true });
-
-        if (!govError && govData && govData.length > 0) {
-          setGovernorates(govData.map(gov => ({
-            id: gov.id,
-            name_en: gov.name_en,
-            name_ar: gov.name_ar,
-            name_ku: gov.name_ku
+        if (govRes.status === 'fulfilled' && govRes.value.data?.length > 0) {
+          setGovernorates(govRes.value.data.map((gov: any) => ({
+            id: gov.id, name_en: gov.name_en, name_ar: gov.name_ar, name_ku: gov.name_ku,
           })));
         } else {
           setGovernorates(FALLBACK_GOVERNORATES.map(gov => ({
-            id: gov.id,
-            name_en: gov.name.en,
-            name_ar: gov.name.ar,
-            name_ku: gov.name.ku
+            id: gov.id, name_en: gov.name.en, name_ar: gov.name.ar, name_ku: gov.name.ku,
           })));
         }
 
-        // Fetch cities
-        const { data: cityData, error: cityError } = await supabase
-          .from('cities')
-          .select('*')
-          .order('name_en', { ascending: true });
-
-        if (!cityError && cityData) {
-          setCities(cityData);
+        if (cityRes.status === 'fulfilled') {
+          setCities(cityRes.value.data || []);
         }
       } catch (err) {
         console.error('Error fetching metadata:', err);
         setCategories(FALLBACK_CATEGORIES);
         setGovernorates(FALLBACK_GOVERNORATES.map(gov => ({
-          id: gov.id,
-          name_en: gov.name.en,
-          name_ar: gov.name.ar,
-          name_ku: gov.name.ku
+          id: gov.id, name_en: gov.name.en, name_ar: gov.name.ar, name_ku: gov.name.ku,
         })));
       } finally {
         setLoading(false);

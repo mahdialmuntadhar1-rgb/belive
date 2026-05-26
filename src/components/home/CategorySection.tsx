@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
 import BusinessGrid from './BusinessGrid';
 import { LucideIcon } from 'lucide-react';

@@ -13,7 +13,7 @@ import AddBusinessModal from "@/components/home/AddBusinessModal";
 import PWAInstallButton from "@/components/common/PWAInstallButton";
 import { useBusinesses } from "@/hooks/useBusinesses";
 import { useHomeStore } from "@/stores/homeStore";
-import type { Business } from "@/lib/supabase";
+import type { Business } from "@/lib/types";
 
 import { useLocalBuildStore, OWNER_EMAIL } from "@/stores/localBuildStore";
 import { useAuth } from "@/hooks/useAuth";

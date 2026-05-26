@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { heroSlidesApi, uploadApi } from './api';
 
 export interface HeroSlide {
   id: string;
@@ -24,86 +24,30 @@ export interface HeroSlide {
 
 export const heroService = {
   async getActiveSlides(): Promise<HeroSlide[]> {
-    const { data, error } = await supabase
-      .from('hero_slides')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    const res = await heroSlidesApi.list(true);
+    return res.data || [];
   },
 
   async getAllSlides(): Promise<HeroSlide[]> {
-    const { data, error } = await supabase
-      .from('hero_slides')
-      .select('*')
-      .order('display_order', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    const res = await heroSlidesApi.list(false);
+    return res.data || [];
   },
 
   async createSlide(slide: Partial<HeroSlide>): Promise<HeroSlide> {
-    const { data, error } = await supabase
-      .from('hero_slides')
-      .insert([slide])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const res = await heroSlidesApi.create(slide);
+    return res.data;
   },
 
   async updateSlide(id: string, updates: Partial<HeroSlide>): Promise<HeroSlide> {
-    const { data, error } = await supabase
-      .from('hero_slides')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating hero slide:', error);
-      throw error;
-    }
-    return data;
+    const res = await heroSlidesApi.update(id, updates);
+    return res.data;
   },
 
   async uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `hero_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    // Upload to 'hero-images' bucket
-    const { error: uploadError } = await supabase.storage
-      .from('hero-images')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) {
-      console.error('Error uploading hero image:', uploadError);
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage
-      .from('hero-images')
-      .getPublicUrl(filePath);
-
-    if (!data?.publicUrl) {
-      throw new Error('Failed to get public URL for uploaded hero image');
-    }
-
-    return data.publicUrl;
+    return uploadApi.image(file, 'hero');
   },
 
-  async deleteImage(url: string): Promise<void> {
-    try {
-      const path = url.split('/hero-images/')[1];
-      if (path) {
-        await supabase.storage.from('hero-images').remove([path]);
-      }
-    } catch (error) {
-      console.error('Error deleting image:', error);
-    }
+  async deleteImage(_url: string): Promise<void> {
+    // Image deletion from R2 is handled server-side when needed
   }
 };

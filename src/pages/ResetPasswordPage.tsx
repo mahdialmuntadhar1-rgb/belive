@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { authApi } from '@/lib/api';
 import { useHomeStore } from '@/stores/homeStore';
 
 export default function ResetPasswordPage() {
@@ -13,6 +13,8 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const { language } = useHomeStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token') || '';
 
   const translations = {
     title: {
@@ -68,11 +70,8 @@ export default function ResetPasswordPage() {
     setError(null);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (updateError) throw updateError;
+      if (!resetToken) throw new Error('Missing reset token. Please request a new password reset link.');
+      await authApi.resetPasswordConfirm(resetToken, password);
       setSuccess(true);
       
       // Redirect to home after 3 seconds

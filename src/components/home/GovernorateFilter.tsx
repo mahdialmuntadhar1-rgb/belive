@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ChevronDown, MapPin, Check, Loader2, X } from 'lucide-react';
 import { useHomeStore } from '@/stores/homeStore';
-import { supabase } from '@/lib/supabaseClient';
+import { businessesApi } from '@/lib/api';
 
 export default function GovernorateFilter() {
   const { selectedGovernorate, setGovernorate, language } = useHomeStore();
@@ -18,21 +18,8 @@ export default function GovernorateFilter() {
     async function fetchGovernorates() {
       try {
         setLoading(true);
-        // We fetch unique governorates from the businesses table
-        const { data, error } = await supabase
-          .from('businesses')
-          .select('governorate');
-
-        if (error) throw error;
-
-        if (data) {
-          // Extract unique values and filter out nulls/empties
-          const unique = Array.from(new Set(data.map((item: any) => item.governorate)))
-            .filter(Boolean)
-            .sort() as string[];
-          
-          setGovernorates(unique);
-        }
+        const res = await businessesApi.governorates();
+        setGovernorates((res.data || []).filter(Boolean).sort());
       } catch (err) {
         console.error('Error fetching governorates:', err);
       } finally {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Clock, Loader2, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
-import type { Business, Post } from "@/lib/supabase";
+import type { Business, Post } from "@/lib/types";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";

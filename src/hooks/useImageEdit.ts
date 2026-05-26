@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { uploadApi } from '@/lib/api';
 
 export function useImageEdit(
   imageUrl: string,
@@ -19,20 +19,8 @@ export function useImageEdit(
   const uploadImage = async (file: File) => {
     setIsUploading(true);
     setError(null);
-
-    const path = `${folder}/${Date.now()}-${file.name}`;
-
     try {
-      const { data, error: uploadError } = await supabase.storage
-        .from('build-mode-images')
-        .upload(path, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('build-mode-images')
-        .getPublicUrl(path);
-
+      const publicUrl = await uploadApi.image(file, folder);
       onSave(publicUrl);
       return publicUrl;
     } catch (err: any) {

@@ -1,0 +1,26 @@
+name = "belive-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "belive-db"
+database_id = "d0f1326e-d1be-42aa-accf-b6e08a9adab4"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "belive-images"
+
+[vars]
+CORS_ORIGIN = "http://localhost:5173, https://main.belive-frontend.pages.dev, https://9e89086e.belive-frontend.pages.dev"
+
+# For production, set these via `wrangler secret put`:
+# JWT_SECRET          (required - use strong random string, 32+ chars)
+# RESEND_API_KEY       (optional – for password reset emails)
+# ADMIN_EMAIL          (optional – the email address granted admin role on signup)
+
+# R2 File Serving:
+# Files are served via Worker endpoint: /files/{key}
+# This provides authentication, caching, and CORS control
+# For custom domain, configure Cloudflare R2 public bucket or use Workers CDN

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Star, MapPin, ArrowRight, TrendingUp, CheckCircle2 } from 'lucide-react';
-import { Business } from '@/lib/supabase';
+import { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
 import { CATEGORIES } from '@/constants';
 

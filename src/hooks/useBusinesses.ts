@@ -1,7 +1,7 @@
-﻿import { useState, useEffect, useCallback } from 'react';
-import type { Business } from '@/lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
+import type { Business } from '@/lib/types';
 import { useHomeStore } from '@/stores/homeStore';
-import { supabase } from '@/lib/supabaseClient';
+import { businessesApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 
 interface UseBusinessesResult {
@@ -16,11 +16,44 @@ interface UseBusinessesResult {
 
 const ITEMS_PER_PAGE = 24;
 
+function mapRow(item: any): Business {
+  return {
+    id: item.id || '',
+    name: item.name || 'Unnamed Business',
+    nameAr: item.name_ar || '',
+    nameKu: item.name_ku || '',
+    category: item.category || 'Uncategorized',
+    governorate: item.governorate || '',
+    city: item.city || '',
+    address: item.address || '',
+    phone: item.phone || '',
+    phone_1: item.phone_1 || '',
+    phone_2: item.phone_2 || '',
+    rating: item.rating || 0,
+    reviewCount: item.review_count || 0,
+    isFeatured: Boolean(item.is_featured),
+    isVerified: Boolean(item.is_verified),
+    image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
+    image_url: item.image_url,
+    website: item.website || '',
+    socialLinks: typeof item.social_links === 'string' ? JSON.parse(item.social_links || '{}') : (item.social_links || {}),
+    description: item.description || '',
+    descriptionAr: item.description_ar || '',
+    descriptionKu: item.description_ku || '',
+    openingHours: typeof item.opening_hours === 'string' ? JSON.parse(item.opening_hours || '{}') : (item.opening_hours || {}),
+    ownerId: item.owner_id || '',
+    lat: item.lat,
+    lng: item.lng,
+    createdAt: item.created_at ? new Date(item.created_at) : new Date(),
+    updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at || Date.now()),
+  };
+}
+
 export function useBusinesses(searchQuery: string): UseBusinessesResult {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -31,73 +64,39 @@ export function useBusinesses(searchQuery: string): UseBusinessesResult {
     if (!initialized) { setLoading(false); return; }
     setLoading(true);
     setError(null);
-    const currentPage = isRefresh ? 1 : page;
+    const currentOffset = isRefresh ? 0 : offset;
 
     try {
-      let query = supabase.from('businesses').select('*', { count: 'exact' }).range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
-      if (selectedGovernorate) query = query.eq('governorate', selectedGovernorate);
-      if (selectedCity) query = query.eq('city', selectedCity);
-      if (selectedCategory) query = query.eq('category', selectedCategory);
-      if (searchQuery) query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      const res = await businessesApi.list({
+        governorate: selectedGovernorate || undefined,
+        city: selectedCity || undefined,
+        category: selectedCategory || undefined,
+        search: searchQuery || undefined,
+        limit: ITEMS_PER_PAGE,
+        offset: currentOffset,
+      });
 
-      const { data, count, error: fetchError } = await query;
-      if (fetchError) {
-        console.warn('[useBusinesses] Query error (non-fatal):', fetchError.message);
-        setBusinesses([]); setTotalCount(0); setHasMore(false); setLoading(false); return;
-      }
-
-      if (data) {
-        const mappedBusinesses: Business[] = data.map((item: any) => ({
-          id: item.id || '',
-          name: item.name || 'Unnamed Business',
-          nameAr: item.name_ar || '',
-          nameKu: item.name_ku || '',
-          category: item.category || 'Uncategorized',
-          governorate: item.governorate || '',
-          city: item.city || '',
-          address: item.address || '',
-          phone: item.phone || '',
-          rating: item.rating || 0,
-          reviewCount: item.review_count || 0,
-          isFeatured: item.is_featured || false,
-          isVerified: item.is_verified || false,
-          image: item.image_url || item.image || `https://picsum.photos/seed/${item.id}/600/400`,
-          website: item.website || '',
-          socialLinks: item.social_links || {},
-          description: item.description || '',
-          descriptionAr: item.description_ar || '',
-          openingHours: item.opening_hours || {},
-          ownerId: item.owner_id || '',
-          createdAt: item.created_at ? new Date(item.created_at) : new Date(),
-          updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at || Date.now())
-        }));
-        setBusinesses(prev => {
-          const newBusinesses = isRefresh ? mappedBusinesses : [...prev, ...mappedBusinesses];
-          const countVal = count || 0;
-          setTotalCount(countVal);
-          setHasMore(newBusinesses.length < countVal);
-          return newBusinesses;
-        });
-      } else {
-        if (isRefresh) setBusinesses([]);
-        setHasMore(false);
-      }
+      const mapped = (res.data || []).map(mapRow);
+      setBusinesses(prev => isRefresh ? mapped : [...prev, ...mapped]);
+      setTotalCount(res.total);
+      setHasMore(res.hasMore);
+      if (isRefresh) setOffset(0);
     } catch (err) {
-      console.error('[useBusinesses] Fatal error (recovered):', err);
-      setError(null);
-      setBusinesses([]);
-      setTotalCount(0);
+      console.warn('[useBusinesses] Fetch error (recovered):', err);
+      if (isRefresh) { setBusinesses([]); setTotalCount(0); }
       setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [page, selectedGovernorate, selectedCity, selectedCategory, searchQuery, initialized]);
+  }, [offset, selectedGovernorate, selectedCity, selectedCategory, searchQuery, initialized]);
 
-  useEffect(() => { setPage(1); fetchBusinesses(true); }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery]);
-  useEffect(() => { if (page > 1) fetchBusinesses(false); }, [page]);
+  useEffect(() => { setOffset(0); fetchBusinesses(true); }, [selectedGovernorate, selectedCity, selectedCategory, searchQuery, initialized]);
+  useEffect(() => { if (offset > 0) fetchBusinesses(false); }, [offset]);
 
-  const loadMore = () => { if (!loading && hasMore) setPage(prev => prev + 1); };
-  const refresh = () => { setPage(1); fetchBusinesses(true); };
+  const loadMore = () => { if (!loading && hasMore) setOffset(prev => prev + ITEMS_PER_PAGE); };
+  const refresh = () => { setOffset(0); fetchBusinesses(true); };
 
   return { businesses, loading, error, hasMore, totalCount, loadMore, refresh };
 }
+
+export { mapRow as mapBusinessRow };

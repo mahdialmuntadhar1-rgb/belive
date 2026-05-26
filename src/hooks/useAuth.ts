@@ -1,33 +1,26 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
- * Hook to initialize auth and load profile.
- * Safe for React StrictMode — auth subscription is singleton.
+ * Hook to initialize auth and expose all auth actions.
+ * Safe for React StrictMode � init is singleton in store.
  */
 export function useAuth() {
   const initAuth = useAuthStore((state) => state.initAuth);
-  const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const user = useAuthStore((state) => state.user);
-  const profile = useAuthStore((state) => state.profile);
   const loading = useAuthStore((state) => state.loading);
   const initialized = useAuthStore((state) => state.initialized);
+  const profile = useAuthStore((state) => state.profile);
   const signOut = useAuthStore((state) => state.signOut);
+  const signIn = useAuthStore((state) => state.signIn);
+  const signUp = useAuthStore((state) => state.signUp);
 
-  // Initialize auth listener ONCE (singleton in store)
   useEffect(() => {
     const cleanup = initAuth();
     return cleanup;
   }, [initAuth]);
 
-  // Load profile AFTER user is set (outside onAuthStateChange callback)
-  useEffect(() => {
-    if (user && !profile) {
-      refreshProfile();
-    }
-  }, [user, profile, refreshProfile]);
-
-  return { user, profile, loading, initialized, signOut };
+  return { user, profile, loading, initialized, signOut, signIn, signUp };
 }
 
 export default useAuth;
