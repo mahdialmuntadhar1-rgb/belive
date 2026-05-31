@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/stores/authStore';
 import type { Post } from '@/lib/supabase';
@@ -23,9 +23,8 @@ export function usePosts(businessId?: string) {
 
       let query = supabase
         .from('posts')
-        .select(`*, businesses:business_id (id, name, business_name, category, city, image_url, logo_url, phone_1, phone, whatsapp, social_links, is_active, status)`)
+        .select(`*, businesses:business_id (id, name, category, city, image_url, logo_url, phone_1, phone, whatsapp, social_links, is_active, status)`)
         .eq('is_active', true)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -48,7 +47,8 @@ export function usePosts(businessId?: string) {
 
       const mappedPosts: Post[] = data
         .filter((item: any) => {
-          const hasValidBusiness = item.businesses && (item.businesses.is_active === true || item.businesses.status === 'approved');
+          const hasBusinessRelation = Boolean(item.business_id);
+          const hasValidBusiness = !hasBusinessRelation || (item.businesses && (item.businesses.is_active === true || item.businesses.status === 'approved'));
           if (!hasValidBusiness) console.warn('[usePosts] Filtering out post with invalid business:', { postId: item.id, businessId: item.business_id });
           return hasValidBusiness;
         })
@@ -63,9 +63,9 @@ export function usePosts(businessId?: string) {
             comments: item.comments_count || item.comments || 0,
             shares: item.shares_count || item.shares || 0,
             createdAt: item.created_at ? new Date(item.created_at) : new Date(),
-            authorName: business.business_name || business.name || item.author_name || 'Unknown Business',
+            authorName: business.name || item.business_name || item.author_name || 'Unknown Business',
             authorAvatar: business.image_url || business.logo_url || item.author_avatar || null,
-            businessName: business.business_name || business.name || 'Unknown Business',
+            businessName: business.name || item.business_name || 'Unknown Business',
             businessCity: business.city || '',
             businessCategory: business.category || 'General',
             businessPhone: business.phone_1 || business.phone || '',
@@ -89,16 +89,49 @@ export function usePosts(businessId?: string) {
 
   const loadMore = () => { if (!loading && hasMore) fetchPosts(true); };
 
-  const createPost = async (caption: string, imageUrl?: string) => {
-    if (!businessId) return null;
+  const createPost = async (caption: string, imageUrl?: string, metadata: Record<string, unknown> = {}) => {
     try {
-      const insertData: any = { business_id: businessId, caption };
+      const insertData: Record<string, unknown> = {
+        caption,
+        content: caption,
+        is_active: true,
+        ...metadata,
+      };
+      if (businessId) insertData.business_id = businessId;
       if (imageUrl) insertData.image_url = imageUrl;
+      if (metadata.businessName) insertData.business_name = metadata.businessName;
+
       const { data, error: insertError } = await supabase.from('posts').insert([insertData]).select().single();
       if (insertError) { console.error('[usePosts] Create error:', insertError); return null; }
       fetchPosts();
       return data;
     } catch (err) { console.error('[usePosts] Create fatal error:', err); return null; }
+  };
+
+  const updatePost = async (postId: string, updates: Record<string, unknown>) => {
+    const updateData: Record<string, unknown> = { ...updates };
+    if (typeof updates.content === 'string') updateData.caption = updates.content;
+    if (typeof updates.image === 'string') updateData.image_url = updates.image;
+
+    const { error: updateError } = await supabase.from('posts').update(updateData).eq('id', postId);
+    if (updateError) throw updateError;
+    setPosts(prev => prev.map(post => post.id === postId ? { ...post, ...updates } : post));
+  };
+
+  const deletePost = async (postId: string) => {
+    const { error: deleteError } = await supabase.from('posts').delete().eq('id', postId);
+    if (deleteError) throw deleteError;
+    setPosts(prev => prev.filter(post => post.id !== postId));
+  };
+
+  const uploadPostImage = async (file: File) => {
+    const extension = file.name.split('.').pop() || 'jpg';
+    const filePath = `posts/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from('post-images').upload(filePath, file, { upsert: false });
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from('post-images').getPublicUrl(filePath);
+    return data.publicUrl;
   };
 
   const likePost = async (postId: string) => {
@@ -116,5 +149,5 @@ export function usePosts(businessId?: string) {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  return { posts, loading, error, hasMore, loadMore, createPost, likePost, addComment, refresh: fetchPosts };
+  return { posts, loading, error, hasMore, loadMore, createPost, updatePost, deletePost, uploadPostImage, likePost, addComment, refresh: fetchPosts };
 }

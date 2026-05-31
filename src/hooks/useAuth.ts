@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -12,12 +12,14 @@ export function useAuth() {
   const profile = useAuthStore((state) => state.profile);
   const loading = useAuthStore((state) => state.loading);
   const initialized = useAuthStore((state) => state.initialized);
+  const signIn = useAuthStore((state) => state.signIn);
+  const signUp = useAuthStore((state) => state.signUp);
   const signOut = useAuthStore((state) => state.signOut);
 
   // Initialize auth listener ONCE (singleton in store)
   useEffect(() => {
     const cleanup = initAuth();
-    return cleanup;
+    return typeof cleanup === 'function' ? cleanup : undefined;
   }, [initAuth]);
 
   // Load profile AFTER user is set (outside onAuthStateChange callback)
@@ -27,7 +29,7 @@ export function useAuth() {
     }
   }, [user, profile, refreshProfile]);
 
-  return { user, profile, loading, initialized, signOut };
+  return { user, profile, loading, initialized, signIn, signUp, signOut, refreshProfile };
 }
 
 export default useAuth;

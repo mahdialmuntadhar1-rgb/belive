@@ -1,6 +1,6 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { supabase } from '@/lib/supabaseClient';
-import type { User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 interface Profile {
   id: string;
@@ -10,6 +10,11 @@ interface Profile {
   avatar_url?: string;
 }
 
+interface AuthResult {
+  user: User | null;
+  session: Session | null;
+}
+
 interface AuthState {
   user: User | null;
   profile: Profile | null;
@@ -17,6 +22,8 @@ interface AuthState {
   initialized: boolean;
   setUser: (user: User | null) => void;
   setProfile: (profile: Profile | null) => void;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   initAuth: () => () => void;
@@ -24,7 +31,7 @@ interface AuthState {
 
 // Module-level singleton state — survives React StrictMode
 let subscription: { unsubscribe: () => void } | null = null;
-let isInitializing = false;
+let authInitConsumers = 0;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -34,6 +41,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setUser: (user) => set({ user }),
   setProfile: (profile) => set({ profile }),
+
+  signIn: async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  },
+
+  signUp: async (email, password, metadata = {}) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: metadata },
+    });
+    if (error) throw error;
+    return data;
+  },
 
   signOut: async () => {
     await supabase.auth.signOut();
@@ -58,38 +81,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initAuth: () => {
-    // Prevent double-init in StrictMode — idempotent
-    if (isInitializing) {
-      return () => {};
-    }
-    isInitializing = true;
+    authInitConsumers += 1;
 
-    // Clean up any stale subscription
-    if (subscription) {
-      subscription.unsubscribe();
-      subscription = null;
-    }
-
-    // Subscribe ONCE. Callback must be SYNCHRONOUS — no awaits inside.
-    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const user = session?.user ?? null;
-        set({ user, loading: false, initialized: true });
-        if (!user) {
-          set({ profile: null });
+    // Subscribe once across all useAuth consumers. The callback must stay
+    // synchronous to avoid Supabase auth lock contention.
+    if (!subscription) {
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          const user = session?.user ?? null;
+          set({ user, loading: false, initialized: true });
+          if (!user) {
+            set({ profile: null });
+          }
         }
-      }
-    );
+      );
 
-    subscription = sub;
+      subscription = sub;
+    }
 
-    // Return cleanup
+    // Always return a function so React effect cleanup can never call an
+    // undefined value, even under StrictMode double mounting.
     return () => {
-      if (subscription) {
+      authInitConsumers = Math.max(0, authInitConsumers - 1);
+      if (authInitConsumers === 0 && subscription) {
         subscription.unsubscribe();
         subscription = null;
       }
-      isInitializing = false;
     };
   },
 }));
